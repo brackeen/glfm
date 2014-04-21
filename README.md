@@ -23,7 +23,7 @@ Instead, GLFM can be used with other cross-platform libraries that provide what 
 ## Example
 This example initializes the display in <code>glfm_main()</code> and draws a triangle in <code>onFrame()</code>. A more detailed example is available [here](example/main.c).
 
-```
+```C
 #include "glfm.h"
 #include <string.h>
 
