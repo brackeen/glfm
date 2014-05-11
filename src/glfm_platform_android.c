@@ -139,6 +139,7 @@ static int getSmallestScreenWidthDp(struct android_app *app) {
     return returnValue;
 }
 
+#define ActivityInfo_SCREEN_ORIENTATION_SENSOR 0x00000004
 #define ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE 0x00000006
 #define ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT 0x00000007
 
@@ -152,8 +153,7 @@ static void setOrientation(struct android_app *app) {
         orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
     }
     else {
-        // Any orientation allowed - Do nothing
-        return;
+        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
     }
     
     JavaVM *vm = app->activity->vm;
@@ -828,7 +828,6 @@ void android_main(struct android_app *app) {
         engine->display->colorFormat == GLFMColorFormatRGB565 ? WINDOW_FORMAT_RGB_565 : WINDOW_FORMAT_RGBA_8888);
     ANativeActivity_setWindowFlags(app->activity,
         engine->display->showStatusBar ? 0 : AWINDOW_FLAG_FULLSCREEN, AWINDOW_FLAG_FULLSCREEN);
-    setOrientation(app);
     if (!engine->display->showStatusBar) {
         setFullScreen(app);
     }
@@ -888,6 +887,14 @@ void android_main(struct android_app *app) {
 }
 
 #pragma mark - GLFM implementation
+
+void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfaceOrientation allowedOrientations) {
+    if (display->allowedOrientations != allowedOrientations) {
+        display->allowedOrientations = allowedOrientations;
+        Engine *engine = (Engine*)display->platformData;
+        setOrientation(engine->app);
+    }
+}
 
 GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display) {
     Engine *engine = (Engine*)display->platformData;

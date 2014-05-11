@@ -407,6 +407,23 @@ CGSize getDisplaySize(GLFMDisplay *display)
 
 #pragma mark - GLFM implementation
 
+
+void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfaceOrientation allowedOrientations) {
+    if (display != NULL) {
+        if (display->allowedOrientations != allowedOrientations) {
+            display->allowedOrientations = allowedOrientations;
+            
+            // HACK: Notify that the value of supportedInterfaceOrientations has changed
+            GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
+            UIViewController* dummyVC = [[UIViewController alloc] init];
+            dummyVC.view = [[UIView alloc] init];
+            [vc presentViewController:dummyVC animated:NO completion:^{
+                [vc dismissViewControllerAnimated:NO completion:NULL];
+            }];
+        }
+    }
+}
+
 int glfmGetDisplayWidth(GLFMDisplay *display)
 {
     if (display != NULL && display->platformData != NULL) {

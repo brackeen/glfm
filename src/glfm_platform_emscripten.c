@@ -22,6 +22,29 @@ typedef struct {
 
 #pragma mark - GLFM implementation
 
+void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfaceOrientation allowedOrientations) {
+    if (display->allowedOrientations != allowedOrientations) {
+        display->allowedOrientations = allowedOrientations;
+
+        // Lock orientation
+        // NOTE: I'm not sure this works anywhere yet
+        if (allowedOrientations == GLFMUserInterfaceOrientationPortrait) {
+            emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY |
+                                        EMSCRIPTEN_ORIENTATION_PORTRAIT_SECONDARY);
+        }
+        else if (allowedOrientations == GLFMUserInterfaceOrientationLandscape) {
+            emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_LANDSCAPE_PRIMARY |
+                                        EMSCRIPTEN_ORIENTATION_LANDSCAPE_SECONDARY);
+        }
+        else {
+            emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY |
+                                        EMSCRIPTEN_ORIENTATION_PORTRAIT_SECONDARY |
+                                        EMSCRIPTEN_ORIENTATION_LANDSCAPE_PRIMARY |
+                                        EMSCRIPTEN_ORIENTATION_LANDSCAPE_SECONDARY);
+        }
+    }
+}
+
 int glfmGetDisplayWidth(GLFMDisplay *display) {
     PlatformData *platformData = display->platformData;
     return platformData->width;
@@ -281,17 +304,6 @@ int main(int argc, const char *argv[]) {
     // Main entry
     glfm_main(glfmDisplay);
     
-    // Lock orientation
-    // NOTE: I'm not sure this works anywhere yet
-    if (glfmDisplay->allowedOrientations == GLFMUserInterfaceOrientationPortrait) {
-        emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY |
-                                    EMSCRIPTEN_ORIENTATION_PORTRAIT_SECONDARY);
-    }
-    else if (glfmDisplay->allowedOrientations == GLFMUserInterfaceOrientationLandscape) {
-        emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_LANDSCAPE_PRIMARY |
-                                    EMSCRIPTEN_ORIENTATION_LANDSCAPE_SECONDARY);
-    }
-
     // Init resizable canvas
     EM_ASM({
         var canvas = Module['canvas'];

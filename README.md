@@ -1,7 +1,9 @@
 # GLFM
-GLFM is an OpenGL ES 2.0 layer for mobile devices and the web. It is useful for people who want to write OpenGL ES 2.0 apps in C/C++ without writing platform-specific code. It is largely inspired by [GLFW](http://www.glfw.org/).
+Write OpenGL ES 2.0 code in C/C++ without writing platform-specific code.
 
-GLFM supplies an OpenGL ES context and input events. It is written in C and runs on iOS 7, Android 2.3.3, and WebGL 1.0 (via [Emscripten 1.13.0](https://github.com/kripken/emscripten)).
+GLFM is an OpenGL ES 2.0 layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](http://www.glfw.org/).
+
+GLFM is written in C and runs on iOS 7, Android 2.3.3, and WebGL 1.0 (via [Emscripten 1.13.0](https://github.com/kripken/emscripten)).
 
 ## Features
 * OpenGL ES 2.0 display setup.
@@ -10,7 +12,7 @@ GLFM supplies an OpenGL ES context and input events. It is written in C and runs
 * Events for application state and context loss. 
 
 ## Non-goals
-GLFM is limited in scope, and isn't designed to provide everything needed for an app.  For example, GLFM doesn't provide (and will never provide) the following:
+GLFM is limited in scope, and isn't designed to provide everything needed for an app. For example, GLFM doesn't provide (and will never provide) the following:
 
 * No image loading. 
 * No text rendering.
@@ -39,7 +41,6 @@ void glfm_main(GLFMDisplay *display) {
                          GLFMColorFormatRGBA8888,
                          GLFMDepthFormatNone,
                          GLFMStencilFormatNone,
-                         GLFMUserInterfaceOrientationAny,
                          GL_FALSE);
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
     glfmSetSurfaceResizedFunc(display, onSurfaceCreated);
@@ -119,13 +120,13 @@ See [glfm.h](include/glfm.h)
 The fastest way to get started is to make a copy of the repo and open the [example project](example) in Xcode or Eclipse. 
 
 ### iOS (XCode)
-1. Create a new project with the "iOS => Application => Empty Application" template.
+1. Create a new project with the "iOS Empty Application" template.
 2. Delete `AppDelegate.h`, `AppDelegate.m`, and `main.m`.
 3. Add the GLFM source files (in `include` and `src`) to the project.
 4. Create a new C/C++ file with a <code>void glfm_main(GLFMDisplay *display)</code> function.
 
 ### Android (Eclipse)
-Make sure the latest [ADT plugin](http://developer.android.com/sdk/installing/installing-adt.html) and [NDK](https://developer.android.com/tools/sdk/ndk/index.html) in installed.
+Make sure the latest [ADT plugin](http://developer.android.com/sdk/installing/installing-adt.html) and [NDK](https://developer.android.com/tools/sdk/ndk/index.html) is installed.
 
 1. Create a new Android application project. Name it something like GLFMTest.
 2. Right click the project, then select "Android Tools => Add Native Support"
@@ -147,7 +148,7 @@ include $(BUILD_SHARED_LIBRARY)
 
 $(call import-module,android/native_app_glue)
 ```
-... and edit `AndroidManifest.xml` to have an <code>&lt;application&gt;</code> tag that looks something like this:
+... and edit `AndroidManifest.xml` to have an <code>&lt;activity&gt;</code> tag that looks something like this:
 
 ```
 <activity 

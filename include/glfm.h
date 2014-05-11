@@ -173,12 +173,17 @@ void glfmSetDisplayConfig(GLFMDisplay *display,
                           const GLFMColorFormat colorFormat,
                           const GLFMDepthFormat depthFormat,
                           const GLFMStencilFormat stencilFormat,
-                          const GLFMUserInterfaceOrientation allowedOrientations,
                           const GLboolean hideStatusBar);
 
 void glfmSetUserData(GLFMDisplay *display, void *userData);
 
 void *glfmGetUserData(GLFMDisplay *display);
+ 
+/// Sets the allowed user interface orientations
+void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfaceOrientation allowedOrientations);
+   
+/// Returns the allowed user interface orientations
+GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *display);
     
 /// Sets whether multitouch input is enabled. By default, multitouch is disabled.
 void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEnabled);

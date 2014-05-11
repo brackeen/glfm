@@ -47,15 +47,20 @@ void glfmSetDisplayConfig(GLFMDisplay *display,
                           const GLFMColorFormat colorFormat,
                           const GLFMDepthFormat depthFormat,
                           const GLFMStencilFormat stencilFormat,
-                          const GLFMUserInterfaceOrientation allowedOrientations,
                           const GLboolean showStatusBar) {
     if (display != NULL) {
         display->colorFormat = colorFormat;
         display->depthFormat = depthFormat;
         display->stencilFormat = stencilFormat;
-        display->allowedOrientations = allowedOrientations;
         display->showStatusBar = showStatusBar;
     }
+}
+    
+GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *display) {
+    if (display != NULL) {
+        return display->allowedOrientations;
+    }
+    return GLFMUserInterfaceOrientationAny;
 }
     
 void glfmSetUserData(GLFMDisplay *display, void *userData) {
