@@ -15,12 +15,14 @@
 @property (strong, nonatomic) EAGLContext *context;
 @property (nonatomic) GLFMDisplay *glfmDisplay;
 @property (nonatomic) CGSize displaySize;
+@property (nonatomic) BOOL multipleTouchEnabled;
+@property (nonatomic) BOOL glkViewCreated;
 
 @end
 
 @implementation GLFMViewController
 
-- (id)init 
+- (id)init
 {
     if ((self = [super init])) {
         activeTouches = [[NSMutableDictionary alloc] init];
@@ -44,7 +46,7 @@
         return CGSizeMake(view.drawableWidth, view.drawableHeight);
     }
     isPortrait = UIInterfaceOrientationIsPortrait(self.interfaceOrientation);
-
+    
     CGFloat scale = [UIScreen mainScreen].scale;
     CGSize size = [UIScreen mainScreen].bounds.size;
     if (isPortrait) {
@@ -61,6 +63,8 @@
     
     GLKView *view = (GLKView *)self.view;
     
+    view.multipleTouchEnabled = self.multipleTouchEnabled;
+    self.glkViewCreated = YES;
     self.displaySize = [self calcDisplaySize];
     self.context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
     
@@ -149,7 +153,7 @@
 }
 
 - (void)dealloc
-{    
+{
     if ([EAGLContext currentContext] == self.context) {
         [EAGLContext setCurrentContext:nil];
     }
@@ -163,7 +167,7 @@
         if (_glfmDisplay->surfaceResizedFunc != NULL) {
             _glfmDisplay->surfaceResizedFunc(_glfmDisplay, self.displaySize.width, self.displaySize.height);
         }
-
+        
     }
     if (_glfmDisplay->mainLoopFunc != NULL) {
         _glfmDisplay->mainLoopFunc(_glfmDisplay, self.timeSinceFirstResume);
@@ -234,7 +238,7 @@
     if (_glfmDisplay->keyFunc == NULL) {
         return @[];
     }
-
+    
     static NSArray *keyCommands = NULL;
     if (keyCommands == NULL) {
         keyCommands = @[ [UIKeyCommand keyCommandWithInput:UIKeyInputUpArrow
@@ -465,8 +469,11 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEn
 {
     if (display != NULL) {
         GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
-        GLKView *view = (GLKView *)vc.view;
-        view.multipleTouchEnabled = multitouchEnabled;
+        vc.multipleTouchEnabled = multitouchEnabled;
+        if (vc.glkViewCreated) {
+            GLKView *view = (GLKView *)vc.view;
+            view.multipleTouchEnabled = multitouchEnabled;
+        }
     }
 }
 
@@ -474,8 +481,7 @@ GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display)
 {
     if (display != NULL) {
         GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
-        GLKView *view = (GLKView *)vc.view;
-        return view.multipleTouchEnabled;
+        return vc.multipleTouchEnabled;
     }
     else {
         return 0;
