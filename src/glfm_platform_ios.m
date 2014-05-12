@@ -108,6 +108,8 @@
     self.preferredFramesPerSecond = 60;
     [self setNeedsStatusBarAppearanceUpdate];
     
+    [view bindDrawable];
+
     if (_glfmDisplay->surfaceCreatedFunc != NULL) {
         _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, self.displaySize.width, self.displaySize.height);
     }
