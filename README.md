@@ -10,6 +10,7 @@ GLFM is written in C and runs on iOS 7, Android 2.3.3, and WebGL 1.0 (via [Emscr
 * Retina / high-DPI support.
 * Touch and keyboard events. 
 * Events for application state and context loss. 
+* API to get file assets (from the bundle on iOS, and the APK assets on Android)
 
 ## Non-goals
 GLFM is limited in scope, and isn't designed to provide everything needed for an app. For example, GLFM doesn't provide (and will never provide) the following:
@@ -116,55 +117,14 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 ## API
 See [glfm.h](include/glfm.h)
 
-## Project setup
-The fastest way to get started is to make a copy of the repo and open the [example project](example) in Xcode or Eclipse. 
+## Project setup (XCode)
+The fastest way to get started is to make a copy of the repo and open the [example project](example) in Xcode or Eclipse. However, here's how to create a new project for iOS, in Xcode:
 
-### iOS (XCode)
 1. Create a new project with the "iOS Empty Application" template.
 2. Delete `AppDelegate.h`, `AppDelegate.m`, and `main.m`.
 3. Add the GLFM source files (in `include` and `src`) to the project.
 4. Create a new C/C++ file with a <code>void glfm_main(GLFMDisplay *display)</code> function.
 
-### Android (Eclipse)
-Make sure the latest [ADT plugin](http://developer.android.com/sdk/installing/installing-adt.html) and [NDK](https://developer.android.com/tools/sdk/ndk/index.html) is installed.
-
-1. Create a new Android application project. Name it something like GLFMTest.
-2. Right click the project, then select "Android Tools => Add Native Support"
-3. Add the GLFM source files  (in `include` and `src`) to the project.
-4. Create a new C/C++ file with a <code>void glfm_main(GLFMDisplay *display)</code> function.
-5. Edit `jni/Android.mk` to look something like this:
-
-```
-LOCAL_PATH := $(call my-dir)
-
-include $(CLEAR_VARS)
-
-LOCAL_MODULE    := GLFMTest
-LOCAL_SRC_FILES := glfm_platform_android.c main.c
-LOCAL_LDLIBS := -llog -landroid -lEGL -lGLESv2
-LOCAL_STATIC_LIBRARIES := android_native_app_glue
-
-include $(BUILD_SHARED_LIBRARY)
-
-$(call import-module,android/native_app_glue)
-```
-... and edit `AndroidManifest.xml` to have an <code>&lt;activity&gt;</code> tag that looks something like this:
-
-```
-<activity 
-    android:name="android.app.NativeActivity"
-    android:label="@string/app_name"
-    android:configChanges="orientation|screenSize|keyboardHidden|keyboard">
-    
-    <meta-data 
-        android:name="android.app.lib_name"
-        android:value="GLFMTest" />
-    <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-    </intent-filter>
-</activity>
-```
 ## Future ideas
 * OpenGL ES 3.0 and 3.1 support.
 * Accelerometer and gyroscope input.
