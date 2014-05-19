@@ -39,7 +39,6 @@ extern "C" {
 #elif defined(__EMSCRIPTEN__)
   #define GLFM_PLATFORM_EMSCRIPTEN
   #define _POSIX_SOURCE // For fileno()
-  #include <stdlib.h> // For size_t
 #elif defined(__APPLE__)
   #include <TargetConditionals.h>
   #if TARGET_OS_IPHONE
@@ -50,6 +49,8 @@ extern "C" {
 #else
   #error Unknown platform 
 #endif
+
+#include <stdlib.h> // For size_t
 
 //
 // OpenGL ES 2.0 includes
