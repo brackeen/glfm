@@ -985,9 +985,12 @@ int glfmAssetSeek(GLFMAsset *asset, long offset, int whence) {
 }
 
 void glfmAssetClose(GLFMAsset *asset) {
-    if (asset != NULL && asset->asset != NULL) {
-        AAsset_close(asset->asset);
-        asset->asset = NULL;
+    if (asset != NULL) {
+        if (asset->asset != NULL) {
+            AAsset_close(asset->asset);
+            asset->asset = NULL;
+        }
+        free(asset);
     }
 }
 
