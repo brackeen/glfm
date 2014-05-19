@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+
+#define GLFM_ASSETS_USE_STDIO
 #include "glfm_platform.h"
 
 typedef struct {
@@ -21,6 +23,10 @@ typedef struct {
 } PlatformData;
 
 #pragma mark - GLFM implementation
+
+static const char *glfmGetAssetPath() {
+    return "";
+}
 
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfaceOrientation allowedOrientations) {
     if (display->allowedOrientations != allowedOrientations) {

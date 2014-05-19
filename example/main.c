@@ -91,31 +91,23 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
     app->vertexBuffer = 0;
 }
 
-static GLuint compileShader(const GLenum type, const GLchar *shaderString) {
-    const GLint shaderLength = (GLint)strlen(shaderString);
+static GLuint compileShader(const GLenum type, const char *shaderName) {
+    GLFMAsset *asset = glfmAssetOpen(shaderName);
+    const GLint shaderLength = (GLint)glfmAssetGetLength(asset);
+    const char *shaderString = glfmAssetGetBuffer(asset);
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &shaderString, &shaderLength);
     glCompileShader(shader);
+    glfmAssetClose(asset);
     return shader;
 }
 
 static void onFrame(GLFMDisplay *display, const double frameTime) {
     ExampleApp *app = glfmGetUserData(display);
     if (app->program == 0) {
-        const GLchar *vertexShader =
-            "attribute highp vec4 position;\n"
-            "void main() {\n"
-            "   gl_Position = position;\n"
-            "}";
-        
-        const GLchar *fragmentShader =
-            "void main() {\n"
-            "  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
-            "}";
-
         app->program = glCreateProgram();
-        GLuint vertShader = compileShader(GL_VERTEX_SHADER, vertexShader);
-        GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, fragmentShader);
+        GLuint vertShader = compileShader(GL_VERTEX_SHADER, "simple.vert");
+        GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, "simple.frag");
         
         glAttachShader(app->program, vertShader);
         glAttachShader(app->program, fragShader);

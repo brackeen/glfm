@@ -4,6 +4,8 @@
 
 #import <UIKit/UIKit.h>
 #import <GLKit/GLKit.h>
+
+#define GLFM_ASSETS_USE_STDIO
 #include "glfm_platform.h"
 
 #pragma mark - ViewController
@@ -413,6 +415,13 @@ CGSize getDisplaySize(GLFMDisplay *display)
 
 #pragma mark - GLFM implementation
 
+static const char *glfmGetAssetPath() {
+    static char *path = NULL;
+    if (path == NULL) {
+        path = strdup([NSBundle mainBundle].bundlePath.UTF8String);
+    }
+    return path;
+}
 
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfaceOrientation allowedOrientations) {
     if (display != NULL) {

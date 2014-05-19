@@ -8,6 +8,7 @@
 #include <jni.h>
 #include <android/window.h>
 #include <android/log.h>
+#include <android/asset_manager.h>
 #include <android_native_app_glue.h>
 #include "glfm_platform.h"
 
@@ -924,6 +925,79 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEn
 GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display) {
     Engine *engine = (Engine*)display->platformData;
     return engine->multitouchEnabled;
+}
+
+#pragma mark - GLFM Asset reading
+
+struct GLFMAsset {
+    AAsset* asset;
+};
+
+GLFMAsset *glfmAssetOpen(const char *name) {
+    AAssetManager *assetManager = engineGlobal->app->activity->assetManager;
+    GLFMAsset *asset = calloc(1, sizeof(GLFMAsset));
+    if (asset != NULL) {
+        asset->asset = AAssetManager_open(assetManager, name, AASSET_MODE_UNKNOWN);
+        if (asset->asset == NULL) {
+            free(asset);
+            return NULL;
+        }
+    }
+    return asset;
+}
+
+size_t glfmAssetGetLength(GLFMAsset *asset) {
+    if (asset == NULL || asset->asset == NULL) {
+        return 0;
+    }
+    else {
+        return AAsset_getLength(asset->asset);
+    }
+}
+
+size_t glfmAssetRead(GLFMAsset *asset, void *buffer, size_t count) {
+    if (asset == NULL || asset->asset == NULL) {
+        return 0;
+    }
+    else {
+        int ret = AAsset_read(asset->asset, buffer, count);
+        if (ret <= 0) {
+            return 0;
+        }
+        return ret;
+    }
+    
+}
+
+int glfmAssetSeek(GLFMAsset *asset, long offset, int whence) {
+    if (asset == NULL || asset->asset == NULL) {
+        return -1;
+    }
+    else {
+        off_t ret = AAsset_seek(asset->asset, offset, whence);
+        if (ret == (off_t)-1) {
+            return -1;
+        }
+        else {
+            return 0;
+        }
+    }
+}
+
+void glfmAssetClose(GLFMAsset *asset) {
+    if (asset != NULL && asset->asset != NULL) {
+        AAsset_close(asset->asset);
+        asset->asset = NULL;
+    }
+}
+
+const void *glfmAssetGetBuffer(GLFMAsset *asset) {
+    if (asset == NULL || asset->asset == NULL) {
+        return NULL;
+    }
+    else {
+        return AAsset_getBuffer(asset->asset);
+    }
 }
 
 #endif

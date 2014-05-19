@@ -14,7 +14,7 @@ INCLUDES = -I $(ROOT)/include
 SOURCES = $(ROOT)/src/glfm_platform_emscripten.c $(ROOT)/example/main.c
 
 build: init
-	emcc -Wall -O2 -std=c99 --shell-file shell.html $(INCLUDES) -o $(BIN)/$(OUT_NAME).html $(SOURCES)
+	emcc -Wall -O2 -std=c99 --shell-file shell.html --preload-file $(ROOT)/example/assets@/ $(INCLUDES) -o $(BIN)/$(OUT_NAME).html $(SOURCES)
 
 init:
 	mkdir -p $(BIN)

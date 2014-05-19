@@ -38,6 +38,8 @@ extern "C" {
   #define GLFM_PLATFORM_ANDROID
 #elif defined(__EMSCRIPTEN__)
   #define GLFM_PLATFORM_EMSCRIPTEN
+  #define _POSIX_SOURCE // For fileno()
+  #include <stdlib.h> // For size_t
 #elif defined(__APPLE__)
   #include <TargetConditionals.h>
   #if TARGET_OS_IPHONE
@@ -130,6 +132,7 @@ typedef enum {
 //
 
 typedef struct GLFMDisplay GLFMDisplay;
+typedef struct GLFMAsset GLFMAsset;
     
 /// Main loop callback function. The frame time is in seconds, and is not related to wall time.
 typedef void (*GLFMMainLoopFunc)(GLFMDisplay*, const double frameTime);
@@ -236,7 +239,30 @@ void glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMem
 void glfmSetAppPausingFunc(GLFMDisplay *display, GLFMAppPausingFunc pausingFunc);
 
 void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFunc);
+    
+//
+// File input - Reading assets.
+// NOTE: Normal file operations (fopen, fread, fseek) can't be used on regular Android assets inside the APK.
+//
 
+/// Opens an asset (from the "bundle" on iOS, "assets" on Android). The asset must be closed with glfmAssetClose().
+GLFMAsset *glfmAssetOpen(const char *name);
+    
+size_t glfmAssetGetLength(GLFMAsset *asset);
+
+/// Reads 'count' bytes from the file. Returns number of bytes read.
+size_t glfmAssetRead(GLFMAsset *asset, void *buffer, size_t count);
+
+/// Sets the position of the asset. 'whence' is the same as fseek: SEEK_SET, SEEK_CUR, or SEEK_END.
+/// Returns 0 on success.
+int glfmAssetSeek(GLFMAsset *asset, long offset, int whence);
+
+/// Closes the asset, releasing any resources.
+void glfmAssetClose(GLFMAsset *asset);
+
+/// Gets the asset contents as a buffer, memory-mapping if possible. The buffer is freed in glfmAssetClose().
+const void *glfmAssetGetBuffer(GLFMAsset *asset);
+    
 #ifdef __cplusplus
 }
 #endif
