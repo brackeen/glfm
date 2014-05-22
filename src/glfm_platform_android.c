@@ -181,7 +181,7 @@ jnifail:
 static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome) {
     
     const int SDK_INT = app->activity->sdkVersion;
-    if (SDK_INT < 11 || uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
+    if (SDK_INT < 11) {
         return;
     }
     /*
@@ -238,7 +238,7 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
             jmethodID setSystemUiVisibility = (*jni)->GetMethodID(jni, decorViewClass, "setSystemUiVisibility", "(I)V");
             EXCEPTION_CHECK()
             
-            if (uiChrome == uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
+            if (uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
                 (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility, 0);
             }
             else if (SDK_INT >= 11 && SDK_INT < 14) {
