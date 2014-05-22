@@ -696,6 +696,12 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                      case AKEYCODE_SPACE:
                          key = GLFMKeySpace;
                          break;
+                     case AKEYCODE_BACK:
+                         key = GLFMKeyNavBack;
+                         break;
+                     case AKEYCODE_MENU:
+                         key = GLFMKeyNavMenu;
+                         break;
                  }
                  
                  if (key == 0) {
