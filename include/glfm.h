@@ -148,6 +148,14 @@ typedef enum {
     GLFMKeyActionRepeated,
     GLFMKeyActionReleased,
 } GLFMKeyAction;
+    
+typedef enum {
+    GLFMLogLevelDebug = 0,
+    GLFMLogLevelInfo,
+    GLFMLogLevelWarning,
+    GLFMLogLevelError,
+    GLFMLogLevelCritical,
+} GLFMLogLevel;
 
 //
 // Structs and function pointers
@@ -261,6 +269,8 @@ void glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMem
 void glfmSetAppPausingFunc(GLFMDisplay *display, GLFMAppPausingFunc pausingFunc);
 
 void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFunc);
+
+void glfmLog(const GLFMLogLevel logLevel, const char *format, ...) __attribute__((__format__ (__printf__, 2, 3)));
     
 //
 // File input - Reading assets.
@@ -284,7 +294,7 @@ void glfmAssetClose(GLFMAsset *asset);
 
 /// Gets the asset contents as a buffer, memory-mapping if possible. The buffer is freed in glfmAssetClose().
 const void *glfmAssetGetBuffer(GLFMAsset *asset);
-    
+
 #ifdef __cplusplus
 }
 #endif

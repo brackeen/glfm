@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include <time.h>
 
 #define GLFM_ASSETS_USE_STDIO
 #include "glfm_platform.h"
@@ -78,6 +79,42 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEn
 GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display) {
     PlatformData *platformData = display->platformData;
     return platformData->multitouchEnabled;
+}
+
+void glfmLog(const GLFMLogLevel logLevel, const char *format, ...) {
+    char *level;
+    switch (logLevel) {
+        case GLFMLogLevelDebug:
+            level = "Debug";
+            break;
+        case GLFMLogLevelInfo: default:
+            level = "Info";
+            break;
+        case GLFMLogLevelWarning:
+            level = "Warning";
+            break;
+        case GLFMLogLevelError:
+            level = "Error";
+            break;
+        case GLFMLogLevelCritical:
+            level = "Critical";
+            break;
+    }
+    // Get time
+    char timeBuffer[64];
+    time_t timer;
+    time(&timer);
+    strftime(timeBuffer, 64, "%Y-%m-%d %H:%M:%S", localtime(&timer));
+    
+    // Print prefix (time and log level)
+    printf("%s GLFM %s: ", timeBuffer, level);
+    
+    // Print message
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    printf("\n");
 }
 
 #pragma mark - Emscripten glue

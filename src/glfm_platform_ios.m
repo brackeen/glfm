@@ -4,13 +4,15 @@
 
 #import <UIKit/UIKit.h>
 #import <GLKit/GLKit.h>
+#include <asl.h>
 
 #define GLFM_ASSETS_USE_STDIO
 #include "glfm_platform.h"
 
 #pragma mark - ViewController
 
-@interface GLFMViewController : GLKViewController {
+@interface GLFMViewController : GLKViewController
+{
     NSMutableDictionary *activeTouches;
 }
 
@@ -180,7 +182,8 @@
 
 #pragma mark - UIResponder
 
-- (void)addTouchEvent:(UITouch*)touch withType:(GLFMTouchPhase)phase {
+- (void)addTouchEvent:(UITouch*)touch withType:(GLFMTouchPhase)phase
+{
     NSValue *key = [NSValue valueWithPointer: (const void*)touch];
     NSNumber *value = [activeTouches objectForKey: key];
     if (value == nil) {
@@ -203,25 +206,29 @@
     }
 }
 
-- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
     for (UITouch *touch in touches) {
         [self addTouchEvent:touch withType:GLFMTouchPhaseBegan];
     }
 }
 
-- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
+- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
+{
     for (UITouch *touch in touches) {
         [self addTouchEvent:touch withType:GLFMTouchPhaseMoved];
     }
 }
 
-- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
+- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+{
     for (UITouch *touch in touches) {
         [self addTouchEvent:touch withType:GLFMTouchPhaseEnded];
     }
 }
 
-- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
+- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
+{
     for (UITouch *touch in touches) {
         [self addTouchEvent:touch withType:GLFMTouchPhaseCancelled];
     }
@@ -338,7 +345,8 @@
     return YES;
 }
 
-- (void)setActive:(BOOL)active {
+- (void)setActive:(BOOL)active
+{
     if (_active != active) {
         _active = active;
         
@@ -415,7 +423,8 @@ CGSize getDisplaySize(GLFMDisplay *display)
 
 #pragma mark - GLFM implementation
 
-static const char *glfmGetAssetPath() {
+static const char *glfmGetAssetPath()
+{
     static char *path = NULL;
     if (path == NULL) {
         path = strdup([NSBundle mainBundle].bundlePath.UTF8String);
@@ -423,7 +432,8 @@ static const char *glfmGetAssetPath() {
     return path;
 }
 
-void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfaceOrientation allowedOrientations) {
+void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfaceOrientation allowedOrientations)
+{
     if (display != NULL) {
         if (display->allowedOrientations != allowedOrientations) {
             display->allowedOrientations = allowedOrientations;
@@ -497,6 +507,43 @@ GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display)
     else {
         return 0;
     }
+}
+
+void glfmLog(const GLFMLogLevel logLevel, const char *format, ...)
+{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        // NOTE: This method requires Mac OS X 10.9 or iOS 7.
+        // Older platforms would use asl_add_log_file(NULL, STDERR_FILENO) instead.
+        // Would like to have milliseconds here too (like NSLog), but it doesn't appear to be possible.
+        asl_add_output_file(NULL, STDERR_FILENO,
+                            "$((Time)(J)) $(Sender)[$(PID)] $((Level)(str)): $Message",
+                            ASL_TIME_FMT_UTC, ASL_FILTER_MASK_UPTO(ASL_LEVEL_DEBUG), ASL_ENCODE_SAFE);
+    });
+    
+    int level;
+    switch (logLevel) {
+        case GLFMLogLevelDebug:
+            level = ASL_LEVEL_DEBUG;
+            break;
+        case GLFMLogLevelInfo: default:
+            level = ASL_LEVEL_INFO;
+            break;
+        case GLFMLogLevelWarning:
+            level = ASL_LEVEL_WARNING;
+            break;
+        case GLFMLogLevelError:
+            level = ASL_LEVEL_ERR;
+            break;
+        case GLFMLogLevelCritical:
+            level = ASL_LEVEL_CRIT;
+            break;
+    }
+    
+    va_list args;
+    va_start(args, format);
+    asl_vlog(NULL, NULL, level, format, args);
+    va_end(args);
 }
 
 #endif
