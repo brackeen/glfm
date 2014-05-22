@@ -16,7 +16,7 @@ struct GLFMDisplay {
     GLFMDepthFormat depthFormat;
     GLFMStencilFormat stencilFormat;
     GLFMUserInterfaceOrientation allowedOrientations;
-    GLboolean showStatusBar;
+    GLFMUserInterfaceChrome uiChrome;
     
     // Callbacks
     GLFMMainLoopFunc mainLoopFunc;
@@ -47,12 +47,12 @@ void glfmSetDisplayConfig(GLFMDisplay *display,
                           const GLFMColorFormat colorFormat,
                           const GLFMDepthFormat depthFormat,
                           const GLFMStencilFormat stencilFormat,
-                          const GLboolean showStatusBar) {
+                          const GLFMUserInterfaceChrome uiChrome) {
     if (display != NULL) {
         display->colorFormat = colorFormat;
         display->depthFormat = depthFormat;
         display->stencilFormat = stencilFormat;
-        display->showStatusBar = showStatusBar;
+        display->uiChrome = uiChrome;
     }
 }
     

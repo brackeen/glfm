@@ -178,14 +178,15 @@ jnifail:
     (*vm)->DetachCurrentThread(vm);
 }
 
-static void setFullScreen(struct android_app *app) {
+static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome) {
     
     const int SDK_INT = app->activity->sdkVersion;
-    if (SDK_INT < 11) {
+    if (SDK_INT < 11 || uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
         return;
     }
     /*
      // Equivalent to this Java code:
+     // Note, View.STATUS_BAR_HIDDEN and View.SYSTEM_UI_FLAG_LOW_PROFILE are identical
      int SDK_INT = android.os.Build.VERSION.SDK_INT;
      if (SDK_INT >= 11 && SDK_INT < 14) {
          getWindow().getDecorView().setSystemUiVisibility(View.STATUS_BAR_HIDDEN);
@@ -237,15 +238,28 @@ static void setFullScreen(struct android_app *app) {
             jmethodID setSystemUiVisibility = (*jni)->GetMethodID(jni, decorViewClass, "setSystemUiVisibility", "(I)V");
             EXCEPTION_CHECK()
             
-            if (SDK_INT >= 11 && SDK_INT < 14) {
+            if (uiChrome == uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
+                (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility, 0);
+            }
+            else if (SDK_INT >= 11 && SDK_INT < 14) {
                 (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility, 0x00000001);
             }
             else if (SDK_INT >= 14 && SDK_INT < 19) {
-                (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility, 0x00000001 | 0x00000004);
+                if (uiChrome == GLFMUserInterfaceChromeNavigation) {
+                    (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility, 0x00000004);
+                }
+                else {
+                    (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility, 0x00000001 | 0x00000004);
+                }
             }
             else if (SDK_INT >= 19) {
-                (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility,
-                                       0x00000002 | 0x00000004 | 0x00000100 | 0x00000200 | 0x00000400 | 0x00001000);
+                if (uiChrome == GLFMUserInterfaceChromeNavigation) {
+                    (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility, 0x00000004);
+                }
+                else {
+                    (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility,
+                        0x00000002 | 0x00000004 | 0x00000100 | 0x00000200 | 0x00000400 | 0x00001000);
+                }
             }
             EXCEPTION_CHECK()
         }
@@ -617,9 +631,7 @@ static void app_cmd_callback(struct android_app *app, int32_t cmd) {
         case APP_CMD_START:
         {
             LOG_LIFECYCLE("APP_CMD_START");
-            if (!engine->display->showStatusBar) {
-                setFullScreen(app);
-            }
+            setFullScreen(app, engine->display->uiChrome);
             break;
         }
         case APP_CMD_RESUME:
@@ -828,10 +840,9 @@ void android_main(struct android_app *app) {
     ANativeActivity_setWindowFormat(app->activity,
         engine->display->colorFormat == GLFMColorFormatRGB565 ? WINDOW_FORMAT_RGB_565 : WINDOW_FORMAT_RGBA_8888);
     ANativeActivity_setWindowFlags(app->activity,
-        engine->display->showStatusBar ? 0 : AWINDOW_FLAG_FULLSCREEN, AWINDOW_FLAG_FULLSCREEN);
-    if (!engine->display->showStatusBar) {
-        setFullScreen(app);
-    }
+        engine->display->uiChrome != GLFMUserInterfaceChromeFullscreen ? 0 : AWINDOW_FLAG_FULLSCREEN,
+        AWINDOW_FLAG_FULLSCREEN);
+    setFullScreen(app, engine->display->uiChrome);
     
     // Check if phone or tablet.
     // Note, smallestScreenWidthDp requires sdk 13

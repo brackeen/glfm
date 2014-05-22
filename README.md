@@ -42,7 +42,7 @@ void glfm_main(GLFMDisplay *display) {
                          GLFMColorFormatRGBA8888,
                          GLFMDepthFormatNone,
                          GLFMStencilFormatNone,
-                         GL_FALSE);
+                         GLFMUserInterfaceChromeFullscreen);
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
     glfmSetSurfaceResizedFunc(display, onSurfaceCreated);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);

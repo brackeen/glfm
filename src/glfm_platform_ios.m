@@ -37,7 +37,7 @@
 
 - (BOOL)prefersStatusBarHidden
 {
-    return !_glfmDisplay->showStatusBar;
+    return _glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
 }
 
 - (CGSize)calcDisplaySize

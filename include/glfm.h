@@ -84,12 +84,31 @@ typedef enum {
     GLFMStencilFormat8,
 } GLFMStencilFormat;
 
+/// GLFMUserInterfaceChrome defines whether system UI chrome (status bar, navigation bar) is shown.
+/// This value is ignored on Emscripten.
+/// GLFMUserInterfaceChromeFullscreen
+///  - Android 2.3: Fullscreen
+///  - Android 4.0 - 4.3: Navigation bar dimmed
+///  - Android 4.4: Fullscreen immersive mode
+///  - iOS: Fullscreen
+/// GLFMUserInterfaceChromeNavigation
+///  - Android: Show the navigation bar
+///  - iOS: Fullscreen
+/// GLFMUserInterfaceChromeNavigationAndStatusBar:
+///  - Android: Show the navigation bar and status bar
+///  - iOS: Show status bar
+typedef enum {
+    GLFMUserInterfaceChromeFullscreen = 0,
+    GLFMUserInterfaceChromeNavigation,
+    GLFMUserInterfaceChromeNavigationAndStatusBar,
+} GLFMUserInterfaceChrome;
+    
 typedef enum {
     GLFMUserInterfaceOrientationAny = 0,
     GLFMUserInterfaceOrientationPortrait,
     GLFMUserInterfaceOrientationLandscape,
 } GLFMUserInterfaceOrientation;
-
+    
 typedef enum {
     GLFMUserInterfaceIdiomPhone = 0,
     GLFMUserInterfaceIdiomTablet,
@@ -177,7 +196,7 @@ void glfmSetDisplayConfig(GLFMDisplay *display,
                           const GLFMColorFormat colorFormat,
                           const GLFMDepthFormat depthFormat,
                           const GLFMStencilFormat stencilFormat,
-                          const GLboolean hideStatusBar);
+                          const GLFMUserInterfaceChrome uiChrome);
 
 void glfmSetUserData(GLFMDisplay *display, void *userData);
 
