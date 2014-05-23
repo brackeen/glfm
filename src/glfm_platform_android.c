@@ -81,61 +81,61 @@ typedef struct {
     float scale;
     
     GLFMDisplay *display;
+    
+    JNIEnv *jniEnv;
 } Engine;
 static Engine *engineGlobal = NULL;
 
 #pragma mark - JNI code
 
-#define EXCEPTION_CHECK() if ((*jni)->ExceptionCheck(jni)) { (*jni)->ExceptionClear(jni); goto jnifail; }
+#define EXCEPTION_CHECK(ret) if ((*jni)->ExceptionCheck(jni)) { (*jni)->ExceptionClear(jni); return ret; }
 
 // Note, AConfiguration_getSmallestScreenWidthDp is only available on SDK 13 and newer.
 // So, call activity.getResources().getConfiguration().smallestScreenWidthDp
 static int getSmallestScreenWidthDp(struct android_app *app) {
     int returnValue = 0;
     if (app->activity->sdkVersion >= 13) {
+        Engine *engine = (Engine*)app->userData;
         JavaVM *vm = app->activity->vm;
-        JNIEnv *jni;
-        (*vm)->AttachCurrentThread(vm, &jni, NULL);
+        JNIEnv *jni = engine->jniEnv;
         if ((*jni)->ExceptionCheck(jni)) {
-            (*vm)->DetachCurrentThread(vm);
             return returnValue;
         }
         
         jclass activityClass = (*jni)->GetObjectClass(jni, app->activity->clazz);
-        EXCEPTION_CHECK()
+        EXCEPTION_CHECK(returnValue)
         
         jmethodID getResources = (*jni)->GetMethodID(jni, activityClass, "getResources",
                                                      "()Landroid/content/res/Resources;");
-        EXCEPTION_CHECK()
+        EXCEPTION_CHECK(returnValue)
         
         jobject res = (*jni)->CallObjectMethod(jni, app->activity->clazz, getResources);
-        EXCEPTION_CHECK();
+        EXCEPTION_CHECK(returnValue);
+        
         if (res != NULL) {
             jclass resClass = (*jni)->GetObjectClass(jni, res);
-            EXCEPTION_CHECK()
+            EXCEPTION_CHECK(returnValue)
             
             jmethodID getConfiguration = (*jni)->GetMethodID(jni, resClass, "getConfiguration",
                                                              "()Landroid/content/res/Configuration;");
-            EXCEPTION_CHECK()
+            EXCEPTION_CHECK(returnValue)
             jobject configuration = (*jni)->CallObjectMethod(jni, res, getConfiguration);
-            EXCEPTION_CHECK();
+            EXCEPTION_CHECK(returnValue);
+            
             if (configuration != NULL) {
                 jclass configurationClass = (*jni)->GetObjectClass(jni, configuration);
-                EXCEPTION_CHECK()
+                EXCEPTION_CHECK(returnValue)
 
                 jfieldID smallestScreenWidthDp = (*jni)->GetFieldID(jni, configurationClass,
                                                                     "smallestScreenWidthDp", "I");
-                EXCEPTION_CHECK()
+                EXCEPTION_CHECK(returnValue)
                 
                 jint value = (*jni)->GetIntField(jni, configuration, smallestScreenWidthDp);
-                EXCEPTION_CHECK()
+                EXCEPTION_CHECK(returnValue)
                 
                 returnValue = value;
             }
         }
-        
-    jnifail:
-        (*vm)->DetachCurrentThread(vm);
     }
     return returnValue;
 }
@@ -158,10 +158,8 @@ static void setOrientation(struct android_app *app) {
     }
     
     JavaVM *vm = app->activity->vm;
-    JNIEnv *jni;
-    (*vm)->AttachCurrentThread(vm, &jni, NULL);
+    JNIEnv *jni = engine->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
-        (*vm)->DetachCurrentThread(vm);
         return;
     }
     
@@ -173,9 +171,6 @@ static void setOrientation(struct android_app *app) {
     
     (*jni)->CallVoidMethod(jni, app->activity->clazz, setRequestedOrientation, orientation);
     EXCEPTION_CHECK()
-    
-jnifail:
-    (*vm)->DetachCurrentThread(vm);
 }
 
 static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome) {
@@ -205,11 +200,10 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
      }
      
      */
+    Engine *engine = (Engine*)app->userData;
     JavaVM *vm = app->activity->vm;
-    JNIEnv *jni;
-    (*vm)->AttachCurrentThread(vm, &jni, NULL);
+    JNIEnv *jni = engine->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
-        (*vm)->DetachCurrentThread(vm);
         return;
     }
     
@@ -264,8 +258,6 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
             EXCEPTION_CHECK()
         }
     }
-jnifail:
-    (*vm)->DetachCurrentThread(vm);
 }
 
 #pragma mark - EGL
@@ -824,6 +816,10 @@ void android_main(struct android_app *app) {
     app->onInputEvent = app_input_callback;
     engine->app = app;
     
+    // Init java env
+    JavaVM *vm = app->activity->vm;
+    (*vm)->AttachCurrentThread(vm, &engine->jniEnv, NULL);
+    
     // Get display scale
     const int32_t density = AConfiguration_getDensity(app->config);
     if (density == ACONFIGURATION_DENSITY_DEFAULT || density == ACONFIGURATION_DENSITY_NONE) {
@@ -892,6 +888,7 @@ void android_main(struct android_app *app) {
                 egl_disable_context(engine);
 #endif
                 set_animating(engine, false);
+                (*vm)->DetachCurrentThread(vm);
                 engine->app = NULL;
                 // App is destroyed, but android_main() can be called again in the same process.
                 return;
