@@ -50,7 +50,7 @@ extern "C" {
   #error Unknown platform 
 #endif
 
-#include <stdlib.h> // For size_t
+#include <stddef.h> // For size_t
 
 //
 // OpenGL ES 2.0 includes
@@ -271,7 +271,19 @@ void glfmSetAppPausingFunc(GLFMDisplay *display, GLFMAppPausingFunc pausingFunc)
 void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFunc);
 
 void glfmLog(const GLFMLogLevel logLevel, const char *format, ...) __attribute__((__format__ (__printf__, 2, 3)));
+
+/// Sets the preference value of the specified key.
+/// If 'value' is NULL, any existing value for the key is cleared.
+/// If 'key' is NULL, this function does nothing.
+/// Both key are value are assumed to be UTF8 encoded.
+void glfmSetPreference(const char *key, const char *value);
     
+/// Returns a newly allocated string representing the preference value of the specified key.
+/// Returns NULL if no value exists for this key, or if 'key' is NULL.
+/// If the return value is not NULL, it should be freed by the calling code.
+/// Both key are value are assumed to be UTF8 encoded.
+const char *glfmGetPreference(const char *key);
+
 //
 // File input - Reading assets.
 // NOTE: Normal file operations (fopen, fread, fseek) can't be used on regular Android assets inside the APK.

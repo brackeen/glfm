@@ -546,4 +546,31 @@ void glfmLog(const GLFMLogLevel logLevel, const char *format, ...)
     va_end(args);
 }
 
+void glfmSetPreference(const char *key, const char *value)
+{
+    if (key != NULL) {
+        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+        NSString *keyString = [NSString stringWithUTF8String:key];
+        if (value == NULL) {
+            [defaults removeObjectForKey:keyString];
+        }
+        else {
+            [defaults setObject:[NSString stringWithUTF8String:value] forKey:keyString];
+        }
+    }
+}
+
+const char *glfmGetPreference(const char *key)
+{
+    const char *value = NULL;
+    if (key != NULL) {
+        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+        NSString *keyString = [NSString stringWithUTF8String:key];
+        NSString *valueString = [defaults stringForKey:keyString];
+        if (valueString != nil) {
+            value = strdup([valueString UTF8String]);
+        }
+    }
+    return value;
+}
 #endif

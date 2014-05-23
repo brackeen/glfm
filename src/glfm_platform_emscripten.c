@@ -23,6 +23,91 @@ typedef struct {
     bool active;
 } PlatformData;
 
+#pragma mark - String util
+
+// Public domain, from Laird Shaw
+static char *replace_str(const char *str, const char *old, const char *new) {
+    if (str == NULL) {
+        return NULL;
+    }
+    char *ret, *r;
+    const char *p, *q;
+    size_t oldlen = strlen(old);
+    size_t count, retlen, newlen = strlen(new);
+    
+    if (oldlen != newlen) {
+        for (count = 0, p = str; (q = strstr(p, old)) != NULL; p = q + oldlen) {
+            count++;
+        }
+        /* this is undefined if p - str > PTRDIFF_MAX */
+        retlen = p - str + strlen(p) + count * (newlen - oldlen);
+    }
+    else {
+        retlen = strlen(str);
+    }
+    
+    if ((ret = malloc(retlen + 1)) == NULL) {
+        return NULL;
+    }
+    
+    for (r = ret, p = str; (q = strstr(p, old)) != NULL; p = q + oldlen) {
+        /* this is undefined if q - p > PTRDIFF_MAX */
+        ptrdiff_t l = q - p;
+        memcpy(r, p, l);
+        r += l;
+        memcpy(r, new, newlen);
+        r += newlen;
+    }
+    strcpy(r, p);
+    
+    return ret;
+}
+
+static char *escape_str(const char *str) {
+    static const char *from[] = {   "\\",   "\'",   "\"",   "\n",   "\r"};
+    static const char *to[]   = { "\\\\", "\\\'", "\\\"", "\\\n", "\\\r", };
+    char *escaped_str = replace_str(str, from[0], to[0]);
+    for (int i = 1; i < 5; i++) {
+        char *new_str = replace_str(escaped_str, from[i], to[i]);
+        free(escaped_str);
+        escaped_str = new_str;
+    }
+    return escaped_str;
+}
+
+// Returns a newly allocated string concatenating the specified strings.
+// Last argument must be '(char *)NULL'.
+static char *vstrcat(const char *s, ...) {
+    if (s == NULL) {
+        return NULL;
+    }
+    
+    char *value;
+    char *p;
+    size_t len = strlen(s);
+    
+    va_list argp;
+    va_start(argp, s);
+    while ((p = va_arg(argp, char *)) != NULL) {
+        len += strlen(p);
+    }
+    va_end(argp);
+    
+    value = malloc(len + 1);
+    if (value == NULL) {
+        return NULL;
+    }
+    
+    strcpy(value, s);
+    va_start(argp, s);
+    while ((p = va_arg(argp, char *)) != NULL) {
+        strcat(value, p);
+    }
+    va_end(argp);
+    
+    return value;
+}
+
 #pragma mark - GLFM implementation
 
 static const char *glfmGetAssetPath() {
@@ -115,6 +200,55 @@ void glfmLog(const GLFMLogLevel logLevel, const char *format, ...) {
     vprintf(format, args);
     va_end(args);
     printf("\n");
+}
+
+// Emscripten currently doesn't have a way to send strings as function arguments (like the EM_ASM_* functions).
+// So, scripts are generated on the fly.
+
+void glfmSetPreference(const char *key, const char *value) {
+    if (key != NULL) {
+        char *script;
+        char *escaped_key = escape_str(key);
+        if (value == NULL) {
+            script = vstrcat("try { window.localStorage.removeItem('", escaped_key, "'); } catch(err) { }",
+                             (char *)NULL);
+        }
+        else {
+            char *escaped_value = escape_str(value);
+            script = vstrcat("try { window.localStorage.setItem('",
+                             escaped_key, "', '", escaped_value, "'); } catch(err) { }", (char *)NULL);
+            free(escaped_value);
+        }
+        free(escaped_key);
+        emscripten_run_script(script);
+        free(script);
+    }
+}
+
+const char *glfmGetPreference(const char *key) {
+    // NOTE: emscripten_run_script_string can't handle null as a return value.
+    // So, first check to see if the key-value exists.
+    const char *value = NULL;
+    if (key != NULL) {
+        char *escaped_key = escape_str(key);
+        char *has_key_script = vstrcat("(function() { try { ",
+                                       "return typeof (window.localStorage.getItem('",
+                                       escaped_key, "')) === 'string'",
+                                       "} catch(err) { return 0; } }())", (char *)NULL);
+        bool hasKey = emscripten_run_script_int(has_key_script);
+        free(has_key_script);
+        if (hasKey) {
+            char *script = vstrcat("(function() { try { ",
+                                   "return window.localStorage.getItem('", escaped_key, "');",
+                                   "} catch(err) { return ''; } }())", (char *)NULL);
+            const char *raw_value = emscripten_run_script_string(script);
+            if (raw_value != NULL) {
+                value = strdup(raw_value);
+            }
+            free(script);
+        }
+    }
+    return value;
 }
 
 #pragma mark - Emscripten glue
