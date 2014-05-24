@@ -1093,8 +1093,8 @@ void glfmSetPreference(const char *key, const char *value) {
     }
 }
 
-const char *glfmGetPreference(const char *key) {
-    const char *value = NULL;
+char *glfmGetPreference(const char *key) {
+    char *value = NULL;
     if (key != NULL) {
         // Apply any edited prefernces
         applyPreferencesIfNeeded();

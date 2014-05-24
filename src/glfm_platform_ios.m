@@ -560,9 +560,9 @@ void glfmSetPreference(const char *key, const char *value)
     }
 }
 
-const char *glfmGetPreference(const char *key)
+char *glfmGetPreference(const char *key)
 {
-    const char *value = NULL;
+    char *value = NULL;
     if (key != NULL) {
         NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
         NSString *keyString = [NSString stringWithUTF8String:key];

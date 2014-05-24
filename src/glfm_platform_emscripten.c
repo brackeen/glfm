@@ -225,10 +225,10 @@ void glfmSetPreference(const char *key, const char *value) {
     }
 }
 
-const char *glfmGetPreference(const char *key) {
+char *glfmGetPreference(const char *key) {
     // NOTE: emscripten_run_script_string can't handle null as a return value.
     // So, first check to see if the key-value exists.
-    const char *value = NULL;
+    char *value = NULL;
     if (key != NULL) {
         char *escaped_key = escape_str(key);
         char *has_key_script = vstrcat("(function() { try { ",

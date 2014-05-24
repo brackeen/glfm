@@ -282,7 +282,7 @@ void glfmSetPreference(const char *key, const char *value);
 /// Returns NULL if no value exists for this key, or if 'key' is NULL.
 /// If the return value is not NULL, it should be freed by the calling code.
 /// Both key are value are assumed to be UTF8 encoded.
-const char *glfmGetPreference(const char *key);
+char *glfmGetPreference(const char *key);
 
 //
 // File input - Reading assets.
