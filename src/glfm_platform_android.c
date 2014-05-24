@@ -60,7 +60,7 @@ typedef struct {
     struct android_app *app;
     
     GLFMUserInterfaceIdiom uiIdiom;
-
+    
     bool multitouchEnabled;
     
     struct timespec initTime;
@@ -104,8 +104,8 @@ static jobject getDefaultSharedPreferences() {
         
         if (preferenceManagerClass != NULL) {
             jmethodID getDefaultSharedPreferences = (*jni)->GetStaticMethodID(jni, preferenceManagerClass,
-                "getDefaultSharedPreferences",
-                "(Landroid/content/Context;)Landroid/content/SharedPreferences;");
+                                                                              "getDefaultSharedPreferences",
+                                                                              "(Landroid/content/Context;)Landroid/content/SharedPreferences;");
             EXCEPTION_CHECK_FAIL()
             
             jobject sharedPreferences = (*jni)->CallStaticObjectMethod(jni,
@@ -120,7 +120,7 @@ static jobject getDefaultSharedPreferences() {
             }
         }
     }
-    jnifail:
+jnifail:
     return engine->sharedPreferences;
 }
 
@@ -154,7 +154,7 @@ static void applyPreferencesIfNeeded() {
     Engine *engine = engineGlobal;
     if (engine->sharedPreferencesEditor != NULL) {
         JNIEnv *jni = engine->jniEnv;
-
+        
         if (!(*jni)->ExceptionCheck(jni)) {
             // Apply preferences
             jclass sharedPreferencesEditorClass = (*jni)->GetObjectClass(jni, engine->sharedPreferencesEditor);
@@ -220,7 +220,7 @@ static int getSmallestScreenWidthDp(struct android_app *app) {
             if (configuration != NULL) {
                 jclass configurationClass = (*jni)->GetObjectClass(jni, configuration);
                 EXCEPTION_CHECK(returnValue)
-
+                
                 jfieldID smallestScreenWidthDp = (*jni)->GetFieldID(jni, configurationClass,
                                                                     "smallestScreenWidthDp", "I");
                 EXCEPTION_CHECK(returnValue)
@@ -279,19 +279,19 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
      // Note, View.STATUS_BAR_HIDDEN and View.SYSTEM_UI_FLAG_LOW_PROFILE are identical
      int SDK_INT = android.os.Build.VERSION.SDK_INT;
      if (SDK_INT >= 11 && SDK_INT < 14) {
-         getWindow().getDecorView().setSystemUiVisibility(View.STATUS_BAR_HIDDEN);
+     getWindow().getDecorView().setSystemUiVisibility(View.STATUS_BAR_HIDDEN);
      }
      else if (SDK_INT >= 14 && SDK_INT < 19) {
-         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN |
-         View.SYSTEM_UI_FLAG_LOW_PROFILE);
+     getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN |
+     View.SYSTEM_UI_FLAG_LOW_PROFILE);
      }
      else if(SDK_INT >= 19) {
-         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
-         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-         | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+     getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
+     | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+     | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+     | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+     | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
      }
      
      */
@@ -347,7 +347,7 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
                 }
                 else {
                     (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility,
-                        0x00000002 | 0x00000004 | 0x00000100 | 0x00000200 | 0x00000400 | 0x00001000);
+                                           0x00000002 | 0x00000004 | 0x00000100 | 0x00000200 | 0x00000400 | 0x00001000);
                 }
             }
             EXCEPTION_CHECK()
@@ -478,7 +478,7 @@ static bool egl_init(Engine *engine) {
     EGLint minorVersion;
     EGLint format;
     EGLint numConfigs;
-
+    
     engine->eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     eglInitialize(engine->eglDisplay, &majorVersion, &minorVersion);
     
@@ -500,7 +500,7 @@ static bool egl_init(Engine *engine) {
         };
         eglChooseConfig(engine->eglDisplay, attribs, &engine->eglConfig, 1, &numConfigs);
     }
-
+    
     if (!numConfigs) {
         static bool printedConfigs = false;
         if (!printedConfigs) {
@@ -519,7 +519,7 @@ static bool egl_init(Engine *engine) {
                 LOGI("Couldn't get any EGL configs");
             }
         }
-
+        
         reportSurfaceError(engine->eglDisplay, "eglChooseConfig() failed");
         eglTerminate(engine->eglDisplay);
         engine->eglDisplay = EGL_NO_DISPLAY;
@@ -617,7 +617,7 @@ static void engine_draw_frame(Engine *engine) {
             engine->display->surfaceResizedFunc(engine->display, width, height);
         }
     }
-
+    
     // Tick and draw
     if (engine->display != NULL && engine->display->mainLoopFunc != NULL) {
         const double frameTime = timespecToSeconds(timespecSubstract(now(), engine->initTime));
@@ -741,7 +741,7 @@ static void app_cmd_callback(struct android_app *app, int32_t cmd) {
             LOG_LIFECYCLE("APP_CMD_DESTROY");
 #ifndef KEEP_CONTEXT
             egl_destroy(engine);
-#else 
+#else
             egl_disable_context(engine);
 #endif
             break;
@@ -755,72 +755,72 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
     Engine *engine = (Engine*)app->userData;
     const int32_t eventType = AInputEvent_getType(event);
     if (eventType == AINPUT_EVENT_TYPE_KEY) {
-         if (engine->display != NULL && engine->display->keyFunc != NULL) {
-             int32_t aKeyCode = AKeyEvent_getKeyCode(event);
-             int32_t aAction = AKeyEvent_getAction(event);
-             if (aKeyCode != 0) {
-                 GLFMKey key = 0;
-                 switch (aKeyCode) {
-                     case AKEYCODE_DPAD_LEFT:
-                         key = GLFMKeyLeft;
-                         break;
-                     case AKEYCODE_DPAD_RIGHT:
-                         key = GLFMKeyRight;
-                         break;
-                     case AKEYCODE_DPAD_UP:
-                         key = GLFMKeyUp;
-                         break;
-                     case AKEYCODE_DPAD_DOWN:
-                         key = GLFMKeyDown;
-                         break;
-                     case AKEYCODE_ENTER:
-                     case AKEYCODE_DPAD_CENTER:
-                         key = GLFMKeyEnter;
-                         break;
-                     case AKEYCODE_TAB:
-                         key = GLFMKeyTab;
-                         break;
-                     case AKEYCODE_SPACE:
-                         key = GLFMKeySpace;
-                         break;
-                     case AKEYCODE_BACK:
-                         key = GLFMKeyNavBack;
-                         break;
-                     case AKEYCODE_MENU:
-                         key = GLFMKeyNavMenu;
-                         break;
-                 }
-                 
-                 if (key == 0) {
-                     if (aKeyCode >= AKEYCODE_0 && aKeyCode <= AKEYCODE_9) {
-                         key = aKeyCode - AKEYCODE_0 + '0';
-                     }
-                     else if (aKeyCode >= AKEYCODE_A && aKeyCode <= AKEYCODE_Z) {
-                         key = aKeyCode - AKEYCODE_A + 'A';
-                     }
-                 }
-
-                 if (key != 0) {
-                     int handled = 0;
-                     if (aAction == AKEY_EVENT_ACTION_UP) {
-                         handled = engine->display->keyFunc(engine->display, key, GLFMKeyActionReleased, 0);
-                     }
-                     else if (aAction == AKEY_EVENT_ACTION_DOWN) {
-                         GLFMKeyAction keyAction = AKeyEvent_getRepeatCount(event) > 0 ? GLFMKeyActionRepeated : GLFMKeyActionPressed;
-                         handled = engine->display->keyFunc(engine->display, key, keyAction, 0);
-                     }
-                     else if (aAction == AKEY_EVENT_ACTION_MULTIPLE) {
-                         int32_t repeatCount;
-                         for (repeatCount = AKeyEvent_getRepeatCount(event); repeatCount > 0; repeatCount--) {
-                             handled |= engine->display->keyFunc(engine->display, key, GLFMKeyActionPressed, 0);
-                             handled |= engine->display->keyFunc(engine->display, key, GLFMKeyActionReleased, 0);
-                         }
-                     }
-                     
-                     return handled;
-                 }
-             }
-         }
+        if (engine->display != NULL && engine->display->keyFunc != NULL) {
+            int32_t aKeyCode = AKeyEvent_getKeyCode(event);
+            int32_t aAction = AKeyEvent_getAction(event);
+            if (aKeyCode != 0) {
+                GLFMKey key = 0;
+                switch (aKeyCode) {
+                    case AKEYCODE_DPAD_LEFT:
+                        key = GLFMKeyLeft;
+                        break;
+                    case AKEYCODE_DPAD_RIGHT:
+                        key = GLFMKeyRight;
+                        break;
+                    case AKEYCODE_DPAD_UP:
+                        key = GLFMKeyUp;
+                        break;
+                    case AKEYCODE_DPAD_DOWN:
+                        key = GLFMKeyDown;
+                        break;
+                    case AKEYCODE_ENTER:
+                    case AKEYCODE_DPAD_CENTER:
+                        key = GLFMKeyEnter;
+                        break;
+                    case AKEYCODE_TAB:
+                        key = GLFMKeyTab;
+                        break;
+                    case AKEYCODE_SPACE:
+                        key = GLFMKeySpace;
+                        break;
+                    case AKEYCODE_BACK:
+                        key = GLFMKeyNavBack;
+                        break;
+                    case AKEYCODE_MENU:
+                        key = GLFMKeyNavMenu;
+                        break;
+                }
+                
+                if (key == 0) {
+                    if (aKeyCode >= AKEYCODE_0 && aKeyCode <= AKEYCODE_9) {
+                        key = aKeyCode - AKEYCODE_0 + '0';
+                    }
+                    else if (aKeyCode >= AKEYCODE_A && aKeyCode <= AKEYCODE_Z) {
+                        key = aKeyCode - AKEYCODE_A + 'A';
+                    }
+                }
+                
+                if (key != 0) {
+                    int handled = 0;
+                    if (aAction == AKEY_EVENT_ACTION_UP) {
+                        handled = engine->display->keyFunc(engine->display, key, GLFMKeyActionReleased, 0);
+                    }
+                    else if (aAction == AKEY_EVENT_ACTION_DOWN) {
+                        GLFMKeyAction keyAction = AKeyEvent_getRepeatCount(event) > 0 ? GLFMKeyActionRepeated : GLFMKeyActionPressed;
+                        handled = engine->display->keyFunc(engine->display, key, keyAction, 0);
+                    }
+                    else if (aAction == AKEY_EVENT_ACTION_MULTIPLE) {
+                        int32_t repeatCount;
+                        for (repeatCount = AKeyEvent_getRepeatCount(event); repeatCount > 0; repeatCount--) {
+                            handled |= engine->display->keyFunc(engine->display, key, GLFMKeyActionPressed, 0);
+                            handled |= engine->display->keyFunc(engine->display, key, GLFMKeyActionReleased, 0);
+                        }
+                    }
+                    
+                    return handled;
+                }
+            }
+        }
     }
     else if (eventType == AINPUT_EVENT_TYPE_MOTION) {
         if (engine->display != NULL && engine->display->touchFunc != NULL) {
@@ -896,7 +896,7 @@ void android_main(struct android_app *app) {
     
     // Make sure glue isn't stripped
     app_dummy();
-
+    
     LOG_LIFECYCLE("android_main");
     
     // Init engine
@@ -925,7 +925,7 @@ void android_main(struct android_app *app) {
     else {
         engine->scale = density / 160.0f;
     }
-
+    
     if (engine->display == NULL) {
         LOG_LIFECYCLE("glfm_main");
         // Only call glfm_main() once per instance
@@ -934,22 +934,22 @@ void android_main(struct android_app *app) {
         engine->display->platformData = engine;
         glfm_main(engine->display);
     }
-
+    
     // Setup window params
     ANativeActivity_setWindowFormat(app->activity,
-        engine->display->colorFormat == GLFMColorFormatRGB565 ? WINDOW_FORMAT_RGB_565 : WINDOW_FORMAT_RGBA_8888);
+                                    engine->display->colorFormat == GLFMColorFormatRGB565 ? WINDOW_FORMAT_RGB_565 : WINDOW_FORMAT_RGBA_8888);
     ANativeActivity_setWindowFlags(app->activity,
-        engine->display->uiChrome != GLFMUserInterfaceChromeFullscreen ? 0 : AWINDOW_FLAG_FULLSCREEN,
-        AWINDOW_FLAG_FULLSCREEN);
+                                   engine->display->uiChrome != GLFMUserInterfaceChromeFullscreen ? 0 : AWINDOW_FLAG_FULLSCREEN,
+                                   AWINDOW_FLAG_FULLSCREEN);
     setFullScreen(app, engine->display->uiChrome);
     
     // Check if phone or tablet.
     // Note, smallestScreenWidthDp requires sdk 13
     if (AConfiguration_getScreenSize(app->config) >= ACONFIGURATION_SCREENSIZE_LARGE &&
-             (app->activity->sdkVersion < 13 ||
-             (app->activity->sdkVersion >= 13 && getSmallestScreenWidthDp(app) >= 600))) {
-        engine->uiIdiom = GLFMUserInterfaceIdiomTablet;
-    }
+        (app->activity->sdkVersion < 13 ||
+         (app->activity->sdkVersion >= 13 && getSmallestScreenWidthDp(app) >= 600))) {
+            engine->uiIdiom = GLFMUserInterfaceIdiomTablet;
+        }
     else {
         engine->uiIdiom = GLFMUserInterfaceIdiomPhone;
     }
@@ -967,21 +967,21 @@ void android_main(struct android_app *app) {
             }
             
             if (ident == LOOPER_ID_USER) {
-//                if (engine->accelerometerSensor != NULL) {
-//                    ASensorEvent event;
-//                    while (ASensorEventQueue_getEvents(engine->sensorEventQueue,
-//                                                       &event, 1) > 0) {
-//                        LOGI("accelerometer: x=%f y=%f z=%f",
-//                             event.acceleration.x, event.acceleration.y,
-//                             event.acceleration.z);
-//                    }
-//                }
+                //                if (engine->accelerometerSensor != NULL) {
+                //                    ASensorEvent event;
+                //                    while (ASensorEventQueue_getEvents(engine->sensorEventQueue,
+                //                                                       &event, 1) > 0) {
+                //                        LOGI("accelerometer: x=%f y=%f z=%f",
+                //                             event.acceleration.x, event.acceleration.y,
+                //                             event.acceleration.z);
+                //                    }
+                //                }
             }
             
             if (app->destroyRequested != 0) {
 #ifndef KEEP_CONTEXT
                 egl_destroy(engine);
-#else 
+#else
                 egl_disable_context(engine);
 #endif
                 set_animating(engine, false);
@@ -1079,12 +1079,12 @@ void glfmSetPreference(const char *key, const char *value) {
             
             jstring keyString = (*jni)->NewStringUTF(jni, key);
             jstring valueString = value == NULL ? NULL : (*jni)->NewStringUTF(jni, value);
-
+            
             jclass sharedPreferencesEditorClass = (*jni)->GetObjectClass(jni, sharedPreferencesEditor);
             EXCEPTION_CHECK()
             
             jmethodID setter = (*jni)->GetMethodID(jni, sharedPreferencesEditorClass, "putString",
-                "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;");
+                                                   "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;");
             EXCEPTION_CHECK()
             
             (*jni)->CallObjectMethod(jni, sharedPreferencesEditor, setter, keyString, valueString);
@@ -1107,14 +1107,14 @@ char *glfmGetPreference(const char *key) {
             jstring keyString = (*jni)->NewStringUTF(jni, key);
             
             jclass sharedPreferencesClass = (*jni)->GetObjectClass(jni, sharedPreferences);
-            EXCEPTION_CHECK()
+            EXCEPTION_CHECK_FAIL()
             
             jmethodID getter = (*jni)->GetMethodID(jni, sharedPreferencesClass, "getString",
                                                    "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
-            EXCEPTION_CHECK()
+            EXCEPTION_CHECK_FAIL()
             
             jstring valueString = (*jni)->CallObjectMethod(jni, sharedPreferences, getter, keyString, NULL);
-            EXCEPTION_CHECK()
+            EXCEPTION_CHECK_FAIL()
             
             if (valueString != NULL) {
                 const char *nativeString = (*jni)->GetStringUTFChars(jni, valueString, 0);
@@ -1123,6 +1123,7 @@ char *glfmGetPreference(const char *key) {
             }
         }
     }
+jnifail:
     return value;
 }
 
