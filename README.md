@@ -10,7 +10,7 @@ GLFM is written in C and runs on iOS 7, Android 2.3.3, and WebGL 1.0 (via [Emscr
 * Retina / high-DPI support.
 * Touch and keyboard events. 
 * Events for application state and context loss. 
-* API to get file assets (from the bundle on iOS, and the APK assets on Android)
+* APIs for asset loading, preferences and logging.
 
 ## Non-goals
 GLFM is limited in scope, and isn't designed to provide everything needed for an app. For example, GLFM doesn't provide (and will never provide) the following:
@@ -131,6 +131,7 @@ The fastest way to get started is to make a copy of the repo and open the [examp
 * Gamepad / MFi controller input.
 
 ## Caveats
+* GLFM is not thread-safe. All GLFM functions must be called on the main thread (that is, from `glfm_main` or from the callback functions).
 * Key input on iOS is not ideal. Using the keyboard (on an iOS device via Bluetooth keyboard or on the simulator via a Mac's keyboard), only a few keys are detected (arrows, enter, space, escape). Also, only key press events can be detected, but not key repeat or key release events.
 * Orientation lock probably doesn't work on HTML5.
 
