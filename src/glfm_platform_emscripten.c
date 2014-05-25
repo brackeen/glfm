@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <time.h>
+#include <sys/time.h>
 
 #define GLFM_ASSETS_USE_STDIO
 #include "glfm_platform.h"
@@ -187,12 +188,14 @@ void glfmLog(const GLFMLogLevel logLevel, const char *format, ...) {
     }
     // Get time
     char timeBuffer[64];
-    time_t timer;
-    time(&timer);
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    time_t timer = tv.tv_sec;
+    int timeMillis = tv.tv_usec / 1000;
     strftime(timeBuffer, 64, "%Y-%m-%d %H:%M:%S", localtime(&timer));
     
     // Print prefix (time and log level)
-    printf("%s GLFM %s: ", timeBuffer, level);
+    printf("%s.%03d GLFM %s: ", timeBuffer, timeMillis, level);
     
     // Print message
     va_list args;
