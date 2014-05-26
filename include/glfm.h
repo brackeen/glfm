@@ -116,7 +116,8 @@ typedef enum {
 } GLFMUserInterfaceIdiom;
     
 typedef enum {
-    GLFMTouchPhaseBegan = 0,
+    GLFMTouchPhaseHover = 0,
+    GLFMTouchPhaseBegan,
     GLFMTouchPhaseMoved,
     GLFMTouchPhaseEnded,
     GLFMTouchPhaseCancelled,

@@ -40,6 +40,9 @@ void glfm_main(GLFMDisplay *display) {
 }
 
 static GLboolean onTouch(GLFMDisplay *display, const int touch, const GLFMTouchPhase phase, const int x, const int y) {
+    if (phase == GLFMTouchPhaseHover) {
+        return GL_FALSE;
+    }
     ExampleApp *app = glfmGetUserData(display);
     if (phase != GLFMTouchPhaseBegan) {
         const float w = glfmGetDisplayWidth(display);

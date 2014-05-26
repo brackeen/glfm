@@ -412,12 +412,12 @@ static EM_BOOL mouseCallback(int eventType, const EmscriptenMouseEvent *e, void 
                 // with buttons down occurs before the "mouseDown" event. So, don't do any mouseMove events
                 // until the first mouse down occurs.
                 if (e->buttons == 0 || !platformData->mouseDown) {
-                    // Not a drag - ignore
-                    // There might be a "hover" event in the future, but not now
-                    return 0;
+                    touchPhase = GLFMTouchPhaseHover;
                 }
-                touchPhase = GLFMTouchPhaseMoved;
-            break;
+                else {
+                    touchPhase = GLFMTouchPhaseMoved;
+                }
+                break;
             
             case EMSCRIPTEN_EVENT_MOUSEUP:
                 touchPhase = GLFMTouchPhaseEnded;
