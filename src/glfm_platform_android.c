@@ -1030,6 +1030,11 @@ float glfmGetDisplayScale(GLFMDisplay *display) {
     return engine->scale;
 }
 
+GLboolean glfmHasTouch(GLFMDisplay *display) {
+    // This will need to change, for say, TV apps
+    return GL_TRUE;
+}
+
 void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEnabled) {
     Engine *engine = (Engine*)display->platformData;
     engine->multitouchEnabled = multitouchEnabled;

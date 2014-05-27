@@ -153,6 +153,12 @@ float glfmGetDisplayScale(GLFMDisplay *display) {
     return platformData->scale;
 }
 
+GLboolean glfmHasTouch(GLFMDisplay *display) {
+    return EM_ASM_INT({
+        return (('ontouchstart' in window) || (navigator.msMaxTouchPoints > 0));
+    }, NULL);
+}
+
 GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display) {
     return GLFMUserInterfaceIdiomWeb;
 }

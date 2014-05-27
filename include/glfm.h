@@ -239,6 +239,9 @@ float glfmGetDisplayScale(GLFMDisplay *display);
 /// Gets the user interface idiom (phone, tablet, or web).
 GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display);
 
+/// Gets whether the display has touch capabilities.
+GLboolean glfmHasTouch(GLFMDisplay *display);
+
 /// Checks if a named OpenGL extension is supported
 GLboolean glfmExtensionSupported(const char *extension);
    

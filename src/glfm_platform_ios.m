@@ -476,6 +476,12 @@ float glfmGetDisplayScale(GLFMDisplay *display)
     return [UIScreen mainScreen].scale;
 }
 
+GLboolean glfmHasTouch(GLFMDisplay *display)
+{
+    // This will need to change, for say, TV apps
+    return GL_TRUE;
+}
+
 GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display)
 {
     if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
