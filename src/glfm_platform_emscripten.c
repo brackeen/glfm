@@ -414,14 +414,11 @@ static EM_BOOL mouseCallback(int eventType, const EmscriptenMouseEvent *e, void 
                 break;
             
             case EMSCRIPTEN_EVENT_MOUSEMOVE:
-                // NOTE: There seems to be a bug in Firefox where sometimes a "mouseMove" event
-                // with buttons down occurs before the "mouseDown" event. So, don't do any mouseMove events
-                // until the first mouse down occurs.
-                if (e->buttons == 0 || !platformData->mouseDown) {
-                    touchPhase = GLFMTouchPhaseHover;
+                if (platformData->mouseDown) {
+                    touchPhase = GLFMTouchPhaseMoved;
                 }
                 else {
-                    touchPhase = GLFMTouchPhaseMoved;
+                    touchPhase = GLFMTouchPhaseHover;
                 }
                 break;
             
