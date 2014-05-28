@@ -1035,6 +1035,10 @@ GLboolean glfmHasTouch(GLFMDisplay *display) {
     return GL_TRUE;
 }
 
+void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
+    // Do nothing
+}
+
 void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEnabled) {
     Engine *engine = (Engine*)display->platformData;
     engine->multitouchEnabled = multitouchEnabled;

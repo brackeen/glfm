@@ -482,6 +482,11 @@ GLboolean glfmHasTouch(GLFMDisplay *display)
     return GL_TRUE;
 }
 
+void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor)
+{
+    // Do nothing
+}
+
 GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display)
 {
     if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {

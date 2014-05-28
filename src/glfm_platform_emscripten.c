@@ -159,6 +159,35 @@ GLboolean glfmHasTouch(GLFMDisplay *display) {
     });
 }
 
+void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
+    // Make sure the javascript array emCursors is refernced properly
+    int emCursor;
+    switch (mouseCursor) {
+        case GLFMMouseCursorAuto: default:
+            emCursor = 0;
+            break;
+        case GLFMMouseCursorNone:
+            emCursor = 1;
+            break;
+        case GLFMMouseCursorDefault:
+            emCursor = 2;
+            break;
+        case GLFMMouseCursorPointer:
+            emCursor = 3;
+            break;
+        case GLFMMouseCursorCrosshair:
+            emCursor = 4;
+            break;
+        case GLFMMouseCursorText:
+            emCursor = 5;
+            break;
+    }
+    EM_ASM_({
+        var emCursors = new Array('auto', 'none', 'default', 'pointer', 'crosshair', 'text' );
+        Module['canvas'].style.cursor = emCursors[$0];
+    }, emCursor);
+}
+
 GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display) {
     return GLFMUserInterfaceIdiomWeb;
 }

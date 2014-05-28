@@ -124,6 +124,15 @@ typedef enum {
 } GLFMTouchPhase;
     
 typedef enum {
+    GLFMMouseCursorAuto = 0,
+    GLFMMouseCursorNone,
+    GLFMMouseCursorDefault,
+    GLFMMouseCursorPointer,
+    GLFMMouseCursorCrosshair,
+    GLFMMouseCursorText
+} GLFMMouseCursor;
+    
+typedef enum {
     GLFMKeyBackspace = 0x08,
     GLFMKeyTab       = 0x09,
     GLFMKeyEnter     = 0x0d,
@@ -241,6 +250,9 @@ GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display);
 
 /// Gets whether the display has touch capabilities.
 GLboolean glfmHasTouch(GLFMDisplay *display);
+    
+/// Sets the mouse cursor (only on platforms with a mouse)
+void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor);
 
 /// Checks if a named OpenGL extension is supported
 GLboolean glfmExtensionSupported(const char *extension);
