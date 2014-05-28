@@ -154,9 +154,9 @@ float glfmGetDisplayScale(GLFMDisplay *display) {
 }
 
 GLboolean glfmHasTouch(GLFMDisplay *display) {
-    return EM_ASM_INT({
+    return EM_ASM_INT_V({
         return (('ontouchstart' in window) || (navigator.msMaxTouchPoints > 0));
-    }, NULL);
+    });
 }
 
 GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display) {
@@ -263,25 +263,25 @@ char *glfmGetPreference(const char *key) {
 #pragma mark - Emscripten glue
 
 static float getDisplayScale(GLFMDisplay *display) {
-    const double v = EM_ASM_DOUBLE({
+    const double v = EM_ASM_DOUBLE_V({
         return window.devicePixelRatio || 1;
-    }, NULL);
+    });
     return v >= 0.0 ? v : 1.0;
 }
 
 static int getDisplayWidth(GLFMDisplay *display) {
-    const double width = EM_ASM_DOUBLE({
+    const double width = EM_ASM_DOUBLE_V({
         var canvas = Module['canvas'];
         return canvas.width;
-    }, NULL);
+    });
     return roundf(width);
 }
 
 static int getDisplayHeight(GLFMDisplay *display) {
-    const double height = EM_ASM_DOUBLE({
+    const double height = EM_ASM_DOUBLE_V({
         var canvas = Module['canvas'];
         return canvas.height;
-    }, NULL);
+    });
     return roundf(height);
 }
 
@@ -529,13 +529,13 @@ int main(int argc, const char *argv[]) {
 
     // Setup callbacks
     emscripten_set_main_loop_arg(mainLoopFunc, glfmDisplay, 0, 0);
-    emscripten_set_touchstart_callback("#canvas", glfmDisplay, 1, touchCallback);
-    emscripten_set_touchend_callback("#canvas", glfmDisplay, 1, touchCallback);
-    emscripten_set_touchmove_callback("#canvas", glfmDisplay, 1, touchCallback);
-    emscripten_set_touchcancel_callback("#canvas", glfmDisplay, 1, touchCallback);
-    emscripten_set_mousedown_callback("#canvas", glfmDisplay, 1, mouseCallback);
-    emscripten_set_mouseup_callback("#canvas", glfmDisplay, 1, mouseCallback);
-    emscripten_set_mousemove_callback("#canvas", glfmDisplay, 1, mouseCallback);
+    emscripten_set_touchstart_callback(0, glfmDisplay, 1, touchCallback);
+    emscripten_set_touchend_callback(0, glfmDisplay, 1, touchCallback);
+    emscripten_set_touchmove_callback(0, glfmDisplay, 1, touchCallback);
+    emscripten_set_touchcancel_callback(0, glfmDisplay, 1, touchCallback);
+    emscripten_set_mousedown_callback(0, glfmDisplay, 1, mouseCallback);
+    emscripten_set_mouseup_callback(0, glfmDisplay, 1, mouseCallback);
+    emscripten_set_mousemove_callback(0, glfmDisplay, 1, mouseCallback);
     //emscripten_set_click_callback(0, 0, 1, mouse_callback);
     //emscripten_set_dblclick_callback(0, 0, 1, mouse_callback);
     //emscripten_set_keypress_callback(0, glfmDisplay, 1, keyCallback);
