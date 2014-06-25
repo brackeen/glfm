@@ -141,6 +141,7 @@ void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFu
 
 struct GLFMAsset {
     FILE *file;
+    char *name;
     char *path;
     void *buffer;
     size_t bufferSize;
@@ -152,6 +153,8 @@ static const char *glfmGetAssetPath();
 GLFMAsset *glfmAssetOpen(const char *name) {
     GLFMAsset *asset = (GLFMAsset *)calloc(1, sizeof(GLFMAsset));
     if (asset != NULL) {
+        asset->name = malloc(strlen(name) + 1);
+        strcpy(asset->name, name);
         const char *basePath = glfmGetAssetPath();
         if (basePath == NULL || basePath[0] == 0) {
             asset->path = malloc(strlen(name) + 1);
@@ -170,6 +173,15 @@ GLFMAsset *glfmAssetOpen(const char *name) {
         }
     }
     return asset;
+}
+    
+const char *glfmAssetGetName(GLFMAsset *asset) {
+    if (asset != NULL) {
+        return asset->name;
+    }
+    else {
+        return NULL;
+    }
 }
 
 size_t glfmAssetGetLength(GLFMAsset *asset) {
@@ -214,6 +226,10 @@ void glfmAssetClose(GLFMAsset *asset) {
         if (asset->file != NULL) {
             fclose(asset->file);
             asset->file = NULL;
+        }
+        if (asset->name != NULL) {
+            free(asset->name);
+            asset->name = NULL;
         }
         if (asset->path != NULL) {
             free(asset->path);

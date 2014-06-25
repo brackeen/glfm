@@ -307,6 +307,10 @@ char *glfmGetPreference(const char *key);
 
 /// Opens an asset (from the "bundle" on iOS, "assets" on Android). The asset must be closed with glfmAssetClose().
 GLFMAsset *glfmAssetOpen(const char *name);
+
+/// Gets the asset name (the original name passed to the glfmAssetOpen function).
+/// The name is freed in glfmAssetClose().
+const char *glfmAssetGetName(GLFMAsset *asset);
     
 size_t glfmAssetGetLength(GLFMAsset *asset);
 

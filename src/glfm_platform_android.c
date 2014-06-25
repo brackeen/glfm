@@ -1140,12 +1140,15 @@ jnifail:
 
 struct GLFMAsset {
     AAsset* asset;
+    char *name;
 };
 
 GLFMAsset *glfmAssetOpen(const char *name) {
     AAssetManager *assetManager = engineGlobal->app->activity->assetManager;
     GLFMAsset *asset = calloc(1, sizeof(GLFMAsset));
     if (asset != NULL) {
+        asset->name = malloc(strlen(name) + 1);
+        strcpy(asset->name, name);
         asset->asset = AAssetManager_open(assetManager, name, AASSET_MODE_UNKNOWN);
         if (asset->asset == NULL) {
             free(asset);
@@ -1153,6 +1156,15 @@ GLFMAsset *glfmAssetOpen(const char *name) {
         }
     }
     return asset;
+}
+
+const char *glfmAssetGetName(GLFMAsset *asset) {
+    if (asset != NULL) {
+        return asset->name;
+    }
+    else {
+        return NULL;
+    }
 }
 
 size_t glfmAssetGetLength(GLFMAsset *asset) {
@@ -1175,7 +1187,6 @@ size_t glfmAssetRead(GLFMAsset *asset, void *buffer, size_t count) {
         }
         return ret;
     }
-    
 }
 
 int glfmAssetSeek(GLFMAsset *asset, long offset, int whence) {
@@ -1195,6 +1206,10 @@ int glfmAssetSeek(GLFMAsset *asset, long offset, int whence) {
 
 void glfmAssetClose(GLFMAsset *asset) {
     if (asset != NULL) {
+        if (asset->name != NULL) {
+            free(asset->name);
+            asset->name = NULL;
+        }
         if (asset->asset != NULL) {
             AAsset_close(asset->asset);
             asset->asset = NULL;
