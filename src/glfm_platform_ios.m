@@ -9,11 +9,13 @@
 #define GLFM_ASSETS_USE_STDIO
 #include "glfm_platform.h"
 
+#define MAX_SIMULTANEOUS_TOUCHES 10
+
 #pragma mark - ViewController
 
 @interface GLFMViewController : GLKViewController
 {
-    NSMutableDictionary *activeTouches;
+    const void *activeTouches[MAX_SIMULTANEOUS_TOUCHES];
 }
 
 @property (strong, nonatomic) EAGLContext *context;
@@ -29,7 +31,7 @@
 - (id)init
 {
     if ((self = [super init])) {
-        activeTouches = [[NSMutableDictionary alloc] init];
+        [self clearTouches];
         _glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         _glfmDisplay->platformData = (__bridge void *)self;
         glfm_main(_glfmDisplay);
@@ -113,7 +115,7 @@
     [self setNeedsStatusBarAppearanceUpdate];
     
     [view bindDrawable];
-
+    
     if (_glfmDisplay->surfaceCreatedFunc != NULL) {
         _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, self.displaySize.width, self.displaySize.height);
     }
@@ -182,15 +184,35 @@
 
 #pragma mark - UIResponder
 
+- (void)clearTouches
+{
+    for (int i = 0; i < MAX_SIMULTANEOUS_TOUCHES; i++) {
+        activeTouches[i] = NULL;
+    }
+}
+
 - (void)addTouchEvent:(UITouch*)touch withType:(GLFMTouchPhase)phase
 {
-    NSValue *key = [NSValue valueWithPointer: (const void*)touch];
-    NSNumber *value = [activeTouches objectForKey: key];
-    if (value == nil) {
-        value = [NSNumber numberWithInteger:activeTouches.count];
-        [activeTouches setObject:value forKey:key];
+    int firstNullIndex = -1;
+    int index = -1;
+    for (int i = 0; i < MAX_SIMULTANEOUS_TOUCHES; i++) {
+        if (activeTouches[i] == (__bridge const void*)touch) {
+            index = i;
+            break;
+        }
+        else if (firstNullIndex == -1 && activeTouches[i] == NULL) {
+            firstNullIndex = i;
+        }
     }
-    int touchNumber = [value intValue];
+    if (index == -1) {
+        if (firstNullIndex == -1) {
+            // Shouldn't happen
+            NSLog(@"Can't touch this");
+            return;
+        }
+        index = firstNullIndex;
+        activeTouches[index] = (__bridge const void*)touch;
+    }
     
     CGFloat scale = [UIScreen mainScreen].scale;
     CGPoint currLocation = [touch locationInView:self.view];
@@ -198,11 +220,11 @@
     currLocation.y *= scale;
     
     if (_glfmDisplay->touchFunc != NULL) {
-        _glfmDisplay->touchFunc(_glfmDisplay, touchNumber, phase, currLocation.x, currLocation.y);
+        _glfmDisplay->touchFunc(_glfmDisplay, index, phase, currLocation.x, currLocation.y);
     }
     
     if (phase == GLFMTouchPhaseEnded || phase == GLFMTouchPhaseCancelled) {
-        [activeTouches removeObjectForKey:key];
+        activeTouches[index] = NULL;
     }
 }
 
@@ -351,6 +373,7 @@
         _active = active;
         
         GLFMViewController *vc = (GLFMViewController *)[self.window rootViewController];
+        [vc clearTouches];
         if (vc.glfmDisplay != NULL) {
             if (_active && vc.glfmDisplay->resumingFunc != NULL) {
                 vc.glfmDisplay->resumingFunc(vc.glfmDisplay);
