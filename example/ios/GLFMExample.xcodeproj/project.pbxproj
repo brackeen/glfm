@@ -34,7 +34,7 @@
 		E361B9EE18F33F8800C25B35 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		E361B9F218F33F8800C25B35 /* GLFMExample-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GLFMExample-Prefix.pch"; sourceTree = "<group>"; };
 		E361B9F618F33F8800C25B35 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
-		E361BA1D18F340A200C25B35 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		E361BA1D18F340A200C25B35 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../main.c; sourceTree = "<group>"; };
 		E3D9790B1929ABAF0008D3BC /* simple.vert */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = simple.vert; sourceTree = "<group>"; };
 		E3D9790D1929ABC60008D3BC /* simple.frag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = simple.frag; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -72,18 +72,11 @@
 			path = src;
 			sourceTree = "<group>";
 		};
-		E34FCB6318FC84E700EC87DC /* example */ = {
+		E361B9D818F33F8800C25B35 = {
 			isa = PBXGroup;
 			children = (
 				E3D9790A1929AB9A0008D3BC /* assets */,
 				E361BA1D18F340A200C25B35 /* main.c */,
-			);
-			path = example;
-			sourceTree = "<group>";
-		};
-		E361B9D818F33F8800C25B35 = {
-			isa = PBXGroup;
-			children = (
 				E361BA1818F3409000C25B35 /* glfm */,
 				E361B9EA18F33F8800C25B35 /* GLFMExample */,
 				E361B9E318F33F8800C25B35 /* Frameworks */,
@@ -131,7 +124,6 @@
 		E361BA1818F3409000C25B35 /* glfm */ = {
 			isa = PBXGroup;
 			children = (
-				E34FCB6318FC84E700EC87DC /* example */,
 				E34FCB5918FC807E00EC87DC /* include */,
 				E34FCB5B18FC807E00EC87DC /* src */,
 			);
@@ -145,7 +137,8 @@
 				E3D9790B1929ABAF0008D3BC /* simple.vert */,
 				E3D9790D1929ABC60008D3BC /* simple.frag */,
 			);
-			path = assets;
+			name = assets;
+			path = ../assets;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

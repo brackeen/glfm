@@ -117,8 +117,21 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 ## API
 See [glfm.h](include/glfm.h)
 
-## Project setup (XCode)
-The fastest way to get started is to make a copy of the repo and open the [example project](example) in Xcode or Eclipse. However, here's how to create a new project for iOS, in Xcode:
+## Create a new project
+The fastest way to get started is to make a copy of the repo and open the [example project](example) in Xcode or Eclipse. 
+
+### Project creation script (experimental)
+The `new_project.py` script copies the example project and renames the project files to a name of your choosing. To run it:
+
+```
+cd glfm
+./new_project.py
+```
+
+The script will ask a few questions and output a new project. After creation, you can edit the `main.c` file.
+
+### Xcode
+If the experimental `new_project.py` script doesn't work for you, you can create a new project in Xcode pretty easily:
 
 1. Create a new project with the "iOS Empty Application" template.
 2. Delete `AppDelegate.h`, `AppDelegate.m`, and `main.m`.
