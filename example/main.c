@@ -2,7 +2,6 @@
 
 #include "glfm.h"
 #include <stdlib.h>
-#include <string.h>
 
 typedef struct {
     GLint program;
@@ -102,6 +101,22 @@ static GLuint compileShader(const GLenum type, const char *shaderName) {
     glShaderSource(shader, 1, &shaderString, &shaderLength);
     glCompileShader(shader);
     glfmAssetClose(asset);
+    
+    // Check compile status
+    GLint status;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+    if (status == 0) {
+        glfmLog(GLFMLogLevelError, "Couldn't compile shader: %s", shaderName);
+        GLint logLength;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+        if (logLength > 0) {
+            GLchar log[logLength];
+            glGetShaderInfoLog(shader, logLength, &logLength, log);
+            if (log[0] != 0) {
+                glfmLog(GLFMLogLevelError, "Log: %s", log);
+            }
+        }
+    }
     return shader;
 }
 
