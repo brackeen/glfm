@@ -117,11 +117,19 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 ## API
 See [glfm.h](include/glfm.h)
 
-## Create a new project
-The fastest way to get started is to make a copy of the repo and open the [example project](example) in Xcode or Eclipse. 
+## Using GLFM in a project
+A quick way to try out GLFM is to make a copy of the repo and open the [example project](example) in Xcode or Eclipse. 
 
-### Project creation script (experimental)
-The `new_project.py` script copies the example project and renames the project files to a name of your choosing. To run it:
+### For existing projects
+
+1. Remove the project's existing <code>void main()</code> function, if any.
+2. Add the GLFM source files (in `include` and `src`).
+3. Include a <code>void glfm_main(GLFMDisplay *display)</code> function in a C/C++ file.
+
+ 
+### For new projects
+
+The (experimental) `new_project.py` script automatically creates a new project setup for iOS, Android, and Emscripten.
 
 ```
 cd glfm
@@ -130,10 +138,10 @@ cd glfm
 
 The script will ask a few questions and output a new project. After creation, you can edit the `main.c` file.
 
-### Xcode
-If the experimental `new_project.py` script doesn't work for you, you can create a new project in Xcode pretty easily:
+### New Xcode project
+If the `new_project.py` script doesn't suit you, you can create a new project for iOS:
 
-1. Create a new project with the "iOS Empty Application" template.
+1. In Xcode, create a new project with the "iOS Empty Application" template.
 2. Delete `AppDelegate.h`, `AppDelegate.m`, and `main.m`.
 3. Add the GLFM source files (in `include` and `src`) to the project.
 4. Create a new C/C++ file with a <code>void glfm_main(GLFMDisplay *display)</code> function.
@@ -156,6 +164,10 @@ Otherwise, it wouldn't work on iOS. To initialize the Objective C environment, t
 **Why is GLFM event-driven? Why does GLFM take over the main loop?**
 
 Otherwise, it wouldn't work on iOS (see above) or on HTML5, which is event-driven.
+
+**What are the `glfmAsset*` functions for? Doesn't `stdio` work?**
+
+Android's assets are locally stored in a compressed file (the APK) that can't be accessed via regular `stdio` functions. The `glfmAsset*` functions use NDK's proprietary assets API on Android, and `stdio` on iOS.
 
 ## License
 [ZLIB](http://en.wikipedia.org/wiki/Zlib_License)
