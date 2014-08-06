@@ -289,6 +289,19 @@ char *glfmGetPreference(const char *key) {
     return value;
 }
 
+const char *glfmGetLanguageInternal() {
+    // Probably overly paranoid with the try/catch, type checks, and null checks. Oh well.
+    // navigator.userLanguage and navigator.browserLanguage are for older versions of IE.
+    static const char *script =
+    "(function() { try { "
+    "var lang = navigator.language || navigator.userLanguage || navigator.browserLanguage;"
+    "if (typeof lang === 'string') { return lang; } "
+    "else { return 'en'; } "
+    "} catch(err) { return 'en'; } }())";
+    
+    return emscripten_run_script_string(script);
+}
+
 // MARK: Emscripten glue
 
 static float getDisplayScale(GLFMDisplay *display) {

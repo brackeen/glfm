@@ -296,6 +296,12 @@ extern "C" {
     /// Both key are value are assumed to be UTF8 encoded.
     char *glfmGetPreference(const char *key);
     
+    /// Gets the preferred user language. The return value is a static variable and should not be freed.
+    /// The return value is a RFC-4646 language code. Valid examples are "en", "en-US", "zh-Hans", "zh-Hans-HK".
+    /// Some systems (Safari browser) may return values in all lowercase ("en-us" instead of "en-US").
+    /// This function never returns NULL. If the language cannot be determined, returns "en".
+    const char *glfmGetLanguage();
+    
     // MARK: Assets (File input)
     // NOTE: Normal file operations (fopen, fread, fseek) can't be used on regular Android assets inside the APK.
     

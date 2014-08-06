@@ -608,4 +608,9 @@ char *glfmGetPreference(const char *key)
     }
     return value;
 }
+
+const char *glfmGetLanguageInternal() {
+    return [[[NSLocale autoupdatingCurrentLocale] localeIdentifier] UTF8String];
+}
+
 #endif

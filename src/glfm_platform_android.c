@@ -1136,6 +1136,79 @@ jnifail:
     return value;
 }
 
+const char *glfmGetLanguageInternal() {
+    char *lang = NULL;
+    
+    // The Locale.getDefaultLocale() return value is not updated live. Instead, use
+    // getResources().getConfiguration().locale.toString()
+    
+    Engine *engine = engineGlobal;
+    JavaVM *vm = engine->app->activity->vm;
+    JNIEnv *jni = engine->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return lang;
+    }
+    
+    jclass activityClass = (*jni)->GetObjectClass(jni, engine->app->activity->clazz);
+    EXCEPTION_CHECK_FAIL()
+    
+    jmethodID getResources = (*jni)->GetMethodID(jni, activityClass, "getResources",
+                                                 "()Landroid/content/res/Resources;");
+    EXCEPTION_CHECK_FAIL()
+
+    jobject res = (*jni)->CallObjectMethod(jni, engine->app->activity->clazz, getResources);
+    EXCEPTION_CHECK_FAIL()
+    
+    if (res != NULL) {
+        jclass resClass = (*jni)->GetObjectClass(jni, res);
+        EXCEPTION_CHECK_FAIL()
+        
+        jmethodID getConfiguration = (*jni)->GetMethodID(jni, resClass, "getConfiguration",
+                                                         "()Landroid/content/res/Configuration;");
+        EXCEPTION_CHECK_FAIL()
+        
+        jobject configuration = (*jni)->CallObjectMethod(jni, res, getConfiguration);
+        EXCEPTION_CHECK_FAIL()
+        
+        if (configuration != NULL) {
+            jclass configurationClass = (*jni)->GetObjectClass(jni, configuration);
+            EXCEPTION_CHECK_FAIL()
+            
+            jfieldID localeField = (*jni)->GetFieldID(jni, configurationClass, "locale", "Ljava/util/Locale;");
+            EXCEPTION_CHECK_FAIL()
+            
+            jobject locale = (*jni)->GetObjectField(jni, configuration, localeField);
+            EXCEPTION_CHECK_FAIL()
+            
+            if (locale != NULL) {
+                jclass localeClass = (*jni)->GetObjectClass(jni, locale);
+                EXCEPTION_CHECK_FAIL()
+                
+                jmethodID toString = (*jni)->GetMethodID(jni, localeClass, "toString", "()Ljava/lang/String;");
+                EXCEPTION_CHECK_FAIL()
+                
+                jstring valueString = (*jni)->CallObjectMethod(jni, locale, toString);
+                EXCEPTION_CHECK_FAIL()
+                
+                if (valueString != NULL) {
+                    static char *prevValue = NULL;
+                    
+                    if (prevValue != NULL) {
+                        free(prevValue);
+                        prevValue = NULL;
+                    }
+                    const char *nativeString = (*jni)->GetStringUTFChars(jni, valueString, 0);
+                    lang = prevValue = strdup(nativeString);
+                    (*jni)->ReleaseStringUTFChars(jni, valueString, nativeString);
+                }
+            }
+        }
+    }
+
+jnifail:
+    return lang;
+}
+
 // MARK: GLFM Asset reading
 
 struct GLFMAsset {

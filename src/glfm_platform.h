@@ -132,6 +132,33 @@ extern "C" {
         }
     }
     
+    extern const char *glfmGetLanguageInternal();
+    
+    const char *glfmGetLanguage() {
+        static char *language = NULL;
+        
+        // Check the language every time, in case the user changed the preferences while the app is running.
+        if (language != NULL) {
+            free(language);
+            language = NULL;
+        }
+        
+        const char *langInternal = glfmGetLanguageInternal();
+        if (langInternal == NULL) {
+            return "en";
+        }
+        
+        char *lang = strdup(langInternal);
+        
+        // Some systems (Apple iOS) use an underscore instead of a dash. (Convert "en_US" to "en-US")
+        char *ch = lang;
+        while ((ch = strchr(ch, '_')) != NULL) {
+            *ch = '-';
+        }
+        language = lang;
+        return lang;
+    }
+    
     // MARK: Assets
     
 #ifdef GLFM_ASSETS_USE_STDIO
