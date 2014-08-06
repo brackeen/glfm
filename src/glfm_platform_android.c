@@ -26,7 +26,7 @@
 #define LOG_LIFECYCLE(...) do { } while(0)
 #endif
 
-#pragma mark - Time utils
+// MARK: Time utils
 
 static struct timespec now() {
     struct timespec t;
@@ -51,7 +51,7 @@ static struct timespec timespecSubstract(struct timespec a, struct timespec b) {
     return result;
 }
 
-#pragma mark - Engine (global singleton)
+// MARK: Engine (global singleton)
 
 #define MAX_SIMULTANEOUS_TOUCHES 5
 
@@ -88,7 +88,7 @@ typedef struct {
 } Engine;
 static Engine *engineGlobal = NULL;
 
-#pragma mark - JNI code
+// MARK: JNI code
 
 #define EXCEPTION_CHECK(ret) if ((*jni)->ExceptionCheck(jni)) { (*jni)->ExceptionClear(jni); return ret; }
 #define EXCEPTION_CHECK_FAIL() if ((*jni)->ExceptionCheck(jni)) { (*jni)->ExceptionClear(jni); goto jnifail; }
@@ -355,7 +355,7 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
     }
 }
 
-#pragma mark - EGL
+// MARK: EGL
 
 static bool egl_init_context(Engine *engine) {
     
@@ -634,7 +634,7 @@ static void engine_draw_frame(Engine *engine) {
     }
 }
 
-#pragma mark - App command callback
+// MARK: App command callback
 
 static void set_animating(Engine *engine, bool animating) {
     if (engine->animating != animating) {
@@ -749,7 +749,7 @@ static void app_cmd_callback(struct android_app *app, int32_t cmd) {
     }
 }
 
-#pragma mark - Key and touch input callback
+// MARK: Key and touch input callback
 
 static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
     Engine *engine = (Engine*)app->userData;
@@ -890,7 +890,7 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
     return 0;
 }
 
-#pragma mark - Main entry point
+// MARK: Main entry point
 
 void android_main(struct android_app *app) {
     
@@ -1000,7 +1000,7 @@ void android_main(struct android_app *app) {
     }
 }
 
-#pragma mark - GLFM implementation
+// MARK: GLFM implementation
 
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfaceOrientation allowedOrientations) {
     if (display->allowedOrientations != allowedOrientations) {
@@ -1136,7 +1136,7 @@ jnifail:
     return value;
 }
 
-#pragma mark - GLFM Asset reading
+// MARK: GLFM Asset reading
 
 struct GLFMAsset {
     AAsset* asset;

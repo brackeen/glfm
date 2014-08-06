@@ -24,7 +24,7 @@ typedef struct {
     bool active;
 } PlatformData;
 
-#pragma mark - String util
+// MARK: String util
 
 // Public domain, from Laird Shaw
 static char *replace_str(const char *str, const char *old, const char *new) {
@@ -109,7 +109,7 @@ static char *vstrcat(const char *s, ...) {
     return value;
 }
 
-#pragma mark - GLFM implementation
+// MARK: GLFM implementation
 
 static const char *glfmGetAssetPath() {
     return "";
@@ -289,7 +289,7 @@ char *glfmGetPreference(const char *key) {
     return value;
 }
 
-#pragma mark - Emscripten glue
+// MARK: Emscripten glue
 
 static float getDisplayScale(GLFMDisplay *display) {
     const double v = EM_ASM_DOUBLE_V({
@@ -505,7 +505,7 @@ static EM_BOOL touchCallback(int eventType, const EmscriptenTouchEvent *e, void 
     }
 }
 
-#pragma mark - main
+// MARK: main
 
 int main(int argc, const char *argv[]) {
     GLFMDisplay *glfmDisplay = calloc(1, sizeof(GLFMDisplay));
