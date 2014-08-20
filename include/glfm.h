@@ -306,6 +306,7 @@ extern "C" {
     // NOTE: Normal file operations (fopen, fread, fseek) can't be used on regular Android assets inside the APK.
     
     /// Opens an asset (from the "bundle" on iOS, "assets" on Android). The asset must be closed with glfmAssetClose().
+    /// If the asset cannot be opened (for example, the file was not found), returns NULL.
     GLFMAsset *glfmAssetOpen(const char *name);
     
     /// Gets the asset name (the original name passed to the glfmAssetOpen function).
