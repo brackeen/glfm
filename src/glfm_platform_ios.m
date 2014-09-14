@@ -421,29 +421,6 @@ int main(int argc, char *argv[])
     }
 }
 
-#pragma mark - GLFM helper functions
-
-CGSize getDisplaySize(GLFMDisplay *display)
-{
-    BOOL isPortrait = YES;
-    if (display != NULL && display->platformData != NULL) {
-        GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
-        GLKView *view = (GLKView*)vc.view;
-        if (view.drawableWidth != 0 && view.drawableHeight != 0) {
-            return CGSizeMake(view.drawableWidth, view.drawableHeight);
-        }
-        isPortrait = UIInterfaceOrientationIsPortrait(vc.interfaceOrientation);
-    }
-    CGFloat scale = [UIScreen mainScreen].scale;
-    CGSize size = [UIScreen mainScreen].bounds.size;
-    if (isPortrait) {
-        return CGSizeMake(size.width * scale, size.height * scale);
-    }
-    else {
-        return CGSizeMake(size.height * scale, size.width * scale);
-    }
-}
-
 #pragma mark - GLFM implementation
 
 static const char *glfmGetAssetPath()
