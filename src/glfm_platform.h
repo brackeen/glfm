@@ -132,7 +132,7 @@ extern "C" {
         }
     }
     
-    extern const char *glfmGetLanguageInternal();
+    extern const char *glfmGetLanguageInternal(void);
     
     const char *glfmGetLanguage() {
         static char *language = NULL;

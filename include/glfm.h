@@ -300,7 +300,7 @@ extern "C" {
     /// The return value is a RFC-4646 language code. Valid examples are "en", "en-US", "zh-Hans", "zh-Hans-HK".
     /// Some systems (Safari browser) may return values in all lowercase ("en-us" instead of "en-US").
     /// This function never returns NULL. If the language cannot be determined, returns "en".
-    const char *glfmGetLanguage();
+    const char *glfmGetLanguage(void);
     
     // MARK: Assets (File input)
     // NOTE: Normal file operations (fopen, fread, fseek) can't be used on regular Android assets inside the APK.
