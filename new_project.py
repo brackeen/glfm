@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, sys, shutil
+import os, re, sys, shutil
 
 print ""
 print "Create a new GLFM project"
@@ -7,26 +7,26 @@ print ""
 
 #
 # Gets a line of input. The input is stripped of spaces. 
-# If allow_spaces is False, the first word is returned.
 # If the input is empty, default_value is returned
 #
-def get_input(prompt, default_value, allow_spaces=True):
+def get_input(prompt, default_value):
   value = raw_input(prompt + " [" + default_value + "]: ")
   if not value:
     return default_value
-  elif allow_spaces:
+  else:
     value = value.strip()
     if len(value) == 0:
       return default_value
     else:
       return value
-  else:
-    split_values = value.split()
-    if len(split_values) == 0 or not split_values[0]:
-      return default_value
-    else:
-      return split_values[0]    
 
+def name_safe(value):
+  return re.match(r'^[a-zA-Z\d_]*$', value) is not None
+
+def package_safe(value):
+  # From http://stackoverflow.com/questions/5205339/regular-expression-matching-fully-qualified-java-classes
+  return re.match(r'^([a-zA-Z_$][a-zA-Z\d_$]*\.)*[a-zA-Z_$][a-zA-Z\d_$]*$', value) is not None 
+  
 #
 # Read EMSCRIPTEN_ROOT from ~/.emscripten
 #
@@ -42,8 +42,21 @@ else:
 #
 # Get project variables 
 #
-app_name = get_input("App name (without spaces)", "GLFMApp", False)
-package_name = get_input("App package name", "com.glfmteam." + app_name, False)
+while True:
+  app_name = get_input("App name (without spaces)", "GLFMApp")
+  if name_safe(app_name):
+    break
+  else:
+    print "Illegal name! The app name can only contain letters and numbers."
+
+while True:
+  package_name = get_input("App package name", "com.myteam." + app_name)
+  if package_safe(package_name):
+    break
+  else:
+    print "Illegal package name! The app name can only contain letters and numbers,"
+    print "and each component must start with a letter."
+
 emsdk_path = get_input("Emscripten emsdk path", emsdk_path)
 
 #
