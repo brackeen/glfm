@@ -20,6 +20,7 @@
 
 @property (strong, nonatomic) EAGLContext *context;
 @property (nonatomic) GLFMDisplay *glfmDisplay;
+@property (nonatomic) CGFloat displayScale;
 @property (nonatomic) CGSize displaySize;
 @property (nonatomic) BOOL multipleTouchEnabled;
 @property (nonatomic) BOOL glkViewCreated;
@@ -32,6 +33,14 @@
 {
     if ((self = [super init])) {
         [self clearTouches];
+        if ([[UIScreen mainScreen] respondsToSelector:@selector(nativeScale)]) {
+            // For iPhone 6 Plus:
+            // nativeScale is 2.608696 (standard) or 2.880000 (zoomed).
+            self.displayScale = [UIScreen mainScreen].nativeScale;
+        }
+        else {
+            self.displayScale = [UIScreen mainScreen].scale;
+        }
         _glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         _glfmDisplay->platformData = (__bridge void *)self;
         glfm_main(_glfmDisplay);
@@ -53,13 +62,25 @@
     }
     isPortrait = UIInterfaceOrientationIsPortrait(self.interfaceOrientation);
     
-    CGFloat scale = [UIScreen mainScreen].scale;
-    CGSize size = [UIScreen mainScreen].bounds.size;
-    if (isPortrait) {
-        return CGSizeMake(size.width * scale, size.height * scale);
+    if ([[UIScreen mainScreen] respondsToSelector:@selector(nativeScale)]) {
+        // For iPhone 6 Plus:
+        // nativeBounds is 1080x1920 (standard) or 1080x1920.96 (zoomed).
+        CGSize size = [UIScreen mainScreen].nativeBounds.size;
+        if (isPortrait) {
+            return CGSizeMake((int)size.width, (int)size.height);
+        }
+        else {
+            return CGSizeMake((int)size.height, (int)size.width);
+        }
     }
     else {
-        return CGSizeMake(size.height * scale, size.width * scale);
+        CGSize size = [UIScreen mainScreen].bounds.size;
+        if (isPortrait) {
+            return CGSizeMake(size.width * self.displayScale, size.height * self.displayScale);
+        }
+        else {
+            return CGSizeMake(size.height * self.displayScale, size.width * self.displayScale);
+        }
     }
 }
 
@@ -214,10 +235,9 @@
         activeTouches[index] = (__bridge const void*)touch;
     }
     
-    CGFloat scale = [UIScreen mainScreen].scale;
     CGPoint currLocation = [touch locationInView:self.view];
-    currLocation.x *= scale;
-    currLocation.y *= scale;
+    currLocation.x *= self.displayScale;
+    currLocation.y *= self.displayScale;
     
     if (_glfmDisplay->touchFunc != NULL) {
         _glfmDisplay->touchFunc(_glfmDisplay, index, phase, currLocation.x, currLocation.y);
@@ -473,7 +493,13 @@ int glfmGetDisplayHeight(GLFMDisplay *display)
 
 float glfmGetDisplayScale(GLFMDisplay *display)
 {
-    return [UIScreen mainScreen].scale;
+    if (display != NULL && display->platformData != NULL) {
+        GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
+        return vc.displayScale;
+    }
+    else {
+        return [UIScreen mainScreen].scale;
+    }
 }
 
 GLboolean glfmHasTouch(GLFMDisplay *display)
