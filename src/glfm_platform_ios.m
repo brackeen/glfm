@@ -20,7 +20,6 @@
 
 @property (strong, nonatomic) EAGLContext *context;
 @property (nonatomic) GLFMDisplay *glfmDisplay;
-@property (nonatomic) CGFloat displayScale;
 @property (nonatomic) CGSize displaySize;
 @property (nonatomic) BOOL multipleTouchEnabled;
 @property (nonatomic) BOOL glkViewCreated;
@@ -33,14 +32,6 @@
 {
     if ((self = [super init])) {
         [self clearTouches];
-        if ([[UIScreen mainScreen] respondsToSelector:@selector(nativeScale)]) {
-            // For iPhone 6 Plus:
-            // nativeScale is 2.608696 (standard) or 2.880000 (zoomed).
-            self.displayScale = [UIScreen mainScreen].nativeScale;
-        }
-        else {
-            self.displayScale = [UIScreen mainScreen].scale;
-        }
         _glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         _glfmDisplay->platformData = (__bridge void *)self;
         glfm_main(_glfmDisplay);
@@ -62,24 +53,44 @@
     }
     isPortrait = UIInterfaceOrientationIsPortrait(self.interfaceOrientation);
     
-    if ([[UIScreen mainScreen] respondsToSelector:@selector(nativeScale)]) {
-        // For iPhone 6 Plus:
-        // nativeBounds is 1080x1920 (standard) or 1080x1920.96 (zoomed).
+    if ([[UIScreen mainScreen] respondsToSelector:@selector(nativeBounds)]) {
         CGSize size = [UIScreen mainScreen].nativeBounds.size;
+
+        /*
+         HACK: workaround for nativeBounds bug with for iPhone 6 and iPhone 6 Plus when using Display Zoom.
+         
+         Device (Mode)                 scale   bounds    nativeScale         nativeBounds    drawable
+         iPhone 6 (Display Zoom)         2.0   320x568   2.34375             750x1331.25     750x1331
+         iPhone 6 (Standard)             2.0   375x667	 2.0                 750x1334        750x1334
+         iPhone 6 Plus (Display Zoom)	 3.0   375x667   2.88                1080x1920.96    1080x1920
+         iPhone 6 Plus (Standard)        3.0   414x736   2.608695652173913   1080x1920       1080x1920
+
+         TODO: It might be reasonable to change the bounds of the GLKView when Display Zoom is detected.
+         For iPhone 6 (Display Zoom), change the bounds of the view (320x569.1733333333333).
+         For iPhone 6 Plus (Display Zoom), change the bounds of the view (375x666.6666666666667).
+         Needs testing.
+         */
+        if (size.width == 750 && size.height == 1331.25) {
+            size.height = 1334;
+        }
+        else if (size.width == 1080 && size.height == 1920.96) {
+            size.height = 1920;
+        }
         if (isPortrait) {
-            return CGSizeMake((int)size.width, (int)size.height);
+            return CGSizeMake(size.width, size.height);
         }
         else {
-            return CGSizeMake((int)size.height, (int)size.width);
+            return CGSizeMake(size.height, size.width);
         }
     }
     else {
+        // NOTE: [UIScreen mainScreen].bounds is orientation-aware in iOS 8, but not in iOS 7.
         CGSize size = [UIScreen mainScreen].bounds.size;
         if (isPortrait) {
-            return CGSizeMake(size.width * self.displayScale, size.height * self.displayScale);
+            return CGSizeMake(size.width * view.contentScaleFactor, size.height * view.contentScaleFactor);
         }
         else {
-            return CGSizeMake(size.height * self.displayScale, size.width * self.displayScale);
+            return CGSizeMake(size.height * view.contentScaleFactor, size.width * view.contentScaleFactor);
         }
     }
 }
@@ -236,8 +247,8 @@
     }
     
     CGPoint currLocation = [touch locationInView:self.view];
-    currLocation.x *= self.displayScale;
-    currLocation.y *= self.displayScale;
+    currLocation.x *= self.view.contentScaleFactor;
+    currLocation.y *= self.view.contentScaleFactor;
     
     if (_glfmDisplay->touchFunc != NULL) {
         _glfmDisplay->touchFunc(_glfmDisplay, index, phase, currLocation.x, currLocation.y);
@@ -495,7 +506,7 @@ float glfmGetDisplayScale(GLFMDisplay *display)
 {
     if (display != NULL && display->platformData != NULL) {
         GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
-        return vc.displayScale;
+        return vc.view.contentScaleFactor;
     }
     else {
         return [UIScreen mainScreen].scale;
