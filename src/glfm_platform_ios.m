@@ -1,3 +1,22 @@
+/*
+ GLFM
+ Copyright (c) 2014 David Brackeen
+ 
+ This software is provided 'as-is', without any express or implied warranty.
+ In no event will the authors be held liable for any damages arising from the
+ use of this software. Permission is granted to anyone to use this software
+ for any purpose, including commercial applications, and to alter it and
+ redistribute it freely, subject to the following restrictions:
+ 
+ 1. The origin of this software must not be misrepresented; you must not
+    claim that you wrote the original software. If you use this software in a
+    product, an acknowledgment in the product documentation would be appreciated
+    but is not required.
+ 2. Altered source versions must be plainly marked as such, and must not be
+    misrepresented as being the original software.
+ 3. This notice may not be removed or altered from any source distribution.
+ */
+
 #include "glfm.h"
 
 #ifdef GLFM_PLATFORM_IOS
@@ -18,7 +37,7 @@
     const void *activeTouches[MAX_SIMULTANEOUS_TOUCHES];
 }
 
-@property (strong, nonatomic) EAGLContext *context;
+@property (nonatomic, strong) EAGLContext *context;
 @property (nonatomic) GLFMDisplay *glfmDisplay;
 @property (nonatomic) CGSize displaySize;
 @property (nonatomic) BOOL multipleTouchEnabled;
@@ -47,7 +66,7 @@
 - (CGSize)calcDisplaySize
 {
     BOOL isPortrait = YES;
-    GLKView *view = (GLKView*)self.view;
+    GLKView *view = (GLKView *)self.view;
     if (view.drawableWidth != 0 && view.drawableHeight != 0) {
         return CGSizeMake(view.drawableWidth, view.drawableHeight);
     }
@@ -68,7 +87,7 @@
          TODO: It might be reasonable to change the bounds of the GLKView when Display Zoom is detected.
          For iPhone 6 (Display Zoom), change the bounds of the view (320x569.1733333333333).
          For iPhone 6 Plus (Display Zoom), change the bounds of the view (375x666.6666666666667).
-         Needs testing.
+         Totally untested, just an idea. 
          */
         if (size.width == 750 && size.height == 1331.25) {
             size.height = 1334;
@@ -199,7 +218,7 @@
     }
 }
 
-- (void)glkView:(GLKView*)view drawInRect:(CGRect)rect
+- (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
 {
     CGSize newDisplaySize = [self calcDisplaySize];
     if (!CGSizeEqualToSize(newDisplaySize, self.displaySize)) {
@@ -207,7 +226,6 @@
         if (_glfmDisplay->surfaceResizedFunc != NULL) {
             _glfmDisplay->surfaceResizedFunc(_glfmDisplay, self.displaySize.width, self.displaySize.height);
         }
-        
     }
     if (_glfmDisplay->mainLoopFunc != NULL) {
         _glfmDisplay->mainLoopFunc(_glfmDisplay, self.timeSinceFirstResume);
@@ -223,12 +241,12 @@
     }
 }
 
-- (void)addTouchEvent:(UITouch*)touch withType:(GLFMTouchPhase)phase
+- (void)addTouchEvent:(UITouch *)touch withType:(GLFMTouchPhase)phase
 {
     int firstNullIndex = -1;
     int index = -1;
     for (int i = 0; i < MAX_SIMULTANEOUS_TOUCHES; i++) {
-        if (activeTouches[i] == (__bridge const void*)touch) {
+        if (activeTouches[i] == (__bridge const void *)touch) {
             index = i;
             break;
         }
@@ -243,7 +261,7 @@
             return;
         }
         index = firstNullIndex;
-        activeTouches[index] = (__bridge const void*)touch;
+        activeTouches[index] = (__bridge const void *)touch;
     }
     
     CGPoint currLocation = [touch locationInView:self.view];
@@ -337,7 +355,7 @@
     return keyCommands;
 }
 
-- (void)keyPressed: (UIKeyCommand *)keyCommand
+- (void)keyPressed:(UIKeyCommand *)keyCommand
 {
     if (_glfmDisplay->keyFunc != NULL) {
         NSString *key = [keyCommand input];
@@ -471,7 +489,7 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfa
             
             // HACK: Notify that the value of supportedInterfaceOrientations has changed
             GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
-            UIViewController* dummyVC = [[UIViewController alloc] init];
+            UIViewController *dummyVC = [[UIViewController alloc] init];
             dummyVC.view = [[UIView alloc] init];
             [vc presentViewController:dummyVC animated:NO completion:^{
                 [vc dismissViewControllerAnimated:NO completion:NULL];
@@ -483,7 +501,7 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfa
 int glfmGetDisplayWidth(GLFMDisplay *display)
 {
     if (display != NULL && display->platformData != NULL) {
-        GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.displaySize.width;
     }
     else {
@@ -494,7 +512,7 @@ int glfmGetDisplayWidth(GLFMDisplay *display)
 int glfmGetDisplayHeight(GLFMDisplay *display)
 {
     if (display != NULL && display->platformData != NULL) {
-        GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.displaySize.height;
     }
     else {
@@ -505,7 +523,7 @@ int glfmGetDisplayHeight(GLFMDisplay *display)
 float glfmGetDisplayScale(GLFMDisplay *display)
 {
     if (display != NULL && display->platformData != NULL) {
-        GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.view.contentScaleFactor;
     }
     else {
@@ -537,7 +555,7 @@ GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display)
 void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEnabled)
 {
     if (display != NULL) {
-        GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         vc.multipleTouchEnabled = multitouchEnabled;
         if (vc.glkViewCreated) {
             GLKView *view = (GLKView *)vc.view;
@@ -549,7 +567,7 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEn
 GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display)
 {
     if (display != NULL) {
-        GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.multipleTouchEnabled;
     }
     else {
