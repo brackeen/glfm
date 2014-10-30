@@ -80,14 +80,14 @@
          
          Device (Mode)                 scale   bounds    nativeScale         nativeBounds    drawable
          iPhone 6 (Display Zoom)         2.0   320x568   2.34375             750x1331.25     750x1331
-         iPhone 6 (Standard)             2.0   375x667	 2.0                 750x1334        750x1334
-         iPhone 6 Plus (Display Zoom)	 3.0   375x667   2.88                1080x1920.96    1080x1920
+         iPhone 6 (Standard)             2.0   375x667   2.0                 750x1334        750x1334
+         iPhone 6 Plus (Display Zoom)    3.0   375x667   2.88                1080x1920.96    1080x1920
          iPhone 6 Plus (Standard)        3.0   414x736   2.608695652173913   1080x1920       1080x1920
 
          TODO: It might be reasonable to change the bounds of the GLKView when Display Zoom is detected.
          For iPhone 6 (Display Zoom), change the bounds of the view (320x569.1733333333333).
          For iPhone 6 Plus (Display Zoom), change the bounds of the view (375x666.6666666666667).
-         Totally untested, just an idea. 
+         Totally untested, just an idea.
          */
         if (size.width == 750 && size.height == 1331.25) {
             size.height = 1334;
