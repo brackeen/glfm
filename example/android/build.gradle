@@ -1,0 +1,40 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:0.13.2'
+    }
+}
+
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 21
+    buildToolsVersion "21.1.1"
+
+    defaultConfig {
+        applicationId "com.brackeen.glfmexample"
+        minSdkVersion 10
+        targetSdkVersion 21
+
+        ndk {
+            moduleName "GLFMExample"
+            ldLibs "log", "android", "EGL", "GLESv2"
+        }
+    }
+
+    sourceSets.main {
+        jni.srcDirs = ["../src", "src/main/jni", "../../include", "../../src"]
+        assets.srcDirs = ["../assets"]
+    }
+
+    //buildTypes.debug.jniDebugBuild true
+}
+
+
+allprojects {
+    repositories {
+        jcenter()
+    }
+}

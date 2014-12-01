@@ -15,10 +15,11 @@ OUT_NAME = index
 BIN = bin
 INCLUDES = -I $(GLFM_ROOT)/include
 SOURCES := $(GLFM_ROOT)/src/glfm_platform_emscripten.c \
-           $(wildcard $(APP_ROOT)/*.c)
+           $(wildcard $(APP_ROOT)/src/*.c)
 
 build: init
 	emcc -Wall -O2 -std=c99 --memory-init-file 0 --shell-file shell.html \
+	--pre-js emscripten-pre.js \
 	--preload-file $(APP_ROOT)/assets@/ $(INCLUDES) -o $(BIN)/$(OUT_NAME).html \
 	$(SOURCES)
 

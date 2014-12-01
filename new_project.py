@@ -92,11 +92,7 @@ if confirm != "Y":
 
 ignored_files = (".DS_Store", "Thumbs.db", "Desktop.ini")
 ignored_paths = (
-  "example/android/assets",
-  "example/android/bin",
-  "example/android/gen",
-  "example/android/libs",
-  "example/android/obj",
+  "example/android/build",
   "example/emscripten/bin",
   "example/ios/GLFMExample.xcodeproj/project.xcworkspace",
   "example/ios/GLFMExample.xcodeproj/xcuserdata",
@@ -112,17 +108,16 @@ def do_replace(s):
   s = s.replace("com.brackeen.${PRODUCT_NAME:rfc1034identifier}", package_name)
   return s
   
-def copy_android_makefile(src_file, dst_file):
+def copy_android_buildfile(src_file, dst_file):
   with open(dst_file, "wt") as fout:
     with open(src_file, "rt") as fin:
       for line in fin:
-        if line.startswith("GLFM_ROOT :="):
-          fout.write("GLFM_ROOT := ../../../glfm\n")
-        elif line.startswith("APP_ROOT :="):
-          fout.write("APP_ROOT := ../../..\n")
-        else:
-          fout.write(do_replace(line))
-          
+        line = line.replace("../../include", "../../../glfm/include");
+        line = line.replace("../../src", "../../../glfm/src");
+        line = line.replace("../src", "../../src");
+        line = line.replace("../assets", "../../assets");
+        fout.write(do_replace(line))
+
 def copy_emscripten_makefile(src_file, dst_file):
   with open(dst_file, "wt") as fout:
     with open(src_file, "rt") as fin:
@@ -140,7 +135,7 @@ def copy_ios_project_file(src_file, dst_file):
       for line in fin:
         line = line.replace("path = ../..;", "path = ../../glfm;")
         line = line.replace("path = ../assets;", "path = ../../assets;")
-        line = line.replace("path = ../main.c;", "path = ../../main.c;")
+        line = line.replace("path = ../src;", "path = ../../src;")
         fout.write(do_replace(line))
 
 def copy_generic_project_file(src_file, dst_file):
@@ -162,12 +157,11 @@ def copy_template(src_dir, dst_dir):
     if os.path.isfile(src):
       if name == "Makefile":
         copy_emscripten_makefile(src, dst)
-      elif name == "Android.mk":
-        copy_android_makefile(src, dst)
+      elif name == "build.gradle":
+        copy_android_buildfile(src, dst)
       elif name == "project.pbxproj":
         copy_ios_project_file(src, dst)
-      elif (name == ".project" or name == ".cproject" or 
-        name.endswith(".xml") or name.endswith(".plist")):
+      elif (name == "AndroidManifest.xml" or name.endswith(".plist")):
         copy_generic_project_file(src, dst)
       else:
         shutil.copy2(src, dst)
@@ -181,7 +175,7 @@ shutil.copytree("include", output_dir + "/glfm/include")
 shutil.copytree("src", output_dir + "/glfm/src")
 
 # Copy example
-shutil.copy2("example/main.c", output_dir + "/main.c")
+shutil.copytree("example/src", output_dir + "/src")
 shutil.copytree("example/assets", output_dir + "/assets")
 
 # Copy project files
@@ -189,7 +183,6 @@ shutil.copytree("example/assets", output_dir + "/assets")
 copy_template("example/android", output_dir + "/platform/android");
 copy_template("example/ios", output_dir + "/platform/ios");
 copy_template("example/emscripten", output_dir + "/platform/emscripten");
-shutil.copy2(".gitignore", output_dir + "/.gitignore")
 
 # Special case: create a Makefile.local for emscripten
 with open(output_dir + "/platform/emscripten/Makefile.local", "wt") as fout:

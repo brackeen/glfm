@@ -9,7 +9,7 @@
 #include <android/window.h>
 #include <android/log.h>
 #include <android/asset_manager.h>
-#include <android_native_app_glue.h>
+#include "android_native_app_glue.h"
 #include "glfm_platform.h"
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "GLFM", __VA_ARGS__))

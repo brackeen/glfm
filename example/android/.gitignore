@@ -1,5 +1,3 @@
-/bin
-/gen
-/obj
-/libs
-/assets
+/.idea
+/build
+/local.properties
