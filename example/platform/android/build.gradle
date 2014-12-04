@@ -26,8 +26,8 @@ android {
     }
 
     sourceSets.main {
-        jni.srcDirs = ["../src", "src/main/jni", "../../include", "../../src"]
-        assets.srcDirs = ["../assets"]
+        jni.srcDirs = ["../../src", "src/main/jni", "../../../include", "../../../src"]
+        assets.srcDirs = ["../../assets"]
     }
 
     //buildTypes.debug.jniDebugBuild true

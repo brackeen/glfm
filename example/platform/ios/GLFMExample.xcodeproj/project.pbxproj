@@ -131,7 +131,7 @@
 				E34FCB5B18FC807E00EC87DC /* src */,
 			);
 			name = glfm;
-			path = ../..;
+			path = ../../..;
 			sourceTree = "<group>";
 		};
 		E3D9790A1929AB9A0008D3BC /* assets */ = {
@@ -141,7 +141,7 @@
 				E3D9790D1929ABC60008D3BC /* simple.frag */,
 			);
 			name = assets;
-			path = ../assets;
+			path = ../../assets;
 			sourceTree = "<group>";
 		};
 		E3E6640F1A2C1A6A00105FF6 /* src */ = {
@@ -150,7 +150,7 @@
 				E3E664101A2C1A9800105FF6 /* main.c */,
 			);
 			name = src;
-			path = ../src;
+			path = ../../src;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

@@ -92,10 +92,12 @@ if confirm != "Y":
 
 ignored_files = (".DS_Store", "Thumbs.db", "Desktop.ini")
 ignored_paths = (
-  "example/android/build",
-  "example/emscripten/bin",
-  "example/ios/GLFMExample.xcodeproj/project.xcworkspace",
-  "example/ios/GLFMExample.xcodeproj/xcuserdata",
+  "example/platform/android/build",
+  "example/platform/android/.gradle",
+  "example/platform/android/.idea",
+  "example/platform/emscripten/bin",
+  "example/platform/ios/GLFMExample.xcodeproj/project.xcworkspace",
+  "example/platform/ios/GLFMExample.xcodeproj/xcuserdata",
   )
 
 def do_name_replace(s):
@@ -112,10 +114,8 @@ def copy_android_buildfile(src_file, dst_file):
   with open(dst_file, "wt") as fout:
     with open(src_file, "rt") as fin:
       for line in fin:
-        line = line.replace("../../include", "../../../glfm/include");
-        line = line.replace("../../src", "../../../glfm/src");
-        line = line.replace("../src", "../../src");
-        line = line.replace("../assets", "../../assets");
+        line = line.replace("../../../include", "../../glfm/include");
+        line = line.replace("../../../src", "../../glfm/src");
         fout.write(do_replace(line))
 
 def copy_emscripten_makefile(src_file, dst_file):
@@ -133,9 +133,7 @@ def copy_ios_project_file(src_file, dst_file):
   with open(dst_file, "wt") as fout:
     with open(src_file, "rt") as fin:
       for line in fin:
-        line = line.replace("path = ../..;", "path = ../../glfm;")
-        line = line.replace("path = ../assets;", "path = ../../assets;")
-        line = line.replace("path = ../src;", "path = ../../src;")
+        line = line.replace("path = ../../..;", "path = ../../glfm;")
         fout.write(do_replace(line))
 
 def copy_generic_project_file(src_file, dst_file):
@@ -179,10 +177,9 @@ shutil.copytree("example/src", output_dir + "/src")
 shutil.copytree("example/assets", output_dir + "/assets")
 
 # Copy project files
-# We're renaming things and moving files around, so this is weird
-copy_template("example/android", output_dir + "/platform/android");
-copy_template("example/ios", output_dir + "/platform/ios");
-copy_template("example/emscripten", output_dir + "/platform/emscripten");
+copy_template("example/platform/android", output_dir + "/platform/android");
+copy_template("example/platform/ios", output_dir + "/platform/ios");
+copy_template("example/platform/emscripten", output_dir + "/platform/emscripten");
 
 # Special case: create a Makefile.local for emscripten
 with open(output_dir + "/platform/emscripten/Makefile.local", "wt") as fout:

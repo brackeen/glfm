@@ -8,8 +8,8 @@ include ./emsdk_set_env.sh
 export SHELL := $(shell echo $$SHELL)
 
 # Modified by new_project.py
-GLFM_ROOT := ../..
-APP_ROOT := ../../example
+GLFM_ROOT := ../../..
+APP_ROOT := ../..
 
 OUT_NAME = index
 BIN = bin
