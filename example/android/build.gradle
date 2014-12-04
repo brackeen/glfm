@@ -3,7 +3,8 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.13.2'
+        // NOTE: version 0.14+ of the build tools seems to require Android Studio 0.9
+        classpath 'com.android.tools.build:gradle:0.13+'
     }
 }
 
