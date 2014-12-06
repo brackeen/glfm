@@ -488,12 +488,14 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfa
             display->allowedOrientations = allowedOrientations;
             
             // HACK: Notify that the value of supportedInterfaceOrientations has changed
-            GLFMViewController *vc = (__bridge GLFMViewController*)display->platformData;
-            UIViewController *dummyVC = [[UIViewController alloc] init];
-            dummyVC.view = [[UIView alloc] init];
-            [vc presentViewController:dummyVC animated:NO completion:^{
-                [vc dismissViewControllerAnimated:NO completion:NULL];
-            }];
+            GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+            if (vc.view.window) {
+                UIViewController *dummyVC = [[UIViewController alloc] init];
+                dummyVC.view = [[UIView alloc] init];
+                [vc presentViewController:dummyVC animated:NO completion:^{
+                    [vc dismissViewControllerAnimated:NO completion:NULL];
+                }];
+            }
         }
     }
 }
