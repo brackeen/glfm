@@ -28,7 +28,7 @@ typedef struct {
 
 // Public domain, from Laird Shaw
 static char *replace_str(const char *str, const char *old, const char *new) {
-    if (str == NULL) {
+    if (!str) {
         return NULL;
     }
     char *ret, *r;
@@ -79,7 +79,7 @@ static char *escape_str(const char *str) {
 // Returns a newly allocated string concatenating the specified strings.
 // Last argument must be '(char *)NULL'.
 static char *vstrcat(const char *s, ...) {
-    if (s == NULL) {
+    if (!s) {
         return NULL;
     }
     
@@ -95,7 +95,7 @@ static char *vstrcat(const char *s, ...) {
     va_end(argp);
     
     value = malloc(len + 1);
-    if (value == NULL) {
+    if (!value) {
         return NULL;
     }
     
@@ -240,18 +240,18 @@ void glfmLog(const GLFMLogLevel logLevel, const char *format, ...) {
 // So, scripts are generated on the fly.
 
 void glfmSetPreference(const char *key, const char *value) {
-    if (key != NULL) {
+    if (key) {
         char *script;
         char *escaped_key = escape_str(key);
-        if (value == NULL) {
-            script = vstrcat("try { window.localStorage.removeItem('", escaped_key, "'); } catch(err) { }",
-                             (char *)NULL);
-        }
-        else {
+        if (value) {
             char *escaped_value = escape_str(value);
             script = vstrcat("try { window.localStorage.setItem('",
                              escaped_key, "', '", escaped_value, "'); } catch(err) { }", (char *)NULL);
             free(escaped_value);
+        }
+        else {
+            script = vstrcat("try { window.localStorage.removeItem('", escaped_key, "'); } catch(err) { }",
+                             (char *)NULL);
         }
         free(escaped_key);
         emscripten_run_script(script);
@@ -263,7 +263,7 @@ char *glfmGetPreference(const char *key) {
     // NOTE: emscripten_run_script_string can't handle null as a return value.
     // So, first check to see if the key-value exists.
     char *value = NULL;
-    if (key != NULL) {
+    if (key) {
         char *escaped_key = escape_str(key);
         char *has_key_script = vstrcat("(function() { try { ",
                                        "return typeof (window.localStorage.getItem('",
@@ -276,7 +276,7 @@ char *glfmGetPreference(const char *key) {
                                    "return window.localStorage.getItem('", escaped_key, "');",
                                    "} catch(err) { return ''; } }())", (char *)NULL);
             const char *raw_value = emscripten_run_script_string(script);
-            if (raw_value != NULL) {
+            if (raw_value) {
                 value = strdup(raw_value);
             }
             free(script);
@@ -327,10 +327,10 @@ static void setActive(GLFMDisplay *display, bool active) {
     PlatformData *platformData = display->platformData;
     if (platformData->active != active) {
         platformData->active = active;
-        if (active && display->resumingFunc != NULL) {
+        if (active && display->resumingFunc) {
             display->resumingFunc(display);
         }
-        else if (!active && display->pausingFunc != NULL) {
+        else if (!active && display->pausingFunc) {
             display->pausingFunc(display);
         }
     }
@@ -338,8 +338,7 @@ static void setActive(GLFMDisplay *display, bool active) {
 
 static void mainLoopFunc(void *userData) {
     GLFMDisplay *display = userData;
-    if (display != NULL) {
-        
+    if (display) {
         // Check if canvas size has changed
         int displayChanged = EM_ASM_INT_V({
             var canvas = Module['canvas'];
@@ -360,13 +359,13 @@ static void mainLoopFunc(void *userData) {
             platformData->width = getDisplayWidth(display);
             platformData->height = getDisplayHeight(display);
             platformData->scale = getDisplayScale(display);
-            if (display->surfaceResizedFunc != NULL) {
+            if (display->surfaceResizedFunc) {
                 display->surfaceResizedFunc(display, platformData->width, platformData->height);
             }
         }
         
         // Tick
-        if (display->mainLoopFunc != NULL) {
+        if (display->mainLoopFunc) {
             // NOTE: The JavaScript requestAnimationFrame callback sends the frame time as a parameter,
             // but Emscripten include send it.
             display->mainLoopFunc(display, emscripten_get_now() / 1000.0);
@@ -377,14 +376,14 @@ static void mainLoopFunc(void *userData) {
 static EM_BOOL webglContextCallback(int eventType, const void *reserved, void *userData) {
     GLFMDisplay *display = userData;
     if (eventType == EMSCRIPTEN_EVENT_WEBGLCONTEXTLOST) {
-        if (display->surfaceDestroyedFunc != NULL) {
+        if (display->surfaceDestroyedFunc) {
             display->surfaceDestroyedFunc(display);
         }
         return 1;
     }
     else if (eventType == EMSCRIPTEN_EVENT_WEBGLCONTEXTRESTORED) {
         PlatformData *platformData = display->platformData;
-        if (display->surfaceCreatedFunc != NULL) {
+        if (display->surfaceCreatedFunc) {
             display->surfaceCreatedFunc(display, platformData->width, platformData->height);
         }
         return 1;
@@ -402,7 +401,7 @@ static EM_BOOL visibilityChangeCallback(int eventType, const EmscriptenVisibilit
 
 static EM_BOOL keyCallback(int eventType, const EmscriptenKeyboardEvent *e, void *userData) {
     GLFMDisplay *display = userData;
-    if (display->keyFunc != NULL) {
+    if (display->keyFunc) {
         GLFMKeyAction action;
         if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
             if (e->repeat) {
@@ -442,7 +441,7 @@ static EM_BOOL keyCallback(int eventType, const EmscriptenKeyboardEvent *e, void
 
 static EM_BOOL mouseCallback(int eventType, const EmscriptenMouseEvent *e, void *userData) {
     GLFMDisplay *display = userData;
-    if (display->touchFunc != NULL) {
+    if (display->touchFunc) {
         PlatformData *platformData = display->platformData;
         GLFMTouchPhase touchPhase;
         switch (eventType) {
@@ -479,7 +478,7 @@ static EM_BOOL mouseCallback(int eventType, const EmscriptenMouseEvent *e, void 
 
 static EM_BOOL touchCallback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
     GLFMDisplay *display = userData;
-    if (display->touchFunc != NULL) {
+    if (display->touchFunc) {
         PlatformData *platformData = display->platformData;
         GLFMTouchPhase touchPhase;
         switch (eventType) {
@@ -561,7 +560,7 @@ int main(int argc, const char *argv[]) {
         return 0;
     }
     
-    if (glfmDisplay->surfaceCreatedFunc != NULL) {
+    if (glfmDisplay->surfaceCreatedFunc) {
         glfmDisplay->surfaceCreatedFunc(glfmDisplay, platformData->width, platformData->height);
     }
 

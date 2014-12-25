@@ -38,7 +38,7 @@ extern "C" {
     // MARK: Setters
     
     void glfmSetSurfaceErrorFunc(GLFMDisplay *display, GLFMSurfaceErrorFunc surfaceErrorFunc) {
-        if (display != NULL) {
+        if (display) {
             display->surfaceErrorFunc = surfaceErrorFunc;
         }
     }
@@ -48,7 +48,7 @@ extern "C" {
                               const GLFMDepthFormat depthFormat,
                               const GLFMStencilFormat stencilFormat,
                               const GLFMUserInterfaceChrome uiChrome) {
-        if (display != NULL) {
+        if (display) {
             display->colorFormat = colorFormat;
             display->depthFormat = depthFormat;
             display->stencilFormat = stencilFormat;
@@ -57,77 +57,69 @@ extern "C" {
     }
     
     GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *display) {
-        if (display != NULL) {
-            return display->allowedOrientations;
-        }
-        return GLFMUserInterfaceOrientationAny;
+        return display ? display->allowedOrientations : GLFMUserInterfaceOrientationAny;
     }
     
     void glfmSetUserData(GLFMDisplay *display, void *userData) {
-        if (display != NULL) {
+        if (display) {
             display->userData = userData;
         }
     }
     
     void *glfmGetUserData(GLFMDisplay *display) {
-        if (display != NULL) {
-            return display->userData;
-        }
-        else {
-            return NULL;
-        }
+        return display ? display->userData : NULL;
     }
     
     void glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc) {
-        if (display != NULL) {
+        if (display) {
             display->mainLoopFunc = mainLoopFunc;
         }
     }
     
     void glfmSetSurfaceCreatedFunc(GLFMDisplay *display, GLFMSurfaceCreatedFunc surfaceCreatedFunc) {
-        if (display != NULL) {
+        if (display) {
             display->surfaceCreatedFunc = surfaceCreatedFunc;
         }
     }
     
     void glfmSetSurfaceResizedFunc(GLFMDisplay *display, GLFMSurfaceResizedFunc surfaceResizedFunc) {
-        if (display != NULL) {
+        if (display) {
             display->surfaceResizedFunc = surfaceResizedFunc;
         }
     }
     
     void glfmSetSurfaceDestroyedFunc(GLFMDisplay *display, GLFMSurfaceDestroyedFunc surfaceDestroyedFunc) {
-        if (display != NULL) {
+        if (display) {
             display->surfaceDestroyedFunc = surfaceDestroyedFunc;
         }
     }
     
     void glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc) {
-        if (display != NULL) {
+        if (display) {
             display->touchFunc = touchFunc;
         }
     }
     
     void glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc) {
-        if (display != NULL) {
+        if (display) {
             display->keyFunc = keyFunc;
         }
     }
     
     void glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMemoryFunc) {
-        if (display != NULL) {
+        if (display) {
             display->lowMemoryFunc = lowMemoryFunc;
         }
     }
     
     void glfmSetAppPausingFunc(GLFMDisplay *display, GLFMAppPausingFunc pausingFunc) {
-        if (display != NULL) {
+        if (display) {
             display->pausingFunc = pausingFunc;
         }
     }
     
     void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFunc) {
-        if (display != NULL) {
+        if (display) {
             display->resumingFunc = resumingFunc;
         }
     }
@@ -138,7 +130,7 @@ extern "C" {
         static char *language = NULL;
         
         // Check the language every time, in case the user changed the preferences while the app is running.
-        if (language != NULL) {
+        if (language) {
             free(language);
             language = NULL;
         }
@@ -179,7 +171,7 @@ extern "C" {
     
     GLFMAsset *glfmAssetOpen(const char *name) {
         GLFMAsset *asset = (GLFMAsset *)calloc(1, sizeof(GLFMAsset));
-        if (asset != NULL) {
+        if (asset) {
             asset->name = malloc(strlen(name) + 1);
             strcpy(asset->name, name);
             const char *basePath = glfmGetAssetPath();
@@ -203,12 +195,7 @@ extern "C" {
     }
     
     const char *glfmAssetGetName(GLFMAsset *asset) {
-        if (asset != NULL) {
-            return asset->name;
-        }
-        else {
-            return NULL;
-        }
+        return asset ? asset->name : NULL;
     }
     
     size_t glfmAssetGetLength(GLFMAsset *asset) {
@@ -231,38 +218,28 @@ extern "C" {
     }
     
     size_t glfmAssetRead(GLFMAsset *asset, void *buffer, size_t count) {
-        if (asset == NULL || asset->file == NULL) {
-            return 0;
-        }
-        else {
-            return fread(buffer, 1, count, asset->file);
-        }
+        return (asset && asset->file) ? fread(buffer, 1, count, asset->file) : 0;
     }
     
     int glfmAssetSeek(GLFMAsset *asset, long offset, int whence) {
-        if (asset == NULL || asset->file == NULL) {
-            return -1;
-        }
-        else {
-            return fseek(asset->file, offset, whence);
-        }
+        return (asset && asset->file) ? fseek(asset->file, offset, whence) : -1;
     }
     
     void glfmAssetClose(GLFMAsset *asset) {
-        if (asset != NULL) {
-            if (asset->file != NULL) {
+        if (asset) {
+            if (asset->file) {
                 fclose(asset->file);
                 asset->file = NULL;
             }
-            if (asset->name != NULL) {
+            if (asset->name) {
                 free(asset->name);
                 asset->name = NULL;
             }
-            if (asset->path != NULL) {
+            if (asset->path) {
                 free(asset->path);
                 asset->path = NULL;
             }
-            if (asset->buffer != NULL) {
+            if (asset->buffer) {
                 if (asset->bufferIsMap) {
                     munmap(asset->buffer, asset->bufferSize);
                 }
@@ -312,7 +289,7 @@ extern "C" {
                 const long tell = ftell(asset->file);
                 if (tell >= 0 && fseek(asset->file, 0L, SEEK_SET) == 0) {
                     asset->buffer = (uint8_t *)malloc(asset->bufferSize);
-                    if (asset->buffer != NULL) {
+                    if (asset->buffer) {
                         size_t readSize = 0;
                         while (readSize < asset->bufferSize) {
                             size_t ret = fread(asset->buffer + readSize, 1, asset->bufferSize - readSize, asset->file);
@@ -342,7 +319,7 @@ extern "C" {
     // MARK: Helper functions
     
     static void reportSurfaceError(GLFMDisplay *display, const char *format, ... ) {
-        if (display->surfaceErrorFunc != NULL && format != NULL) {
+        if (display->surfaceErrorFunc && format) {
             char message[1024];
             
             va_list args;

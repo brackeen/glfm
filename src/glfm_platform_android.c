@@ -100,7 +100,7 @@ static jobject getDefaultSharedPreferences() {
         jclass preferenceManagerClass = (*jni)->FindClass(jni, "android.preference.PreferenceManager");
         EXCEPTION_CHECK_FAIL()
         
-        if (preferenceManagerClass != NULL) {
+        if (preferenceManagerClass) {
             jmethodID getDefaultSharedPreferences = (*jni)->GetStaticMethodID(jni, preferenceManagerClass,
                                                                               "getDefaultSharedPreferences",
                                                                               "(Landroid/content/Context;)Landroid/content/SharedPreferences;");
@@ -112,7 +112,7 @@ static jobject getDefaultSharedPreferences() {
                                                                        engine->app->activity->clazz);
             EXCEPTION_CHECK_FAIL();
             
-            if (sharedPreferences != NULL) {
+            if (sharedPreferences) {
                 engine->sharedPreferences = (*jni)->NewGlobalRef(jni, sharedPreferences);
                 EXCEPTION_CHECK_FAIL();
             }
@@ -127,7 +127,7 @@ static jobject getSharedPreferencesEditor() {
     JNIEnv *jni = engine->jniEnv;
     if (engine->sharedPreferencesEditor == NULL) {
         jobject sharedPreferences = getDefaultSharedPreferences();
-        if (sharedPreferences != NULL) {
+        if (sharedPreferences) {
             jclass sharedPreferencesClass = (*jni)->GetObjectClass(jni, sharedPreferences);
             EXCEPTION_CHECK_FAIL()
             
@@ -138,7 +138,7 @@ static jobject getSharedPreferencesEditor() {
             jobject sharedPreferencesEditor = (*jni)->CallObjectMethod(jni, sharedPreferences, edit);
             EXCEPTION_CHECK_FAIL();
             
-            if (sharedPreferencesEditor != NULL) {
+            if (sharedPreferencesEditor) {
                 engine->sharedPreferencesEditor = (*jni)->NewGlobalRef(jni, sharedPreferencesEditor);
                 EXCEPTION_CHECK_FAIL();
             }
@@ -150,7 +150,7 @@ jnifail:
 
 static void applyPreferencesIfNeeded() {
     Engine *engine = engineGlobal;
-    if (engine->sharedPreferencesEditor != NULL) {
+    if (engine->sharedPreferencesEditor) {
         JNIEnv *jni = engine->jniEnv;
         
         if (!(*jni)->ExceptionCheck(jni)) {
@@ -177,7 +177,7 @@ static void deleteGlobalRefs() {
     
     Engine *engine = engineGlobal;
     JNIEnv *jni = engine->jniEnv;
-    if (engine->sharedPreferences != NULL) {
+    if (engine->sharedPreferences) {
         (*jni)->DeleteGlobalRef(jni, engine->sharedPreferences);
         engine->sharedPreferences = NULL;
     }
@@ -258,7 +258,7 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
     jobject window = (*jni)->CallObjectMethod(jni, app->activity->clazz, getWindow);
     EXCEPTION_CHECK();
     
-    if (window != NULL) {
+    if (window) {
         jclass windowClass = (*jni)->GetObjectClass(jni, window);
         EXCEPTION_CHECK()
         
@@ -268,7 +268,7 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
         jobject decorView = (*jni)->CallObjectMethod(jni, window, getDecorView);
         EXCEPTION_CHECK()
         
-        if (decorView != NULL) {
+        if (decorView) {
             jclass decorViewClass = (*jni)->GetObjectClass(jni, decorView);
             EXCEPTION_CHECK()
             
@@ -321,9 +321,9 @@ static bool egl_init_context(Engine *engine) {
     else {
         if (!engine->eglContextCurrent) {
             engine->eglContextCurrent = true;
-            if (engine->display != NULL) {
+            if (engine->display) {
                 LOG_LIFECYCLE("GL Context made current");
-                if (engine->display->surfaceCreatedFunc != NULL) {
+                if (engine->display->surfaceCreatedFunc) {
                     engine->display->surfaceCreatedFunc(engine->display, engine->width, engine->height);
                 }
             }
@@ -503,9 +503,9 @@ static void egl_destroy(Engine *engine) {
         eglMakeCurrent(engine->eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         if (engine->eglContext != EGL_NO_CONTEXT) {
             eglDestroyContext(engine->eglDisplay, engine->eglContext);
-            if (engine->display != NULL) {
+            if (engine->display) {
                 LOG_LIFECYCLE("GL Context destroyed");
-                if (engine->display->surfaceDestroyedFunc != NULL) {
+                if (engine->display->surfaceDestroyedFunc) {
                     engine->display->surfaceDestroyedFunc(engine->display);
                 }
             }
@@ -531,9 +531,9 @@ static void egl_check_error(Engine *engine) {
         if (engine->eglContext != EGL_NO_CONTEXT) {
             engine->eglContext = EGL_NO_CONTEXT;
             engine->eglContextCurrent = false;
-            if (engine->display != NULL) {
+            if (engine->display) {
                 LOG_LIFECYCLE("GL Context lost");
-                if (engine->display->surfaceDestroyedFunc != NULL) {
+                if (engine->display->surfaceDestroyedFunc) {
                     engine->display->surfaceDestroyedFunc(engine->display);
                 }
             }
@@ -561,13 +561,13 @@ static void engine_draw_frame(Engine *engine) {
         LOG_LIFECYCLE("Resize: %i x %i", width, height);
         engine->width = width;
         engine->height = height;
-        if (engine->display != NULL && engine->display->surfaceResizedFunc != NULL) {
+        if (engine->display && engine->display->surfaceResizedFunc) {
             engine->display->surfaceResizedFunc(engine->display, width, height);
         }
     }
     
     // Tick and draw
-    if (engine->display != NULL && engine->display->mainLoopFunc != NULL) {
+    if (engine->display && engine->display->mainLoopFunc) {
         const double frameTime = timespecToSeconds(timespecSubstract(now(), engine->initTime));
         engine->display->mainLoopFunc(engine->display, frameTime);
     }
@@ -593,11 +593,11 @@ static void set_animating(Engine *engine, bool animating) {
             sendAppEvent = false;
         }
         engine->animating = animating;
-        if (sendAppEvent && engine->display != NULL) {
-            if (animating && engine->display->resumingFunc != NULL) {
+        if (sendAppEvent && engine->display) {
+            if (animating && engine->display->resumingFunc) {
                 engine->display->resumingFunc(engine->display);
             }
-            else if (!animating && engine->display->pausingFunc != NULL) {
+            else if (!animating && engine->display->pausingFunc) {
                 engine->display->pausingFunc(engine->display);
             }
         }
@@ -658,7 +658,7 @@ static void app_cmd_callback(struct android_app *app, int32_t cmd) {
         case APP_CMD_LOW_MEMORY:
         {
             LOG_LIFECYCLE("APP_CMD_LOW_MEMORY");
-            if (engine->display != NULL && engine->display->lowMemoryFunc != NULL) {
+            if (engine->display && engine->display->lowMemoryFunc) {
                 engine->display->lowMemoryFunc(engine->display);
             }
             break;
@@ -703,7 +703,7 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
     Engine *engine = (Engine*)app->userData;
     const int32_t eventType = AInputEvent_getType(event);
     if (eventType == AINPUT_EVENT_TYPE_KEY) {
-        if (engine->display != NULL && engine->display->keyFunc != NULL) {
+        if (engine->display && engine->display->keyFunc) {
             int32_t aKeyCode = AKeyEvent_getKeyCode(event);
             int32_t aAction = AKeyEvent_getAction(event);
             if (aKeyCode != 0) {
@@ -771,7 +771,7 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
         }
     }
     else if (eventType == AINPUT_EVENT_TYPE_MOTION) {
-        if (engine->display != NULL && engine->display->touchFunc != NULL) {
+        if (engine->display && engine->display->touchFunc) {
             
             const int maxTouches = engine->multitouchEnabled ? MAX_SIMULTANEOUS_TOUCHES : 1;
             const int32_t action = AMotionEvent_getAction(event);
@@ -899,7 +899,7 @@ void android_main(struct android_app *app) {
         
         while ((ident = ALooper_pollAll(engine->animating ? 0 : -1, NULL, &events, (void**)&source)) >= 0) {
             
-            if (source != NULL) {
+            if (source) {
                 source->process(app, source);
             }
             
@@ -931,7 +931,7 @@ void android_main(struct android_app *app) {
         }
         
         applyPreferencesIfNeeded();
-        if (engine->animating && engine->display != NULL) {
+        if (engine->animating && engine->display) {
             engine_draw_frame(engine);
         }
     }
@@ -1012,14 +1012,14 @@ void glfmLog(const GLFMLogLevel logLevel, const char *format, ...) {
 // or if preferences are retrieved after an edit.
 
 void glfmSetPreference(const char *key, const char *value) {
-    if (key != NULL) {
+    if (key) {
         jobject sharedPreferencesEditor = getSharedPreferencesEditor();
-        if (sharedPreferencesEditor != NULL) {
+        if (sharedPreferencesEditor) {
             Engine *engine = engineGlobal;
             JNIEnv *jni = engine->jniEnv;
             
             jstring keyString = (*jni)->NewStringUTF(jni, key);
-            jstring valueString = value == NULL ? NULL : (*jni)->NewStringUTF(jni, value);
+            jstring valueString = value ? (*jni)->NewStringUTF(jni, value) : NULL;
             
             jclass sharedPreferencesEditorClass = (*jni)->GetObjectClass(jni, sharedPreferencesEditor);
             EXCEPTION_CHECK()
@@ -1036,12 +1036,12 @@ void glfmSetPreference(const char *key, const char *value) {
 
 char *glfmGetPreference(const char *key) {
     char *value = NULL;
-    if (key != NULL) {
+    if (key) {
         // Apply any edited prefernces
         applyPreferencesIfNeeded();
         
         jobject sharedPreferences = getDefaultSharedPreferences();
-        if (sharedPreferences != NULL) {
+        if (sharedPreferences) {
             Engine *engine = engineGlobal;
             JNIEnv *jni = engine->jniEnv;
             
@@ -1057,7 +1057,7 @@ char *glfmGetPreference(const char *key) {
             jstring valueString = (*jni)->CallObjectMethod(jni, sharedPreferences, getter, keyString, NULL);
             EXCEPTION_CHECK_FAIL()
             
-            if (valueString != NULL) {
+            if (valueString) {
                 const char *nativeString = (*jni)->GetStringUTFChars(jni, valueString, 0);
                 value = strdup(nativeString);
                 (*jni)->ReleaseStringUTFChars(jni, valueString, nativeString);
@@ -1091,7 +1091,7 @@ const char *glfmGetLanguageInternal() {
     jobject res = (*jni)->CallObjectMethod(jni, engine->app->activity->clazz, getResources);
     EXCEPTION_CHECK_FAIL()
     
-    if (res != NULL) {
+    if (res) {
         jclass resClass = (*jni)->GetObjectClass(jni, res);
         EXCEPTION_CHECK_FAIL()
         
@@ -1102,7 +1102,7 @@ const char *glfmGetLanguageInternal() {
         jobject configuration = (*jni)->CallObjectMethod(jni, res, getConfiguration);
         EXCEPTION_CHECK_FAIL()
         
-        if (configuration != NULL) {
+        if (configuration) {
             jclass configurationClass = (*jni)->GetObjectClass(jni, configuration);
             EXCEPTION_CHECK_FAIL()
             
@@ -1112,7 +1112,7 @@ const char *glfmGetLanguageInternal() {
             jobject locale = (*jni)->GetObjectField(jni, configuration, localeField);
             EXCEPTION_CHECK_FAIL()
             
-            if (locale != NULL) {
+            if (locale) {
                 jclass localeClass = (*jni)->GetObjectClass(jni, locale);
                 EXCEPTION_CHECK_FAIL()
                 
@@ -1122,10 +1122,10 @@ const char *glfmGetLanguageInternal() {
                 jstring valueString = (*jni)->CallObjectMethod(jni, locale, toString);
                 EXCEPTION_CHECK_FAIL()
                 
-                if (valueString != NULL) {
+                if (valueString) {
                     static char *prevValue = NULL;
                     
-                    if (prevValue != NULL) {
+                    if (prevValue) {
                         free(prevValue);
                         prevValue = NULL;
                     }
@@ -1151,71 +1151,53 @@ struct GLFMAsset {
 GLFMAsset *glfmAssetOpen(const char *name) {
     AAssetManager *assetManager = engineGlobal->app->activity->assetManager;
     GLFMAsset *asset = calloc(1, sizeof(GLFMAsset));
-    if (asset != NULL) {
+    if (asset) {
         asset->name = malloc(strlen(name) + 1);
         strcpy(asset->name, name);
         asset->asset = AAssetManager_open(assetManager, name, AASSET_MODE_UNKNOWN);
         if (asset->asset == NULL) {
             free(asset);
-            return NULL;
+            asset = NULL;
         }
     }
     return asset;
 }
 
 const char *glfmAssetGetName(GLFMAsset *asset) {
-    if (asset != NULL) {
-        return asset->name;
-    }
-    else {
-        return NULL;
-    }
+    return asset ? asset->name : NULL;
 }
 
 size_t glfmAssetGetLength(GLFMAsset *asset) {
-    if (asset == NULL || asset->asset == NULL) {
-        return 0;
-    }
-    else {
-        return AAsset_getLength(asset->asset);
-    }
+    return (asset && asset->asset) ? AAsset_getLength(asset->asset) : 0;
 }
 
 size_t glfmAssetRead(GLFMAsset *asset, void *buffer, size_t count) {
-    if (asset == NULL || asset->asset == NULL) {
-        return 0;
+    if (asset && asset->asset) {
+        int ret = AAsset_read(asset->asset, buffer, count);
+        return (ret <= 0) ? 0 : ret;
     }
     else {
-        int ret = AAsset_read(asset->asset, buffer, count);
-        if (ret <= 0) {
-            return 0;
-        }
-        return ret;
+        return 0;
     }
 }
 
 int glfmAssetSeek(GLFMAsset *asset, long offset, int whence) {
-    if (asset == NULL || asset->asset == NULL) {
-        return -1;
+    if (asset && asset->asset) {
+        off_t ret = AAsset_seek(asset->asset, offset, whence);
+        return (ret == (off_t)-1) ? -1 : 0;
     }
     else {
-        off_t ret = AAsset_seek(asset->asset, offset, whence);
-        if (ret == (off_t)-1) {
-            return -1;
-        }
-        else {
-            return 0;
-        }
+        return -1;
     }
 }
 
 void glfmAssetClose(GLFMAsset *asset) {
-    if (asset != NULL) {
-        if (asset->name != NULL) {
+    if (asset) {
+        if (asset->name) {
             free(asset->name);
             asset->name = NULL;
         }
-        if (asset->asset != NULL) {
+        if (asset->asset) {
             AAsset_close(asset->asset);
             asset->asset = NULL;
         }
@@ -1224,12 +1206,7 @@ void glfmAssetClose(GLFMAsset *asset) {
 }
 
 const void *glfmAssetGetBuffer(GLFMAsset *asset) {
-    if (asset == NULL || asset->asset == NULL) {
-        return NULL;
-    }
-    else {
-        return AAsset_getBuffer(asset->asset);
-    }
+    return (asset && asset->asset) ? AAsset_getBuffer(asset->asset) : NULL;
 }
 
 #endif

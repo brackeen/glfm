@@ -167,7 +167,7 @@
     
     [view bindDrawable];
     
-    if (_glfmDisplay->surfaceCreatedFunc != NULL) {
+    if (_glfmDisplay->surfaceCreatedFunc) {
         _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, self.displaySize.width, self.displaySize.height);
     }
 }
@@ -200,7 +200,7 @@
 - (void)didReceiveMemoryWarning
 {
     [super didReceiveMemoryWarning];
-    if (_glfmDisplay->lowMemoryFunc != NULL) {
+    if (_glfmDisplay->lowMemoryFunc) {
         _glfmDisplay->lowMemoryFunc(_glfmDisplay);
     }
 }
@@ -210,7 +210,7 @@
     if ([EAGLContext currentContext] == self.context) {
         [EAGLContext setCurrentContext:nil];
     }
-    if (_glfmDisplay->surfaceDestroyedFunc != NULL) {
+    if (_glfmDisplay->surfaceDestroyedFunc) {
         _glfmDisplay->surfaceDestroyedFunc(_glfmDisplay);
     }
     free(_glfmDisplay);
@@ -221,11 +221,11 @@
     CGSize newDisplaySize = [self calcDisplaySize];
     if (!CGSizeEqualToSize(newDisplaySize, self.displaySize)) {
         self.displaySize = newDisplaySize;
-        if (_glfmDisplay->surfaceResizedFunc != NULL) {
+        if (_glfmDisplay->surfaceResizedFunc) {
             _glfmDisplay->surfaceResizedFunc(_glfmDisplay, self.displaySize.width, self.displaySize.height);
         }
     }
-    if (_glfmDisplay->mainLoopFunc != NULL) {
+    if (_glfmDisplay->mainLoopFunc) {
         _glfmDisplay->mainLoopFunc(_glfmDisplay, self.timeSinceFirstResume);
     }
 }
@@ -261,7 +261,7 @@
         activeTouches[index] = (__bridge const void *)touch;
     }
     
-    if (_glfmDisplay->touchFunc != NULL) {
+    if (_glfmDisplay->touchFunc) {
         CGPoint currLocation = [touch locationInView:self.view];
         currLocation.x *= self.view.contentScaleFactor;
         currLocation.y *= self.view.contentScaleFactor;
@@ -314,12 +314,8 @@
 
 - (NSArray *)keyCommands
 {
-    if (_glfmDisplay->keyFunc == NULL) {
-        return @[];
-    }
-    
     static NSArray *keyCommands = NULL;
-    if (keyCommands == NULL) {
+    if (!keyCommands) {
         keyCommands = @[ [UIKeyCommand keyCommandWithInput:UIKeyInputUpArrow
                                              modifierFlags:0
                                                     action:@selector(keyPressed:)],
@@ -354,7 +350,7 @@
 
 - (void)keyPressed:(UIKeyCommand *)keyCommand
 {
-    if (_glfmDisplay->keyFunc != NULL) {
+    if (_glfmDisplay->keyFunc) {
         NSString *key = [keyCommand input];
         GLFMKey keyCode = 0;
         if (key == UIKeyInputUpArrow) {
@@ -420,11 +416,11 @@
         
         GLFMViewController *vc = (GLFMViewController *)[self.window rootViewController];
         [vc clearTouches];
-        if (vc.glfmDisplay != NULL) {
-            if (_active && vc.glfmDisplay->resumingFunc != NULL) {
+        if (vc.glfmDisplay) {
+            if (_active && vc.glfmDisplay->resumingFunc) {
                 vc.glfmDisplay->resumingFunc(vc.glfmDisplay);
             }
-            else if (!_active && vc.glfmDisplay->pausingFunc != NULL) {
+            else if (!_active && vc.glfmDisplay->pausingFunc) {
                 vc.glfmDisplay->pausingFunc(vc.glfmDisplay);
             }
         }
@@ -472,7 +468,7 @@ int main(int argc, char *argv[])
 static const char *glfmGetAssetPath()
 {
     static char *path = NULL;
-    if (path == NULL) {
+    if (!path) {
         path = strdup([NSBundle mainBundle].bundlePath.UTF8String);
     }
     return path;
@@ -480,7 +476,7 @@ static const char *glfmGetAssetPath()
 
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfaceOrientation allowedOrientations)
 {
-    if (display != NULL) {
+    if (display) {
         if (display->allowedOrientations != allowedOrientations) {
             display->allowedOrientations = allowedOrientations;
             
@@ -499,7 +495,7 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfa
 
 int glfmGetDisplayWidth(GLFMDisplay *display)
 {
-    if (display != NULL && display->platformData != NULL) {
+    if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.displaySize.width;
     }
@@ -510,7 +506,7 @@ int glfmGetDisplayWidth(GLFMDisplay *display)
 
 int glfmGetDisplayHeight(GLFMDisplay *display)
 {
-    if (display != NULL && display->platformData != NULL) {
+    if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.displaySize.height;
     }
@@ -521,7 +517,7 @@ int glfmGetDisplayHeight(GLFMDisplay *display)
 
 float glfmGetDisplayScale(GLFMDisplay *display)
 {
-    if (display != NULL && display->platformData != NULL) {
+    if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.view.contentScaleFactor;
     }
@@ -543,7 +539,7 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor)
 
 void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEnabled)
 {
-    if (display != NULL) {
+    if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         vc.multipleTouchEnabled = multitouchEnabled;
         if (vc.glkViewCreated) {
@@ -555,7 +551,7 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEn
 
 GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display)
 {
-    if (display != NULL) {
+    if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.multipleTouchEnabled;
     }
@@ -604,14 +600,14 @@ void glfmLog(const GLFMLogLevel logLevel, const char *format, ...)
 
 void glfmSetPreference(const char *key, const char *value)
 {
-    if (key != NULL) {
+    if (key) {
         NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
         NSString *keyString = [NSString stringWithUTF8String:key];
-        if (value == NULL) {
-            [defaults removeObjectForKey:keyString];
+        if (value) {
+            [defaults setObject:[NSString stringWithUTF8String:value] forKey:keyString];
         }
         else {
-            [defaults setObject:[NSString stringWithUTF8String:value] forKey:keyString];
+            [defaults removeObjectForKey:keyString];
         }
     }
 }
@@ -619,11 +615,11 @@ void glfmSetPreference(const char *key, const char *value)
 char *glfmGetPreference(const char *key)
 {
     char *value = NULL;
-    if (key != NULL) {
+    if (key) {
         NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
         NSString *keyString = [NSString stringWithUTF8String:key];
         NSString *valueString = [defaults stringForKey:keyString];
-        if (valueString != nil) {
+        if (valueString) {
             value = strdup([valueString UTF8String]);
         }
     }
