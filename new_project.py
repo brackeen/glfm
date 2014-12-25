@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, re, sys, shutil
+import getpass, os, re, shutil, sys
 
 print ""
 print "Create a new GLFM project"
@@ -47,10 +47,10 @@ while True:
   if name_safe(app_name):
     break
   else:
-    print "Illegal name! The app name can only contain letters and numbers."
+    print "Illegal name! The app name can only contain letters, numbers, and an underscore."
 
 while True:
-  package_name = get_input("App package name", "com.myteam." + app_name)
+  package_name = get_input("App package name", "com." + getpass.getuser() + "." + app_name)
   if package_safe(package_name):
     break
   else:
@@ -178,8 +178,10 @@ shutil.copytree("example/assets", output_dir + "/assets")
 
 # Copy project files
 copy_template("example/platform/android", output_dir + "/platform/android");
-copy_template("example/platform/ios", output_dir + "/platform/ios");
 copy_template("example/platform/emscripten", output_dir + "/platform/emscripten");
+# iOS: package names require dash instead of underscore
+package_name = package_name.replace("_", "-")
+copy_template("example/platform/ios", output_dir + "/platform/ios");
 
 # Special case: create a Makefile.local for emscripten
 with open(output_dir + "/platform/emscripten/Makefile.local", "wt") as fout:
