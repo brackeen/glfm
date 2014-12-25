@@ -4,7 +4,7 @@ buildscript {
     }
     dependencies {
         // NOTE: version 0.14+ of the build tools seems to require Android Studio 0.9
-        classpath 'com.android.tools.build:gradle:0.13+'
+        classpath 'com.android.tools.build:gradle:0.13.3'
     }
 }
 
@@ -21,7 +21,7 @@ android {
 
         ndk {
             moduleName "GLFMExample"
-            //cFlags "-std=c99"
+            cFlags "-std=c99"
             ldLibs "log", "android", "EGL", "GLESv2"
         }
     }

@@ -59,8 +59,6 @@ typedef struct {
     
     struct android_app *app;
     
-    GLFMUserInterfaceIdiom uiIdiom;
-    
     bool multitouchEnabled;
     
     struct timespec initTime;
@@ -183,56 +181,6 @@ static void deleteGlobalRefs() {
         (*jni)->DeleteGlobalRef(jni, engine->sharedPreferences);
         engine->sharedPreferences = NULL;
     }
-}
-
-// Note, AConfiguration_getSmallestScreenWidthDp is only available on SDK 13 and newer.
-// So, call activity.getResources().getConfiguration().smallestScreenWidthDp
-static int getSmallestScreenWidthDp(struct android_app *app) {
-    int returnValue = 0;
-    if (app->activity->sdkVersion >= 13) {
-        Engine *engine = (Engine*)app->userData;
-        JavaVM *vm = app->activity->vm;
-        JNIEnv *jni = engine->jniEnv;
-        if ((*jni)->ExceptionCheck(jni)) {
-            return returnValue;
-        }
-        
-        jclass activityClass = (*jni)->GetObjectClass(jni, app->activity->clazz);
-        EXCEPTION_CHECK(returnValue)
-        
-        jmethodID getResources = (*jni)->GetMethodID(jni, activityClass, "getResources",
-                                                     "()Landroid/content/res/Resources;");
-        EXCEPTION_CHECK(returnValue)
-        
-        jobject res = (*jni)->CallObjectMethod(jni, app->activity->clazz, getResources);
-        EXCEPTION_CHECK(returnValue);
-        
-        if (res != NULL) {
-            jclass resClass = (*jni)->GetObjectClass(jni, res);
-            EXCEPTION_CHECK(returnValue)
-            
-            jmethodID getConfiguration = (*jni)->GetMethodID(jni, resClass, "getConfiguration",
-                                                             "()Landroid/content/res/Configuration;");
-            EXCEPTION_CHECK(returnValue)
-            jobject configuration = (*jni)->CallObjectMethod(jni, res, getConfiguration);
-            EXCEPTION_CHECK(returnValue);
-            
-            if (configuration != NULL) {
-                jclass configurationClass = (*jni)->GetObjectClass(jni, configuration);
-                EXCEPTION_CHECK(returnValue)
-                
-                jfieldID smallestScreenWidthDp = (*jni)->GetFieldID(jni, configurationClass,
-                                                                    "smallestScreenWidthDp", "I");
-                EXCEPTION_CHECK(returnValue)
-                
-                jint value = (*jni)->GetIntField(jni, configuration, smallestScreenWidthDp);
-                EXCEPTION_CHECK(returnValue)
-                
-                returnValue = value;
-            }
-        }
-    }
-    return returnValue;
 }
 
 #define ActivityInfo_SCREEN_ORIENTATION_SENSOR 0x00000004
@@ -943,17 +891,6 @@ void android_main(struct android_app *app) {
                                    AWINDOW_FLAG_FULLSCREEN);
     setFullScreen(app, engine->display->uiChrome);
     
-    // Check if phone or tablet.
-    // Note, smallestScreenWidthDp requires sdk 13
-    if (AConfiguration_getScreenSize(app->config) >= ACONFIGURATION_SCREENSIZE_LARGE &&
-        (app->activity->sdkVersion < 13 ||
-         (app->activity->sdkVersion >= 13 && getSmallestScreenWidthDp(app) >= 600))) {
-            engine->uiIdiom = GLFMUserInterfaceIdiomTablet;
-        }
-    else {
-        engine->uiIdiom = GLFMUserInterfaceIdiomPhone;
-    }
-    
     // Run the main loop
     while (1) {
         int ident;
@@ -1008,11 +945,6 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfa
         Engine *engine = (Engine*)display->platformData;
         setOrientation(engine->app);
     }
-}
-
-GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display) {
-    Engine *engine = (Engine*)display->platformData;
-    return engine->uiIdiom;
 }
 
 int glfmGetDisplayWidth(GLFMDisplay *display) {

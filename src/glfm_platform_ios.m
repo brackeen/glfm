@@ -174,16 +174,10 @@
 
 - (NSUInteger)supportedInterfaceOrientations
 {
-    GLFMUserInterfaceIdiom uiIdiom;
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-        uiIdiom = GLFMUserInterfaceIdiomPhone;
-    }
-    else {
-        uiIdiom = GLFMUserInterfaceIdiomTablet;
-    }
+    BOOL isTablet = (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad);
     GLFMUserInterfaceOrientation uiOrientations = _glfmDisplay->allowedOrientations;
     if (uiOrientations == GLFMUserInterfaceOrientationAny) {
-        if (uiIdiom == GLFMUserInterfaceIdiomTablet) {
+        if (isTablet) {
             return UIInterfaceOrientationMaskAll;
         }
         else {
@@ -191,7 +185,7 @@
         }
     }
     else if (uiOrientations == GLFMUserInterfaceOrientationPortrait) {
-        if (uiIdiom == GLFMUserInterfaceIdiomTablet) {
+        if (isTablet) {
             return UIInterfaceOrientationMaskPortrait | UIInterfaceOrientationMaskPortraitUpsideDown;
         }
         else {
@@ -257,18 +251,17 @@
     if (index == -1) {
         if (firstNullIndex == -1) {
             // Shouldn't happen
-            NSLog(@"Can't touch this");
             return;
         }
         index = firstNullIndex;
         activeTouches[index] = (__bridge const void *)touch;
     }
     
-    CGPoint currLocation = [touch locationInView:self.view];
-    currLocation.x *= self.view.contentScaleFactor;
-    currLocation.y *= self.view.contentScaleFactor;
-    
     if (_glfmDisplay->touchFunc != NULL) {
+        CGPoint currLocation = [touch locationInView:self.view];
+        currLocation.x *= self.view.contentScaleFactor;
+        currLocation.y *= self.view.contentScaleFactor;
+        
         _glfmDisplay->touchFunc(_glfmDisplay, index, phase, currLocation.x, currLocation.y);
     }
     
@@ -542,16 +535,6 @@ GLboolean glfmHasTouch(GLFMDisplay *display)
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor)
 {
     // Do nothing
-}
-
-GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display)
-{
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-        return GLFMUserInterfaceIdiomPhone;
-    }
-    else {
-        return GLFMUserInterfaceIdiomTablet;
-    }
 }
 
 void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEnabled)

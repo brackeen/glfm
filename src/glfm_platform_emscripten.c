@@ -188,10 +188,6 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
     }, emCursor);
 }
 
-GLFMUserInterfaceIdiom glfmGetUserInterfaceIdiom(GLFMDisplay *display) {
-    return GLFMUserInterfaceIdiomWeb;
-}
-
 void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEnabled) {
     PlatformData *platformData = display->platformData;
     platformData->multitouchEnabled = multitouchEnabled;
