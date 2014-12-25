@@ -205,9 +205,9 @@ extern "C" {
     // MARK: Functions
     
     /// Main entry point for the app, where the display can be initialized and the GLFMMainLoopFunc can be set.
-    extern void glfm_main(GLFMDisplay *display);
+    extern void glfmMain(GLFMDisplay *display);
     
-    /// Init the display condifuration. Should only be called in glfm_main.
+    /// Init the display condifuration. Should only be called in glfmMain.
     void glfmSetDisplayConfig(GLFMDisplay *display,
                               const GLFMColorFormat colorFormat,
                               const GLFMDepthFormat depthFormat,

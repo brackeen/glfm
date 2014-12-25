@@ -53,7 +53,7 @@
         [self clearTouches];
         _glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         _glfmDisplay->platformData = (__bridge void *)self;
-        glfm_main(_glfmDisplay);
+        glfmMain(_glfmDisplay);
     }
     return self;
 }

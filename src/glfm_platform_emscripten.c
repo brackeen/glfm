@@ -522,7 +522,7 @@ int main(int argc, const char *argv[]) {
     platformData->active = true;
     
     // Main entry
-    glfm_main(glfmDisplay);
+    glfmMain(glfmDisplay);
     
     // Init resizable canvas
     EM_ASM({

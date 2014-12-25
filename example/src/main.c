@@ -21,7 +21,7 @@ static GLboolean onTouch(GLFMDisplay *display, const int touch, const GLFMTouchP
 static GLboolean onKey(GLFMDisplay *display, const GLFMKey keyCode, const GLFMKeyAction action, const int modifiers);
 
 // Main entry point
-void glfm_main(GLFMDisplay *display) {
+void glfmMain(GLFMDisplay *display) {
     ExampleApp *app = calloc(1, sizeof(ExampleApp));
 
     glfmSetDisplayConfig(display,

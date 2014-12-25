@@ -875,12 +875,12 @@ void android_main(struct android_app *app) {
     }
     
     if (engine->display == NULL) {
-        LOG_LIFECYCLE("glfm_main");
-        // Only call glfm_main() once per instance
+        LOG_LIFECYCLE("glfmMain");
+        // Only call glfmMain() once per instance
         // This should call glfmInit()
         engine->display = calloc(1, sizeof(GLFMDisplay));
         engine->display->platformData = engine;
-        glfm_main(engine->display);
+        glfmMain(engine->display);
     }
     
     // Setup window params
