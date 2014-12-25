@@ -24,7 +24,7 @@ GLFM is limited in scope, and isn't designed to provide everything needed for an
 Instead, GLFM can be used with other cross-platform libraries that provide what an app needs.
 
 ## Example
-This example initializes the display in <code>glfm_main()</code> and draws a triangle in <code>onFrame()</code>. A more detailed example is available [here](example/src/main.c).
+This example initializes the display in <code>glfmMain()</code> and draws a triangle in <code>onFrame()</code>. A more detailed example is available [here](example/src/main.c).
 
 ```C
 #include "glfm.h"
@@ -37,7 +37,7 @@ static void onFrame(GLFMDisplay *display, const double frameTime);
 static void onSurfaceCreated(GLFMDisplay *display, const int width, const int height);
 static void onSurfaceDestroyed(GLFMDisplay *display);
 
-void glfm_main(GLFMDisplay *display) {
+void glfmMain(GLFMDisplay *display) {
     glfmSetDisplayConfig(display,
                          GLFMColorFormatRGBA8888,
                          GLFMDepthFormatNone,
@@ -124,7 +124,7 @@ A quick way to try out GLFM is to make a copy of the repo and open the [example 
 
 1. Remove the project's existing <code>void main()</code> function, if any.
 2. Add the GLFM source files (in `include` and `src`).
-3. Include a <code>void glfm_main(GLFMDisplay *display)</code> function in a C/C++ file.
+3. Include a <code>void glfmMain(GLFMDisplay *display)</code> function in a C/C++ file.
 
  
 ### For new projects
@@ -144,7 +144,7 @@ If the `new_project.py` script doesn't suit you, you can create a new project fo
 1. In Xcode, create a new project with the "iOS Empty Application" template.
 2. Delete `AppDelegate.h`, `AppDelegate.m`, and `main.m`.
 3. Add the GLFM source files (in `include` and `src`) to the project.
-4. Create a new C/C++ file with a <code>void glfm_main(GLFMDisplay *display)</code> function.
+4. Create a new C/C++ file with a <code>void glfmMain(GLFMDisplay *display)</code> function.
 
 ## Future ideas
 * OpenGL ES 3.0 and 3.1 support.
@@ -152,14 +152,14 @@ If the `new_project.py` script doesn't suit you, you can create a new project fo
 * Gamepad / MFi controller input.
 
 ## Caveats
-* GLFM is not thread-safe. All GLFM functions must be called on the main thread (that is, from `glfm_main` or from the callback functions).
+* GLFM is not thread-safe. All GLFM functions must be called on the main thread (that is, from `glfmMain` or from the callback functions).
 * Key input on iOS is not ideal. Using the keyboard (on an iOS device via Bluetooth keyboard or on the simulator via a Mac's keyboard), only a few keys are detected (arrows, enter, space, escape). Also, only key press events can be detected, but not key repeat or key release events.
 * Orientation lock probably doesn't work on HTML5.
 
 ## Questions
-**Why is the entry point <code>glfm_main()</code> and not <code>main()</code>?**
+**Why is the entry point <code>glfmMain()</code> and not <code>main()</code>?**
 
-Otherwise, it wouldn't work on iOS. To initialize the Objective C environment, the <code>main()</code> function must create an autorelease pool and call the <code>UIApplicationMain()</code> function, which *never returns*. On iOS, GLFM doesn't call <code>glfm_main()</code> until after the <code>UIApplicationDelegate</code> and <code>UIViewController</code> are initialized.
+Otherwise, it wouldn't work on iOS. To initialize the Objective C environment, the <code>main()</code> function must create an autorelease pool and call the <code>UIApplicationMain()</code> function, which *never returns*. On iOS, GLFM doesn't call <code>glfmMain()</code> until after the <code>UIApplicationDelegate</code> and <code>UIViewController</code> are initialized.
 
 **Why is GLFM event-driven? Why does GLFM take over the main loop?**
 
