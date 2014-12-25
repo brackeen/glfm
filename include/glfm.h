@@ -159,6 +159,12 @@ extern "C" {
         GLFMLogLevelCritical,
     } GLFMLogLevel;
     
+    typedef enum {
+        GLFMAssetSeekSet,
+        GLFMAssetSeekCur,
+        GLFMAssetSeekEnd,
+    } GLFMAssetSeek;
+    
     // MARK: Structs and function pointers
     
     typedef struct GLFMDisplay GLFMDisplay;
@@ -309,9 +315,9 @@ extern "C" {
     /// Reads 'count' bytes from the file. Returns number of bytes read.
     size_t glfmAssetRead(GLFMAsset *asset, void *buffer, size_t count);
     
-    /// Sets the position of the asset. 'whence' is the same as fseek: SEEK_SET, SEEK_CUR, or SEEK_END.
+    /// Sets the position of the asset.
     /// Returns 0 on success.
-    int glfmAssetSeek(GLFMAsset *asset, long offset, int whence);
+    int glfmAssetSeek(GLFMAsset *asset, long offset, GLFMAssetSeek whence);
     
     /// Closes the asset, releasing any resources.
     void glfmAssetClose(GLFMAsset *asset);

@@ -221,8 +221,15 @@ extern "C" {
         return (asset && asset->file) ? fread(buffer, 1, count, asset->file) : 0;
     }
     
-    int glfmAssetSeek(GLFMAsset *asset, long offset, int whence) {
-        return (asset && asset->file) ? fseek(asset->file, offset, whence) : -1;
+    int glfmAssetSeek(GLFMAsset *asset, long offset, GLFMAssetSeek whence) {
+        int stdioWhence;
+        switch (whence) {
+            default:
+            case GLFMAssetSeekSet: stdioWhence = SEEK_SET; break;
+            case GLFMAssetSeekCur: stdioWhence = SEEK_CUR; break;
+            case GLFMAssetSeekEnd: stdioWhence = SEEK_END; break;
+        }
+        return (asset && asset->file) ? fseek(asset->file, offset, stdioWhence) : -1;
     }
     
     void glfmAssetClose(GLFMAsset *asset) {

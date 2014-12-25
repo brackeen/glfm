@@ -1181,9 +1181,16 @@ size_t glfmAssetRead(GLFMAsset *asset, void *buffer, size_t count) {
     }
 }
 
-int glfmAssetSeek(GLFMAsset *asset, long offset, int whence) {
+int glfmAssetSeek(GLFMAsset *asset, long offset, GLFMAssetSeek whence) {
     if (asset && asset->asset) {
-        off_t ret = AAsset_seek(asset->asset, offset, whence);
+        int stdioWhence;
+        switch (whence) {
+            default:
+            case GLFMAssetSeekSet: stdioWhence = SEEK_SET; break;
+            case GLFMAssetSeekCur: stdioWhence = SEEK_CUR; break;
+            case GLFMAssetSeekEnd: stdioWhence = SEEK_END; break;
+        }
+        off_t ret = AAsset_seek(asset->asset, offset, stdioWhence);
         return (ret == (off_t)-1) ? -1 : 0;
     }
     else {
