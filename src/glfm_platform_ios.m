@@ -38,10 +38,10 @@
 }
 
 @property (nonatomic, strong) EAGLContext *context;
-@property (nonatomic) GLFMDisplay *glfmDisplay;
-@property (nonatomic) CGSize displaySize;
-@property (nonatomic) BOOL multipleTouchEnabled;
-@property (nonatomic) BOOL glkViewCreated;
+@property (nonatomic, assign) GLFMDisplay *glfmDisplay;
+@property (nonatomic, assign) CGSize displaySize;
+@property (nonatomic, assign) BOOL multipleTouchEnabled;
+@property (nonatomic, assign) BOOL glkViewCreated;
 
 @end
 
@@ -210,6 +210,10 @@
     if ([EAGLContext currentContext] == self.context) {
         [EAGLContext setCurrentContext:nil];
     }
+    if (_glfmDisplay->surfaceDestroyedFunc != NULL) {
+        _glfmDisplay->surfaceDestroyedFunc(_glfmDisplay);
+    }
+    free(_glfmDisplay);
 }
 
 - (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
@@ -300,7 +304,7 @@
 
 #pragma mark - Key commands
 
-// Key input only works when8 a key is pressed, and has no repeat events or release events.
+// Key input only works when a key is pressed, and has no repeat events or release events.
 // Not ideal, but useful for prototyping.
 
 - (BOOL)canBecomeFirstResponder
@@ -393,8 +397,8 @@
 
 @interface GLFMAppDelegate : NSObject <UIApplicationDelegate>
 
-@property (strong, nonatomic) UIWindow *window;
-@property (nonatomic) BOOL active;
+@property (nonatomic, strong) UIWindow *window;
+@property (nonatomic, assign) BOOL active;
 
 @end
 
