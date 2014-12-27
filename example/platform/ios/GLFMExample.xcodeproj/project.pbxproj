@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		E31A9F9719C65DA20099CE76 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = E31A9F9619C65DA20099CE76 /* LaunchScreen.xib */; };
+		E322A0CA1A4F6A1A008156A4 /* texture.vert in Resources */ = {isa = PBXBuildFile; fileRef = E322A0C91A4F6A1A008156A4 /* texture.vert */; };
+		E322A0CC1A4F6A2E008156A4 /* texture.frag in Resources */ = {isa = PBXBuildFile; fileRef = E322A0CB1A4F6A2E008156A4 /* texture.frag */; };
 		E34FCB6018FC807E00EC87DC /* glfm_platform_android.c in Sources */ = {isa = PBXBuildFile; fileRef = E34FCB5D18FC807E00EC87DC /* glfm_platform_android.c */; };
 		E34FCB6118FC807E00EC87DC /* glfm_platform_emscripten.c in Sources */ = {isa = PBXBuildFile; fileRef = E34FCB5E18FC807E00EC87DC /* glfm_platform_emscripten.c */; };
 		E34FCB6218FC807E00EC87DC /* glfm_platform_ios.m in Sources */ = {isa = PBXBuildFile; fileRef = E34FCB5F18FC807E00EC87DC /* glfm_platform_ios.m */; };
@@ -23,6 +25,8 @@
 
 /* Begin PBXFileReference section */
 		E31A9F9619C65DA20099CE76 /* LaunchScreen.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = LaunchScreen.xib; sourceTree = "<group>"; };
+		E322A0C91A4F6A1A008156A4 /* texture.vert */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = texture.vert; sourceTree = "<group>"; };
+		E322A0CB1A4F6A2E008156A4 /* texture.frag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = texture.frag; sourceTree = "<group>"; };
 		E34FCB5A18FC807E00EC87DC /* glfm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glfm.h; sourceTree = "<group>"; };
 		E34FCB5C18FC807E00EC87DC /* glfm_platform.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glfm_platform.h; sourceTree = "<group>"; };
 		E34FCB5D18FC807E00EC87DC /* glfm_platform_android.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = glfm_platform_android.c; sourceTree = "<group>"; };
@@ -139,6 +143,8 @@
 			children = (
 				E3D9790B1929ABAF0008D3BC /* simple.vert */,
 				E3D9790D1929ABC60008D3BC /* simple.frag */,
+				E322A0C91A4F6A1A008156A4 /* texture.vert */,
+				E322A0CB1A4F6A2E008156A4 /* texture.frag */,
 			);
 			name = assets;
 			path = ../../assets;
@@ -207,7 +213,9 @@
 				E31A9F9719C65DA20099CE76 /* LaunchScreen.xib in Resources */,
 				E361B9EF18F33F8800C25B35 /* InfoPlist.strings in Resources */,
 				E361B9F718F33F8800C25B35 /* Images.xcassets in Resources */,
+				E322A0CC1A4F6A2E008156A4 /* texture.frag in Resources */,
 				E3D9790C1929ABAF0008D3BC /* simple.vert in Resources */,
+				E322A0CA1A4F6A1A008156A4 /* texture.vert in Resources */,
 				E3D9790E1929ABC60008D3BC /* simple.frag in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
