@@ -22,26 +22,300 @@
 #ifdef GLFM_PLATFORM_IOS
 
 #import <UIKit/UIKit.h>
-#import <GLKit/GLKit.h>
-#include <asl.h>
+#import <asl.h>
 
 #define GLFM_ASSETS_USE_STDIO
 #include "glfm_platform.h"
 
 #define MAX_SIMULTANEOUS_TOUCHES 10
 
-#pragma mark - ViewController
+#define CHECK_GL_ERROR() ({ GLenum error = glGetError(); if (error != GL_NO_ERROR) glfmLog(GLFMLogLevelError, \
+"OpenGL code 0x%04x at %s:%i", error, __FILE__, __LINE__); })
 
-@interface GLFMViewController : GLKViewController
+#pragma mark - EAGLView
+
+@interface EAGLView : UIView
+{
+    GLint _drawableWidth;
+    GLint _drawableHeight;
+    GLuint _defaultFramebuffer;
+    GLuint _colorRenderbuffer;
+    GLuint _attachmentRenderbuffer;
+    GLuint _msaaFramebuffer;
+    GLuint _msaaRenderbuffer;
+}
+
+@property (nonatomic, strong) EAGLContext *context;
+@property (nonatomic, assign) NSString *colorFormat;
+@property (nonatomic, assign) BOOL preserveBackbuffer;
+@property (nonatomic, assign) NSUInteger depthBits;
+@property (nonatomic, assign) NSUInteger stencilBits;
+@property (nonatomic, assign) BOOL multisampling;
+@property (nonatomic, readonly) NSUInteger drawableWidth;
+@property (nonatomic, readonly) NSUInteger drawableHeight;
+
+- (void)createDrawable;
+- (void)deleteDrawable;
+- (void)prepareRender;
+- (void)finishRender;
+
+@end
+
+@implementation EAGLView
+
+@dynamic drawableWidth, drawableHeight;
+
++ (Class)layerClass
+{
+    return [CAEAGLLayer class];
+}
+
+- (void)dealloc
+{
+    [self deleteDrawable];
+}
+
+- (NSUInteger)drawableWidth
+{
+    return _drawableWidth;
+}
+
+- (NSUInteger)drawableHeight
+{
+    return _drawableHeight;
+}
+
+- (void)createDrawable
+{
+    if (_defaultFramebuffer != 0 || !self.context) {
+        return;
+    }
+    
+    if (!self.colorFormat) {
+        self.colorFormat = kEAGLColorFormatRGBA8;
+    }
+    
+    [EAGLContext setCurrentContext:self.context];
+    
+    CAEAGLLayer *eaglLayer = (CAEAGLLayer *)self.layer;
+    eaglLayer.opaque = YES;
+    eaglLayer.drawableProperties = @{ kEAGLDrawablePropertyRetainedBacking : @(self.preserveBackbuffer),
+                                      kEAGLDrawablePropertyColorFormat : self.colorFormat };
+    
+    glGenFramebuffers(1, &_defaultFramebuffer);
+    glGenRenderbuffers(1, &_colorRenderbuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, _defaultFramebuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, _colorRenderbuffer);
+    
+    // iPhone 6 Display Zoom hack
+    CGRect oldBounds = eaglLayer.bounds;
+    if (eaglLayer.contentsScale == 2.343750) {
+        if (eaglLayer.bounds.size.width == 320 && eaglLayer.bounds.size.height == 568) {
+            eaglLayer.bounds = CGRectMake(eaglLayer.bounds.origin.x, eaglLayer.bounds.origin.y,
+                                          eaglLayer.bounds.size.width, 1334 / eaglLayer.contentsScale);
+        }
+        else if (eaglLayer.bounds.size.width == 568 && eaglLayer.bounds.size.height == 320) {
+            eaglLayer.bounds = CGRectMake(eaglLayer.bounds.origin.x, eaglLayer.bounds.origin.y,
+                                          1334 / eaglLayer.contentsScale, eaglLayer.bounds.size.height);
+        }
+    }
+    
+    if (![self.context renderbufferStorage:GL_RENDERBUFFER fromDrawable:eaglLayer]) {
+        glfmLog(GLFMLogLevelError, "Call to renderbufferStorage failed");
+    }
+    
+    eaglLayer.bounds = oldBounds;
+    
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _colorRenderbuffer);
+    
+    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &_drawableWidth);
+    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &_drawableHeight);
+    
+    if (_multisampling) {
+        glGenFramebuffers(1, &_msaaFramebuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, _msaaFramebuffer);
+        
+        glGenRenderbuffers(1, &_msaaRenderbuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, _msaaRenderbuffer);
+        
+        GLenum internalformat = GL_RGBA8_OES;
+        if ([kEAGLColorFormatRGB565 isEqualToString:_colorFormat]) {
+            internalformat = GL_RGB565;
+        }
+        
+        glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 2, internalformat, _drawableWidth, _drawableHeight);
+        
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _msaaRenderbuffer);
+        
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            glfmLog(GLFMLogLevelError, "Couldn't create multisample framebuffer: %x", status);
+        }
+    }
+    
+    if (_depthBits > 0 || _stencilBits > 0) {
+        glGenRenderbuffers(1, &_attachmentRenderbuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, _attachmentRenderbuffer);
+        
+        GLenum internalformat;
+        if (_depthBits > 0 && _stencilBits > 0) {
+            internalformat = GL_DEPTH24_STENCIL8_OES;
+        }
+        else if (_depthBits >= 24) {
+            internalformat = GL_DEPTH_COMPONENT24_OES;
+        }
+        else if (_depthBits > 0) {
+            internalformat = GL_DEPTH_COMPONENT16;
+        }
+        else {
+            internalformat = GL_STENCIL_INDEX8;
+        }
+        
+        if (_multisampling) {
+            glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 2, internalformat, _drawableWidth, _drawableHeight);
+        }
+        else {
+            glRenderbufferStorage(GL_RENDERBUFFER, internalformat, _drawableWidth, _drawableHeight);
+        }
+        
+        if (_depthBits > 0) {
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _attachmentRenderbuffer);
+        }
+        if (_stencilBits > 0) {
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _attachmentRenderbuffer);
+        }
+    }
+    
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        glfmLog(GLFMLogLevelError, "Framebuffer incomplete: %x", status);
+    }
+    
+    CHECK_GL_ERROR();
+}
+
+- (void)deleteDrawable
+{
+    if (_defaultFramebuffer) {
+        glDeleteFramebuffers(1, &_defaultFramebuffer);
+        _defaultFramebuffer = 0;
+    }
+    if (_colorRenderbuffer) {
+        glDeleteRenderbuffers(1, &_colorRenderbuffer);
+        _colorRenderbuffer = 0;
+    }
+    if (_attachmentRenderbuffer) {
+        glDeleteRenderbuffers(1, &_attachmentRenderbuffer);
+        _attachmentRenderbuffer = 0;
+    }
+    if (_msaaRenderbuffer) {
+        glDeleteRenderbuffers(1, &_msaaRenderbuffer);
+        _msaaRenderbuffer = 0;
+    }
+    if (_msaaFramebuffer) {
+        glDeleteFramebuffers(1, &_msaaFramebuffer);
+        _msaaFramebuffer = 0;
+    }
+}
+
+- (void)prepareRender
+{
+    [EAGLContext setCurrentContext:self.context];
+    if (_multisampling) {
+        glBindFramebuffer(GL_FRAMEBUFFER, _msaaFramebuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, _msaaRenderbuffer);
+    }
+    else {
+        glBindFramebuffer(GL_FRAMEBUFFER, _defaultFramebuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, _colorRenderbuffer);
+    }
+    glViewport(0, 0, _drawableWidth, _drawableHeight);
+    
+    CHECK_GL_ERROR();
+}
+
+- (void)finishRender
+{
+    if (_multisampling) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER_APPLE, _msaaFramebuffer);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER_APPLE, _defaultFramebuffer);
+        glResolveMultisampleFramebufferAPPLE();
+    }
+    
+    static bool checked_GL_EXT_discard_framebuffer = false;
+    static bool has_GL_EXT_discard_framebuffer = false;
+    if (!checked_GL_EXT_discard_framebuffer) {
+        checked_GL_EXT_discard_framebuffer = true;
+        if (glfmExtensionSupported("GL_EXT_discard_framebuffer")) {
+            has_GL_EXT_discard_framebuffer = true;
+        }
+    }
+    if (has_GL_EXT_discard_framebuffer) {
+        GLenum target = GL_FRAMEBUFFER;
+        GLenum attachments[3];
+        GLenum numAttachments = 0;
+        if (_multisampling) {
+            target = GL_READ_FRAMEBUFFER_APPLE;
+            attachments[numAttachments++] = GL_COLOR_ATTACHMENT0;
+        }
+        if (_depthBits > 0) {
+            attachments[numAttachments++] = GL_DEPTH_ATTACHMENT;
+        }
+        if (_stencilBits > 0) {
+            attachments[numAttachments++] = GL_STENCIL_ATTACHMENT;
+        }
+        if (numAttachments > 0) {
+            if (_multisampling) {
+                glBindFramebuffer(GL_FRAMEBUFFER, _msaaFramebuffer);
+            }
+            else {
+                glBindFramebuffer(GL_FRAMEBUFFER, _defaultFramebuffer);
+            }
+            glDiscardFramebufferEXT(target, numAttachments, attachments);
+        }
+    }
+
+    glBindRenderbuffer(GL_RENDERBUFFER, _colorRenderbuffer);
+    [self.context presentRenderbuffer:GL_RENDERBUFFER];
+    
+    CHECK_GL_ERROR();
+}
+
+- (void)layoutSubviews
+{
+    GLint newDrawableWidth = self.frame.size.width * self.contentScaleFactor;
+    GLint newDrawableHeight = self.frame.size.height * self.contentScaleFactor;
+
+    // iPhone 6 Display Zoom hack
+    if (self.contentScaleFactor == 2.343750) {
+        if (newDrawableWidth == 750 && newDrawableHeight == 1331) {
+            newDrawableHeight = 1334;
+        }
+        else if (newDrawableWidth == 1331 && newDrawableHeight == 750) {
+            newDrawableWidth = 1334;
+        }
+    }
+    
+    if (self.drawableWidth != newDrawableWidth || self.drawableHeight != newDrawableHeight) {
+        [self deleteDrawable];
+        [self createDrawable];
+    }
+}
+
+@end
+
+#pragma mark - GLFMViewController
+
+@interface GLFMViewController : UIViewController
 {
     const void *activeTouches[MAX_SIMULTANEOUS_TOUCHES];
 }
 
 @property (nonatomic, strong) EAGLContext *context;
+@property (nonatomic, strong) CADisplayLink *displayLink;
 @property (nonatomic, assign) GLFMDisplay *glfmDisplay;
-@property (nonatomic, assign) CGSize displaySize;
+@property (nonatomic, assign) CGSize drawableSize;
 @property (nonatomic, assign) BOOL multipleTouchEnabled;
-@property (nonatomic, assign) BOOL glkViewCreated;
 
 @end
 
@@ -53,9 +327,29 @@
         [self clearTouches];
         _glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         _glfmDisplay->platformData = (__bridge void *)self;
+        self.drawableSize = [self preferredDrawableSize];
         glfmMain(_glfmDisplay);
     }
     return self;
+}
+
+- (BOOL)animating
+{
+    return (self.displayLink != nil);
+}
+
+- (void)setAnimating:(BOOL)animating
+{
+    if (self.animating != animating) {
+        if (!animating) {
+            [self.displayLink invalidate];
+            self.displayLink = nil;
+        }
+        else {
+            self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(render:)];
+            [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+        }
+    }
 }
 
 - (BOOL)prefersStatusBarHidden
@@ -63,31 +357,20 @@
     return _glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
 }
 
-- (CGSize)calcDisplaySize
+- (CGSize)preferredDrawableSize
 {
-    BOOL isPortrait = YES;
-    GLKView *view = (GLKView *)self.view;
-    if (view.drawableWidth != 0 && view.drawableHeight != 0) {
-        return CGSizeMake(view.drawableWidth, view.drawableHeight);
-    }
-    isPortrait = UIInterfaceOrientationIsPortrait(self.interfaceOrientation);
-    
+    BOOL isPortrait = UIInterfaceOrientationIsPortrait(self.interfaceOrientation);
     if ([[UIScreen mainScreen] respondsToSelector:@selector(nativeBounds)]) {
+        // NOTE: [UIScreen mainScreen].nativeBounds is always in portrait orientation
         CGSize size = [UIScreen mainScreen].nativeBounds.size;
 
         /*
-         HACK: workaround for nativeBounds bug with for iPhone 6 and iPhone 6 Plus when using Display Zoom.
-         
+         iPhone 6 Display Zoom hack
          Device (Mode)                 scale   bounds    nativeScale         nativeBounds    drawable
          iPhone 6 (Display Zoom)         2.0   320x568   2.34375             750x1331.25     750x1331
          iPhone 6 (Standard)             2.0   375x667   2.0                 750x1334        750x1334
          iPhone 6 Plus (Display Zoom)    3.0   375x667   2.88                1080x1920.96    1080x1920
          iPhone 6 Plus (Standard)        3.0   414x736   2.608695652173913   1080x1920       1080x1920
-
-         TODO: It might be reasonable to change the bounds of the GLKView when Display Zoom is detected.
-         For iPhone 6 (Display Zoom), change the bounds of the view (320x569.1733333333333).
-         For iPhone 6 Plus (Display Zoom), change the bounds of the view (375x666.6666666666667).
-         Totally untested, just an idea.
          */
         if (size.width == 750 && size.height == 1331.25) {
             size.height = 1334;
@@ -105,24 +388,34 @@
     else {
         // NOTE: [UIScreen mainScreen].bounds is orientation-aware in iOS 8, but not in iOS 7.
         CGSize size = [UIScreen mainScreen].bounds.size;
+        CGFloat scale = [UIScreen mainScreen].scale;
         if (isPortrait) {
-            return CGSizeMake(size.width * view.contentScaleFactor, size.height * view.contentScaleFactor);
+            return CGSizeMake(size.width * scale, size.height * scale);
         }
         else {
-            return CGSizeMake(size.height * view.contentScaleFactor, size.width * view.contentScaleFactor);
+            return CGSizeMake(size.height * scale, size.width * scale);
         }
     }
+}
+
+- (void)loadView
+{
+    self.view = [[EAGLView alloc] initWithFrame:[[UIScreen mainScreen] applicationFrame]];
+    self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    CGFloat nativeScale = 1;
+    if ([[UIScreen mainScreen] respondsToSelector:@selector(nativeScale)]) {
+        nativeScale = [[UIScreen mainScreen] nativeScale];
+    }
+    else {
+        nativeScale = [[UIScreen mainScreen] scale];
+    }
+    self.view.contentScaleFactor = nativeScale;
 }
 
 - (void)viewDidLoad
 {
     [super viewDidLoad];
     
-    GLKView *view = (GLKView *)self.view;
-    
-    view.multipleTouchEnabled = self.multipleTouchEnabled;
-    self.glkViewCreated = YES;
-    self.displaySize = [self calcDisplaySize];
     self.context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
     
     if (!self.context) {
@@ -130,45 +423,50 @@
         return;
     }
     
+    EAGLView *view = (EAGLView *)self.view;
+    view.multipleTouchEnabled = self.multipleTouchEnabled;
     view.context = self.context;
-    
+
+    [self setNeedsStatusBarAppearanceUpdate];
+
     switch (_glfmDisplay->colorFormat) {
         case GLFMColorFormatRGB565:
-            view.drawableColorFormat = GLKViewDrawableColorFormatRGB565;
+            view.colorFormat = kEAGLColorFormatRGB565;
             break;
         case GLFMColorFormatRGBA8888: default:
-            view.drawableColorFormat = GLKViewDrawableColorFormatRGBA8888;
+            view.colorFormat = kEAGLColorFormatRGBA8;
             break;
     }
     
     switch (_glfmDisplay->depthFormat) {
         case GLFMDepthFormatNone: default:
-            view.drawableDepthFormat = GLKViewDrawableDepthFormatNone;
+            view.depthBits = 0;
             break;
         case GLFMDepthFormat16:
-            view.drawableDepthFormat = GLKViewDrawableDepthFormat16;
+            view.depthBits = 16;
             break;
         case GLFMDepthFormat24:
-            view.drawableDepthFormat = GLKViewDrawableDepthFormat24;
+            view.depthBits = 24;
             break;
     }
     
     switch (_glfmDisplay->stencilFormat) {
         case GLFMStencilFormatNone: default:
-            view.drawableStencilFormat = GLKViewDrawableStencilFormatNone;
+            view.stencilBits = 0;
             break;
         case GLFMStencilFormat8:
-            view.drawableStencilFormat = GLKViewDrawableStencilFormat8;
+            view.stencilBits = 8;
             break;
     }
+
+    [view createDrawable];
     
-    self.preferredFramesPerSecond = 60;
-    [self setNeedsStatusBarAppearanceUpdate];
-    
-    [view bindDrawable];
-    
-    if (_glfmDisplay->surfaceCreatedFunc) {
-        _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, self.displaySize.width, self.displaySize.height);
+    if (view.drawableWidth > 0 && view.drawableHeight > 0) {
+        self.drawableSize = CGSizeMake(view.drawableWidth, view.drawableHeight);
+        if (_glfmDisplay->surfaceCreatedFunc) {
+            _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, self.drawableSize.width, self.drawableSize.height);
+        }
+        self.animating = YES;
     }
 }
 
@@ -207,6 +505,7 @@
 
 - (void)dealloc
 {
+    [self setAnimating:NO];
     if ([EAGLContext currentContext] == self.context) {
         [EAGLContext setCurrentContext:nil];
     }
@@ -216,18 +515,23 @@
     free(_glfmDisplay);
 }
 
-- (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
+- (void)render:(CADisplayLink *)displayLink
 {
-    CGSize newDisplaySize = [self calcDisplaySize];
-    if (!CGSizeEqualToSize(newDisplaySize, self.displaySize)) {
-        self.displaySize = newDisplaySize;
+    EAGLView *view = (EAGLView *)self.view;
+    
+    CGSize newDrawableSize = CGSizeMake(view.drawableWidth, view.drawableHeight);
+    if (!CGSizeEqualToSize(self.drawableSize, newDrawableSize)) {
+        self.drawableSize = newDrawableSize;
         if (_glfmDisplay->surfaceResizedFunc) {
-            _glfmDisplay->surfaceResizedFunc(_glfmDisplay, self.displaySize.width, self.displaySize.height);
+            _glfmDisplay->surfaceResizedFunc(_glfmDisplay, self.drawableSize.width, self.drawableSize.height);
         }
     }
+
+    [view prepareRender];
     if (_glfmDisplay->mainLoopFunc) {
-        _glfmDisplay->mainLoopFunc(_glfmDisplay, self.timeSinceFirstResume);
+        _glfmDisplay->mainLoopFunc(_glfmDisplay, displayLink.timestamp);
     }
+    [view finishRender];
 }
 
 #pragma mark - UIResponder
@@ -416,6 +720,7 @@
         
         GLFMViewController *vc = (GLFMViewController *)[self.window rootViewController];
         [vc clearTouches];
+        vc.animating = active;
         if (vc.glfmDisplay) {
             if (_active && vc.glfmDisplay->resumingFunc) {
                 vc.glfmDisplay->resumingFunc(vc.glfmDisplay);
@@ -497,7 +802,7 @@ int glfmGetDisplayWidth(GLFMDisplay *display)
 {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return vc.displaySize.width;
+        return vc.drawableSize.width;
     }
     else {
         return 0;
@@ -508,7 +813,7 @@ int glfmGetDisplayHeight(GLFMDisplay *display)
 {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return vc.displaySize.height;
+        return vc.drawableSize.height;
     }
     else {
         return 0;
@@ -542,9 +847,8 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEn
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         vc.multipleTouchEnabled = multitouchEnabled;
-        if (vc.glkViewCreated) {
-            GLKView *view = (GLKView *)vc.view;
-            view.multipleTouchEnabled = multitouchEnabled;
+        if (vc.isViewLoaded) {
+            vc.view.multipleTouchEnabled = multitouchEnabled;
         }
     }
 }
