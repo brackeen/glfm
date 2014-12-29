@@ -42,6 +42,7 @@ void glfmMain(GLFMDisplay *display) {
                          GLFMColorFormatRGBA8888,
                          GLFMDepthFormatNone,
                          GLFMStencilFormatNone,
+                         GLFMMultisampleNone,
                          GLFMUserInterfaceChromeFullscreen);
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
     glfmSetSurfaceResizedFunc(display, onSurfaceCreated);
@@ -94,9 +95,9 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
     }
     if (vertexBuffer == 0) {
         const GLfloat vertices[] = {
-            0.0,  0.5, 0.0,
+             0.0,  0.5, 0.0,
             -0.5, -0.5, 0.0,
-            0.5, -0.5, 0.0,
+             0.5, -0.5, 0.0,
         };
         glGenBuffers(1, &vertexBuffer);
         glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
@@ -117,34 +118,16 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 ## API
 See [glfm.h](include/glfm.h)
 
-## Using GLFM in a project
-A quick way to try out GLFM is to make a copy of the repo and open the [example project](example) in Xcode or Eclipse. 
+## Create a new GLFM project
+Use the `new_project.py` command-line script to automatically create a new project setup for iOS, Android, and Emscripten.
 
-### For existing projects
+The script will ask a few questions and output a new project. After creation, you can edit the `main.c` file.
+
+## Use GLFM in an existing project
 
 1. Remove the project's existing <code>void main()</code> function, if any.
 2. Add the GLFM source files (in `include` and `src`).
 3. Include a <code>void glfmMain(GLFMDisplay *display)</code> function in a C/C++ file.
-
- 
-### For new projects
-
-The (experimental) `new_project.py` script automatically creates a new project setup for iOS, Android, and Emscripten.
-
-```
-cd glfm
-./new_project.py
-```
-
-The script will ask a few questions and output a new project. After creation, you can edit the `main.c` file.
-
-### New Xcode project
-If the `new_project.py` script doesn't suit you, you can create a new project for iOS:
-
-1. In Xcode, create a new project with the "iOS Empty Application" template.
-2. Delete `AppDelegate.h`, `AppDelegate.m`, and `main.m`.
-3. Add the GLFM source files (in `include` and `src`) to the project.
-4. Create a new C/C++ file with a <code>void glfmMain(GLFMDisplay *display)</code> function.
 
 ## Future ideas
 * OpenGL ES 3.0 and 3.1 support.
@@ -159,7 +142,7 @@ If the `new_project.py` script doesn't suit you, you can create a new project fo
 ## Questions
 **Why is the entry point <code>glfmMain()</code> and not <code>main()</code>?**
 
-Otherwise, it wouldn't work on iOS. To initialize the Objective C environment, the <code>main()</code> function must create an autorelease pool and call the <code>UIApplicationMain()</code> function, which *never returns*. On iOS, GLFM doesn't call <code>glfmMain()</code> until after the <code>UIApplicationDelegate</code> and <code>UIViewController</code> are initialized.
+Otherwise, it wouldn't work on iOS. To initialize the Objective-C environment, the <code>main()</code> function must create an autorelease pool and call the <code>UIApplicationMain()</code> function, which *never returns*. On iOS, GLFM doesn't call <code>glfmMain()</code> until after the <code>UIApplicationDelegate</code> and <code>UIViewController</code> are initialized.
 
 **Why is GLFM event-driven? Why does GLFM take over the main loop?**
 
@@ -167,7 +150,7 @@ Otherwise, it wouldn't work on iOS (see above) or on HTML5, which is event-drive
 
 **What are the `glfmAsset*` functions for? Doesn't `stdio` work?**
 
-Android's assets are locally stored in a compressed file (the APK) that can't be accessed via regular `stdio` functions. The `glfmAsset*` functions use NDK's proprietary assets API on Android, and `stdio` on iOS.
+The `stdio` functions work fine on iOS and Emscripten, but Android's assets are stored in a compressed file (the APK) that can only be accessed via a proprietary API. The `glfmAsset*` functions use NDK's proprietary assets API on Android, and `stdio` on iOS and Emscripten.
 
 ## License
 [ZLIB](http://en.wikipedia.org/wiki/Zlib_License)
