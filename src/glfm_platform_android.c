@@ -364,6 +364,10 @@ static void egl_log_config(Engine *engine, EGLConfig config) {
     LOGI("  EGL_DEPTH_SIZE      %i", value);
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_STENCIL_SIZE, &value);
     LOGI("  EGL_STENCIL_SIZE    %i", value);
+    eglGetConfigAttrib(engine->eglDisplay, config, EGL_SAMPLE_BUFFERS, &value);
+    LOGI("  EGL_SAMPLE_BUFFERS  %i", value);
+    eglGetConfigAttrib(engine->eglDisplay, config, EGL_SAMPLES, &value);
+    LOGI("  EGL_SAMPLES         %i", value);
 }
 
 static bool egl_init(Engine *engine) {
@@ -372,7 +376,7 @@ static bool egl_init(Engine *engine) {
         return egl_init_context(engine);
     }
     int rBits, gBits, bBits, aBits;
-    int depthBits, stencilBits;
+    int depthBits, stencilBits, samples;
     
     switch (engine->display->colorFormat) {
         case GLFMColorFormatRGB565:
@@ -407,34 +411,24 @@ static bool egl_init(Engine *engine) {
             break;
         case GLFMStencilFormat8:
             stencilBits = 8;
+            if (depthBits > 0) {
+                // Many implementations only allow 24-bit depth with 8-bit stencil.
+                depthBits = 24;
+            }
             break;
     }
-    
-    const EGLint attribs[] = {
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-        EGL_SURFACE_TYPE,    EGL_WINDOW_BIT,
-        EGL_RED_SIZE,        rBits,
-        EGL_GREEN_SIZE,      gBits,
-        EGL_BLUE_SIZE,       bBits,
-        EGL_ALPHA_SIZE,      aBits,
-        EGL_DEPTH_SIZE,      depthBits,
-        EGL_STENCIL_SIZE,    stencilBits,
-        EGL_NONE
-    };
-    
+
+    samples = engine->display->multisample == GLFMMultisample4X ? 4 : 0;
+
     EGLint majorVersion;
     EGLint minorVersion;
     EGLint format;
     EGLint numConfigs;
-    
+
     engine->eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     eglInitialize(engine->eglDisplay, &majorVersion, &minorVersion);
-    
-    eglChooseConfig(engine->eglDisplay, attribs, &engine->eglConfig, 1, &numConfigs);
-    
-    if (!numConfigs && depthBits == 24) {
-        // Try 16-bit depth if 24-bit fails
-        depthBits = 16;
+
+    while (true) {
         const EGLint attribs[] = {
             EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
             EGL_SURFACE_TYPE,    EGL_WINDOW_BIT,
@@ -444,40 +438,52 @@ static bool egl_init(Engine *engine) {
             EGL_ALPHA_SIZE,      aBits,
             EGL_DEPTH_SIZE,      depthBits,
             EGL_STENCIL_SIZE,    stencilBits,
+            EGL_SAMPLE_BUFFERS,  samples > 0 ? 1 : 0,
+            EGL_SAMPLES,         samples > 0 ? samples : EGL_DONT_CARE,
             EGL_NONE
         };
+
         eglChooseConfig(engine->eglDisplay, attribs, &engine->eglConfig, 1, &numConfigs);
-    }
-    
-    if (!numConfigs) {
-        static bool printedConfigs = false;
-        if (!printedConfigs) {
-            printedConfigs = true;
-            LOGW("eglChooseConfig() failed");
-            EGLConfig configs[256];
-            EGLint numTotalConfigs;
-            if (eglGetConfigs(engine->eglDisplay, configs, 256, &numTotalConfigs)) {
-                LOGI("Num available configs: %i", numTotalConfigs);
-                int i;
-                for (i = 0; i < numTotalConfigs; i++) {
-                    egl_log_config(engine, configs[i]);
+        if (numConfigs) {
+            // Found!
+            //egl_log_config(engine, engine->eglConfig);
+            break;
+        }
+        else if (samples > 0) {
+            // Try 2x multisampling or no multisampling
+            samples -= 2;
+        }
+        else if (depthBits > 8) {
+            // Try 16-bit depth or 8-bit depth
+            depthBits -= 8;
+        }
+        else {
+            // Failure
+            static bool printedConfigs = false;
+            if (!printedConfigs) {
+                printedConfigs = true;
+                LOGW("eglChooseConfig() failed");
+                EGLConfig configs[256];
+                EGLint numTotalConfigs;
+                if (eglGetConfigs(engine->eglDisplay, configs, 256, &numTotalConfigs)) {
+                    LOGI("Num available configs: %i", numTotalConfigs);
+                    int i;
+                    for (i = 0; i < numTotalConfigs; i++) {
+                        egl_log_config(engine, configs[i]);
+                    }
+                }
+                else {
+                    LOGI("Couldn't get any EGL configs");
                 }
             }
-            else {
-                LOGI("Couldn't get any EGL configs");
-            }
+
+            reportSurfaceError(engine->eglDisplay, "eglChooseConfig() failed");
+            eglTerminate(engine->eglDisplay);
+            engine->eglDisplay = EGL_NO_DISPLAY;
+            return false;
         }
-        
-        reportSurfaceError(engine->eglDisplay, "eglChooseConfig() failed");
-        eglTerminate(engine->eglDisplay);
-        engine->eglDisplay = EGL_NO_DISPLAY;
-        return false;
     }
-    else {
-        //LOGI("Num matching configs: %i", numConfigs);
-        //egl_log_config(engine, engine->eglConfig);
-    }
-    
+
     egl_init_surface(engine);
     
     eglQuerySurface(engine->eglDisplay, engine->eglSurface, EGL_WIDTH, &engine->width);

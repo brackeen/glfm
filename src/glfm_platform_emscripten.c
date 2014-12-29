@@ -521,7 +521,7 @@ int main(int argc, const char *argv[]) {
     const GLboolean alpha = glfmDisplay->colorFormat == GLFMColorFormatRGBA8888;
     const GLboolean depth = glfmDisplay->depthFormat != GLFMDepthFormatNone;
     const GLboolean stencil = glfmDisplay->stencilFormat != GLFMStencilFormatNone;
-    const GLboolean antialias = GL_FALSE;
+    const GLboolean antialias = glfmDisplay->multisample != GLFMMultisampleNone;
     const GLboolean premultipliedAlpha = GL_TRUE;
     const GLboolean preserveDrawingBuffer = GL_FALSE;
     int success = EM_ASM_INT({

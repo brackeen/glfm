@@ -82,6 +82,11 @@ extern "C" {
         GLFMStencilFormat8,
     } GLFMStencilFormat;
     
+    typedef enum {
+        GLFMMultisampleNone = 0,
+        GLFMMultisample4X,
+    } GLFMMultisample;
+    
     /// GLFMUserInterfaceChrome defines whether system UI chrome (status bar, navigation bar) is shown.
     /// This value is ignored on Emscripten.
     /// GLFMUserInterfaceChromeFullscreen
@@ -204,6 +209,7 @@ extern "C" {
                               const GLFMColorFormat colorFormat,
                               const GLFMDepthFormat depthFormat,
                               const GLFMStencilFormat stencilFormat,
+                              const GLFMMultisample multisample,
                               const GLFMUserInterfaceChrome uiChrome);
     
     void glfmSetUserData(GLFMDisplay *display, void *userData);

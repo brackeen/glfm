@@ -143,7 +143,7 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
             internalformat = GL_RGB565;
         }
         
-        glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 2, internalformat, _drawableWidth, _drawableHeight);
+        glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 4, internalformat, _drawableWidth, _drawableHeight);
         
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _msaaRenderbuffer);
         
@@ -172,7 +172,7 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
         }
         
         if (_multisampling) {
-            glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 2, internalformat, _drawableWidth, _drawableHeight);
+            glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 4, internalformat, _drawableWidth, _drawableHeight);
         }
         else {
             glRenderbufferStorage(GL_RENDERBUFFER, internalformat, _drawableWidth, _drawableHeight);
@@ -456,6 +456,8 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
             view.stencilBits = 8;
             break;
     }
+    
+    view.multisampling = _glfmDisplay->multisample != GLFMMultisampleNone;
 
     [view createDrawable];
     

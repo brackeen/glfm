@@ -15,6 +15,7 @@ extern "C" {
         GLFMColorFormat colorFormat;
         GLFMDepthFormat depthFormat;
         GLFMStencilFormat stencilFormat;
+        GLFMMultisample multisample;
         GLFMUserInterfaceOrientation allowedOrientations;
         GLFMUserInterfaceChrome uiChrome;
         
@@ -47,11 +48,13 @@ extern "C" {
                               const GLFMColorFormat colorFormat,
                               const GLFMDepthFormat depthFormat,
                               const GLFMStencilFormat stencilFormat,
+                              const GLFMMultisample multisample,
                               const GLFMUserInterfaceChrome uiChrome) {
         if (display) {
             display->colorFormat = colorFormat;
             display->depthFormat = depthFormat;
             display->stencilFormat = stencilFormat;
+            display->multisample = multisample;
             display->uiChrome = uiChrome;
         }
     }

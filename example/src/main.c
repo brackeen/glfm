@@ -34,6 +34,7 @@ void glfmMain(GLFMDisplay *display) {
                          GLFMColorFormatRGBA8888,
                          GLFMDepthFormatNone,
                          GLFMStencilFormatNone,
+                         GLFMMultisampleNone,
                          GLFMUserInterfaceChromeFullscreen);
     glfmSetUserData(display, app);
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
