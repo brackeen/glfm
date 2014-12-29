@@ -229,8 +229,6 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
         glBindFramebuffer(GL_FRAMEBUFFER, _defaultFramebuffer);
         glBindRenderbuffer(GL_RENDERBUFFER, _colorRenderbuffer);
     }
-    glViewport(0, 0, _drawableWidth, _drawableHeight);
-    
     CHECK_GL_ERROR();
 }
 
