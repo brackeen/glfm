@@ -150,15 +150,7 @@ extern "C" {
         GLFMKeyActionRepeated,
         GLFMKeyActionReleased,
     } GLFMKeyAction;
-    
-    typedef enum {
-        GLFMLogLevelDebug = 0,
-        GLFMLogLevelInfo,
-        GLFMLogLevelWarning,
-        GLFMLogLevelError,
-        GLFMLogLevelCritical,
-    } GLFMLogLevel;
-    
+
     typedef enum {
         GLFMAssetSeekSet,
         GLFMAssetSeekCur,
@@ -279,7 +271,7 @@ extern "C" {
     
     void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFunc);
     
-    void glfmLog(const GLFMLogLevel logLevel, const char *format, ...) __attribute__((__format__ (__printf__, 2, 3)));
+    void glfmLog(const char *format, ...) __attribute__((__format__ (__printf__, 1, 2)));
     
     /// Sets the preference value of the specified key.
     /// If 'value' is NULL, any existing value for the key is cleared.

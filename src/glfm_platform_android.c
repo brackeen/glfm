@@ -981,29 +981,10 @@ GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display) {
     return engine->multitouchEnabled;
 }
 
-void glfmLog(const GLFMLogLevel logLevel, const char *format, ...) {
-    int level;
-    switch (logLevel) {
-        case GLFMLogLevelDebug:
-            level = ANDROID_LOG_DEBUG;
-            break;
-        case GLFMLogLevelInfo: default:
-            level = ANDROID_LOG_INFO;
-            break;
-        case GLFMLogLevelWarning:
-            level = ANDROID_LOG_WARN;
-            break;
-        case GLFMLogLevelError:
-            level = ANDROID_LOG_ERROR;
-            break;
-        case GLFMLogLevelCritical:
-            level = ANDROID_LOG_FATAL;
-            break;
-    }
-    
+void glfmLog(const char *format, ...) {    
     va_list args;
     va_start(args, format);
-    __android_log_vprint(level, "GLFM", format, args);
+    __android_log_vprint(ANDROID_LOG_INFO, "GLFM", format, args);
     va_end(args);
 }
 

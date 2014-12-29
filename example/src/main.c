@@ -135,7 +135,7 @@ static void onSurfaceCreated(GLFMDisplay *display, const int width, const int he
     }
     app->textureId = createTestPatternTexture(width, height);
     if (app->textureId != 0) {
-        glfmLog(GLFMLogLevelInfo, "Created test pattern %ix%i", width, height);
+        glfmLog("Created test pattern %ix%i", width, height);
     }
 #endif
 }
@@ -163,14 +163,14 @@ static GLuint compileShader(const GLenum type, const char *shaderName) {
     GLint status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (status == 0) {
-        glfmLog(GLFMLogLevelError, "Couldn't compile shader: %s", shaderName);
+        glfmLog("Couldn't compile shader: %s", shaderName);
         GLint logLength;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
         if (logLength > 0) {
             GLchar log[logLength];
             glGetShaderInfoLog(shader, logLength, &logLength, log);
             if (log[0] != 0) {
-                glfmLog(GLFMLogLevelError, "Log: %s", log);
+                glfmLog("Shader log: %s", log);
             }
         }
     }
