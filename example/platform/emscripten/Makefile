@@ -3,9 +3,6 @@
 
 EMSDK = $(EMSCRIPTEN_PATH)/emsdk
 $(shell $(EMSDK) construct_env)
-include ./emsdk_set_env.sh
-# Not sure why this line is required
-export SHELL := $(shell echo $$SHELL)
 
 # Modified by new_project.py
 GLFM_ROOT := ../../..
@@ -18,7 +15,8 @@ SOURCES := $(GLFM_ROOT)/src/glfm_platform_emscripten.c \
            $(wildcard $(APP_ROOT)/src/*.c)
 
 build: init
-	emcc -Wall -O2 -std=c99 --memory-init-file 0 --shell-file shell.html \
+	. emsdk_set_env.sh; emcc -Wall -O2 -std=c99 --memory-init-file 0 \
+	--shell-file shell.html \
 	--pre-js emscripten-pre.js \
 	--preload-file $(APP_ROOT)/assets@/ $(INCLUDES) -o $(BIN)/$(OUT_NAME).html \
 	$(SOURCES)
