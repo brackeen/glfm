@@ -282,13 +282,6 @@ const char *glfmGetLanguageInternal() {
 
 // MARK: Emscripten glue
 
-static float getDisplayScale(GLFMDisplay *display) {
-    const double v = EM_ASM_DOUBLE_V({
-        return window.devicePixelRatio || 1;
-    });
-    return v >= 0.0 ? v : 1.0;
-}
-
 static int getDisplayWidth(GLFMDisplay *display) {
     const double width = EM_ASM_DOUBLE_V({
         var canvas = Module['canvas'];
@@ -340,7 +333,7 @@ static void mainLoopFunc(void *userData) {
             PlatformData *platformData = display->platformData;
             platformData->width = getDisplayWidth(display);
             platformData->height = getDisplayHeight(display);
-            platformData->scale = getDisplayScale(display);
+            platformData->scale = emscripten_get_device_pixel_ratio();
             if (display->surfaceResizedFunc) {
                 display->surfaceResizedFunc(display, platformData->width, platformData->height);
             }
@@ -515,32 +508,29 @@ int main(int argc, const char *argv[]) {
     });
     platformData->width = getDisplayWidth(glfmDisplay);
     platformData->height = getDisplayHeight(glfmDisplay);
-    platformData->scale = getDisplayScale(glfmDisplay);
+    platformData->scale = emscripten_get_device_pixel_ratio();
     
     // Create WebGL context
-    const GLboolean alpha = glfmDisplay->colorFormat == GLFMColorFormatRGBA8888;
-    const GLboolean depth = glfmDisplay->depthFormat != GLFMDepthFormatNone;
-    const GLboolean stencil = glfmDisplay->stencilFormat != GLFMStencilFormatNone;
-    const GLboolean antialias = glfmDisplay->multisample != GLFMMultisampleNone;
-    const GLboolean premultipliedAlpha = GL_TRUE;
-    const GLboolean preserveDrawingBuffer = GL_FALSE;
-    int success = EM_ASM_INT({
-        var contextAttributes = new Object();
-        contextAttributes['alpha'] = $0;
-        contextAttributes['depth'] = $1;
-        contextAttributes['stencil'] = $2;
-        contextAttributes['antialias'] = $3;
-        contextAttributes['premultipliedAlpha'] = $4;
-        contextAttributes['preserveDrawingBuffer'] = $5;
-        
-        Module.ctx = Browser.createContext(Module['canvas'], true, true, contextAttributes);
-        return Module.ctx ? 1 : 0;
-    }, alpha, depth, stencil, antialias, premultipliedAlpha, preserveDrawingBuffer);
-    
-    if (!success) {
+    EmscriptenWebGLContextAttributes attribs;
+    emscripten_webgl_init_context_attributes(&attribs);
+    attribs.alpha = glfmDisplay->colorFormat == GLFMColorFormatRGBA8888;
+    attribs.depth = glfmDisplay->depthFormat != GLFMDepthFormatNone;
+    attribs.stencil = glfmDisplay->stencilFormat != GLFMStencilFormatNone;
+    attribs.antialias = glfmDisplay->multisample != GLFMMultisampleNone;
+    attribs.premultipliedAlpha = 1;
+    attribs.preserveDrawingBuffer = 0;
+    attribs.preferLowPowerToHighPerformance = 0;
+    attribs.failIfMajorPerformanceCaveat = 0;
+    attribs.majorVersion = 1;
+    attribs.minorVersion = 0;
+    attribs.enableExtensionsByDefault = 0;
+    int contextHandle = emscripten_webgl_create_context(NULL, &attribs);
+    if (!contextHandle) {
         reportSurfaceError(glfmDisplay, "Couldn't create GL context");
         return 0;
     }
+    
+    emscripten_webgl_make_context_current(contextHandle);
     
     if (glfmDisplay->surfaceCreatedFunc) {
         glfmDisplay->surfaceCreatedFunc(glfmDisplay, platformData->width, platformData->height);
