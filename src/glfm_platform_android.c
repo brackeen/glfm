@@ -439,7 +439,7 @@ static bool egl_init(Engine *engine) {
             EGL_DEPTH_SIZE,      depthBits,
             EGL_STENCIL_SIZE,    stencilBits,
             EGL_SAMPLE_BUFFERS,  samples > 0 ? 1 : 0,
-            EGL_SAMPLES,         samples > 0 ? samples : EGL_DONT_CARE,
+            EGL_SAMPLES,         samples > 0 ? samples : 0,
             EGL_NONE
         };
 
