@@ -159,7 +159,7 @@ def copy_template(src_dir, dst_dir):
         copy_android_buildfile(src, dst)
       elif name == "project.pbxproj":
         copy_ios_project_file(src, dst)
-      elif (name == "AndroidManifest.xml" or name.endswith(".plist")):
+      elif (name == "AndroidManifest.xml" or name == "strings.xml" or name.endswith(".plist")):
         copy_generic_project_file(src, dst)
       else:
         shutil.copy2(src, dst)
