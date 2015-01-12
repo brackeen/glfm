@@ -22,6 +22,8 @@ android {
             moduleName "GLFMExample"
             cFlags "-std=c99"
             ldLibs "log", "android", "EGL", "GLESv2"
+
+            //abiFilter "armeabi-v7a"
         }
     }
 
@@ -30,7 +32,7 @@ android {
         assets.srcDirs = ["../../assets"]
     }
 
-    //buildTypes.debug.jniDebugBuild true
+    buildTypes.debug.jniDebuggable true
 }
 
 
