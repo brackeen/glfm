@@ -308,9 +308,11 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
 static bool egl_init_context(Engine *engine) {
     
     const EGLint contextAttribs[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE, EGL_NONE };
-    
+
+    bool created = false;
     if (engine->eglContext == EGL_NO_CONTEXT) {
         engine->eglContext = eglCreateContext(engine->eglDisplay, engine->eglConfig, EGL_NO_CONTEXT, contextAttribs);
+        created = engine->eglContext != EGL_NO_CONTEXT;
     }
     
     if (!eglMakeCurrent(engine->eglDisplay, engine->eglSurface, engine->eglSurface, engine->eglContext)) {
@@ -319,14 +321,12 @@ static bool egl_init_context(Engine *engine) {
         return false;
     }
     else {
-        if (!engine->eglContextCurrent) {
-            engine->eglContextCurrent = true;
-            if (engine->display) {
-                LOG_LIFECYCLE("GL Context made current");
-                if (engine->display->surfaceCreatedFunc) {
-                    engine->display->surfaceCreatedFunc(engine->display, engine->width, engine->height);
-                }
-            }
+        engine->eglContextCurrent = true;
+        if (created && engine->display) {
+             LOG_LIFECYCLE("GL Context made current");
+             if (engine->display->surfaceCreatedFunc) {
+                 engine->display->surfaceCreatedFunc(engine->display, engine->width, engine->height);
+             }
         }
         return true;
     }
