@@ -846,9 +846,9 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEn
 {
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        vc.multipleTouchEnabled = multitouchEnabled;
+        vc.multipleTouchEnabled = (BOOL)multitouchEnabled;
         if (vc.isViewLoaded) {
-            vc.view.multipleTouchEnabled = multitouchEnabled;
+            vc.view.multipleTouchEnabled = (BOOL)multitouchEnabled;
         }
     }
 }
@@ -857,7 +857,7 @@ GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display)
 {
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return vc.multipleTouchEnabled;
+        return (GLboolean)vc.multipleTouchEnabled;
     }
     else {
         return 0;
