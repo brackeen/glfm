@@ -211,7 +211,7 @@ extern "C" {
                 if (fseek(asset->file, 0L, SEEK_END) == 0) {
                     const long bufferSize = ftell(asset->file);
                     if (bufferSize >= 0) {
-                        asset->bufferSize = bufferSize;
+                        asset->bufferSize = (size_t)bufferSize;
                     }
                     fseek(asset->file, tell, SEEK_SET);
                 }

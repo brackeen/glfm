@@ -94,7 +94,6 @@ static Engine *engineGlobal = NULL;
 static jobject getDefaultSharedPreferences() {
     Engine *engine = engineGlobal;
     if (engine->sharedPreferences == NULL) {
-        JavaVM *vm = engine->app->activity->vm;
         JNIEnv *jni = engine->jniEnv;
         
         jclass preferenceManagerClass = (*jni)->FindClass(jni, "android.preference.PreferenceManager");
@@ -200,7 +199,6 @@ static void setOrientation(struct android_app *app) {
         orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
     }
     
-    JavaVM *vm = app->activity->vm;
     JNIEnv *jni = engine->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
         return;
@@ -244,7 +242,6 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
      
      */
     Engine *engine = (Engine*)app->userData;
-    JavaVM *vm = app->activity->vm;
     JNIEnv *jni = engine->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
         return;
@@ -1062,7 +1059,6 @@ const char *glfmGetLanguageInternal() {
     // getResources().getConfiguration().locale.toString()
     
     Engine *engine = engineGlobal;
-    JavaVM *vm = engine->app->activity->vm;
     JNIEnv *jni = engine->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
         return lang;

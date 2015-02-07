@@ -77,12 +77,12 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
 
 - (NSUInteger)drawableWidth
 {
-    return _drawableWidth;
+    return (NSUInteger)_drawableWidth;
 }
 
 - (NSUInteger)drawableHeight
 {
-    return _drawableHeight;
+    return (NSUInteger)_drawableHeight;
 }
 
 - (void)createDrawable
@@ -251,7 +251,7 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
     if (has_GL_EXT_discard_framebuffer) {
         GLenum target = GL_FRAMEBUFFER;
         GLenum attachments[3];
-        GLenum numAttachments = 0;
+        GLsizei numAttachments = 0;
         if (_multisampling) {
             target = GL_READ_FRAMEBUFFER_APPLE;
             attachments[numAttachments++] = GL_COLOR_ATTACHMENT0;
@@ -281,8 +281,8 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
 
 - (void)layoutSubviews
 {
-    NSUInteger newDrawableWidth = self.frame.size.width * self.contentScaleFactor;
-    NSUInteger newDrawableHeight = self.frame.size.height * self.contentScaleFactor;
+    NSUInteger newDrawableWidth = (NSUInteger)(self.frame.size.width * self.contentScaleFactor);
+    NSUInteger newDrawableHeight = (NSUInteger)(self.frame.size.height * self.contentScaleFactor);
 
     // iPhone 6 Display Zoom hack
     if (self.contentScaleFactor == 2.343750) {
@@ -464,7 +464,7 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
     if (view.drawableWidth > 0 && view.drawableHeight > 0) {
         self.drawableSize = CGSizeMake(view.drawableWidth, view.drawableHeight);
         if (_glfmDisplay->surfaceCreatedFunc) {
-            _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, self.drawableSize.width, self.drawableSize.height);
+            _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, (int)self.drawableSize.width, (int)self.drawableSize.height);
         }
         self.animating = YES;
     }
@@ -523,7 +523,7 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
     if (!CGSizeEqualToSize(self.drawableSize, newDrawableSize)) {
         self.drawableSize = newDrawableSize;
         if (_glfmDisplay->surfaceResizedFunc) {
-            _glfmDisplay->surfaceResizedFunc(_glfmDisplay, self.drawableSize.width, self.drawableSize.height);
+            _glfmDisplay->surfaceResizedFunc(_glfmDisplay, (int)self.drawableSize.width, (int)self.drawableSize.height);
         }
     }
 
@@ -570,7 +570,7 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
         currLocation.x *= self.view.contentScaleFactor;
         currLocation.y *= self.view.contentScaleFactor;
         
-        _glfmDisplay->touchFunc(_glfmDisplay, index, phase, currLocation.x, currLocation.y);
+        _glfmDisplay->touchFunc(_glfmDisplay, index, phase, (int)currLocation.x, (int)currLocation.y);
     }
     
     if (phase == GLFMTouchPhaseEnded || phase == GLFMTouchPhaseCancelled) {
@@ -802,7 +802,7 @@ int glfmGetDisplayWidth(GLFMDisplay *display)
 {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return vc.drawableSize.width;
+        return (int)vc.drawableSize.width;
     }
     else {
         return 0;
@@ -813,7 +813,7 @@ int glfmGetDisplayHeight(GLFMDisplay *display)
 {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return vc.drawableSize.height;
+        return (int)vc.drawableSize.height;
     }
     else {
         return 0;
@@ -824,10 +824,10 @@ float glfmGetDisplayScale(GLFMDisplay *display)
 {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return vc.view.contentScaleFactor;
+        return (float)vc.view.contentScaleFactor;
     }
     else {
-        return [UIScreen mainScreen].scale;
+        return (float)[UIScreen mainScreen].scale;
     }
 }
 

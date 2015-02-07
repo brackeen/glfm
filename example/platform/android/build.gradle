@@ -10,7 +10,8 @@ buildscript {
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 21
+    // Set to 19 because the C headers changed in 21
+    compileSdkVersion 19
     buildToolsVersion "21.1.1"
 
     defaultConfig {
@@ -20,10 +21,11 @@ android {
 
         ndk {
             moduleName "GLFMExample"
-            cFlags "-std=c99"
+            cFlags "-std=c99 -Wall"
             ldLibs "log", "android", "EGL", "GLESv2"
 
-            //abiFilter "armeabi-v7a"
+            // Comment this out to build for all platforms
+            abiFilter "armeabi-v7a"
         }
     }
 

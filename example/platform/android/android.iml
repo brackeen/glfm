@@ -92,7 +92,7 @@
     <content url="file://$MODULE_DIR$/../../../src">
       <sourceFolder url="file://$MODULE_DIR$/../../../src" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Android API 21 Platform" jdkType="Android SDK" />
+    <orderEntry type="jdk" jdkName="Android API 19 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

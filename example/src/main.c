@@ -6,11 +6,11 @@
 //#define DRAW_TEST_PATTERN
 
 typedef struct {
-    GLint program;
+    GLuint program;
     GLuint vertexBuffer;
     
     GLuint textureId;
-    GLint textureProgram;
+    GLuint textureProgram;
     GLuint textureVertexBuffer;
     
     int lastTouchX;
@@ -251,9 +251,9 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
     const GLfloat vertices[] = {
-        app->offsetX + 0.0, app->offsetY + 0.5,
-        app->offsetX - 0.5, app->offsetY - 0.5,
-        app->offsetX + 0.5, app->offsetY - 0.5,
+        app->offsetX + 0.0f, app->offsetY + 0.5f,
+        app->offsetX - 0.5f, app->offsetY - 0.5f,
+        app->offsetX + 0.5f, app->offsetY - 0.5f,
     };
     
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
