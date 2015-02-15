@@ -281,8 +281,8 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
 
 - (void)layoutSubviews
 {
-    NSUInteger newDrawableWidth = (NSUInteger)(self.frame.size.width * self.contentScaleFactor);
-    NSUInteger newDrawableHeight = (NSUInteger)(self.frame.size.height * self.contentScaleFactor);
+    NSUInteger newDrawableWidth = (NSUInteger)(self.bounds.size.width * self.contentScaleFactor);
+    NSUInteger newDrawableHeight = (NSUInteger)(self.bounds.size.height * self.contentScaleFactor);
 
     // iPhone 6 Display Zoom hack
     if (self.contentScaleFactor == 2.343750) {
