@@ -3,21 +3,21 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.0.0'
+        classpath 'com.android.tools.build:gradle:1.2.3'
     }
 }
 
 apply plugin: 'com.android.application'
 
 android {
-    // Set to 19 because the C headers changed in 21
-    compileSdkVersion 19
-    buildToolsVersion "21.1.1"
+    // NOTE: This was set to 19 because the C headers changed in 21, but it is no longer an issue?
+    compileSdkVersion 22
+    buildToolsVersion "22.0.1"
 
     defaultConfig {
         applicationId "com.brackeen.glfmexample"
         minSdkVersion 10
-        targetSdkVersion 21
+        targetSdkVersion 22
 
         ndk {
             moduleName "GLFMExample"
@@ -36,7 +36,6 @@ android {
 
     buildTypes.debug.jniDebuggable true
 }
-
 
 allprojects {
     repositories {

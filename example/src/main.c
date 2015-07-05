@@ -31,6 +31,7 @@ void glfmMain(GLFMDisplay *display) {
     ExampleApp *app = calloc(1, sizeof(ExampleApp));
 
     glfmSetDisplayConfig(display,
+                         GLFMRenderingAPIOpenGLES2,
                          GLFMColorFormatRGBA8888,
                          GLFMDepthFormatNone,
                          GLFMStencilFormatNone,
@@ -128,6 +129,9 @@ static GLuint createTestPatternTexture(const uint32_t width, const uint32_t heig
 
 static void onSurfaceCreated(GLFMDisplay *display, const int width, const int height) {
     glViewport(0, 0, width, height);
+    
+//    GLFMRenderingAPI api = glfmGetRenderingAPI(display);
+//    glfmLog("OpenGL %s", api == 2 ? "ES 3.1" : api == 1 ? "ES 3.0" : "ES 2.0");
     
 #ifdef DRAW_TEST_PATTERN
     ExampleApp *app = glfmGetUserData(display);

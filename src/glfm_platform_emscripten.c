@@ -18,6 +18,7 @@ typedef struct {
     int32_t width;
     int32_t height;
     float scale;
+    GLFMRenderingAPI renderingAPI;
     
     bool mouseDown;
     
@@ -151,6 +152,11 @@ int glfmGetDisplayHeight(GLFMDisplay *display) {
 float glfmGetDisplayScale(GLFMDisplay *display) {
     PlatformData *platformData = display->platformData;
     return platformData->scale;
+}
+
+GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
+    PlatformData *platformData = display->platformData;
+    return platformData->renderingAPI;
 }
 
 GLboolean glfmHasTouch(GLFMDisplay *display) {
@@ -521,10 +527,29 @@ int main(int argc, const char *argv[]) {
     attribs.preserveDrawingBuffer = 0;
     attribs.preferLowPowerToHighPerformance = 0;
     attribs.failIfMajorPerformanceCaveat = 0;
-    attribs.majorVersion = 1;
-    attribs.minorVersion = 0;
     attribs.enableExtensionsByDefault = 0;
-    int contextHandle = emscripten_webgl_create_context(NULL, &attribs);
+    
+    int contextHandle = 0;
+    // Disabled for now because I couldn't get it to work correctly (Firefox 39, webgl.enable-prototype-webgl2 set to true)
+    // Wait until WebGL2 support is more widespread.
+//    if (glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
+//        // OpenGL ES 3.0 / WebGL 2.0
+//        attribs.majorVersion = 2;
+//        attribs.minorVersion = 0;
+//        contextHandle = emscripten_webgl_create_context(NULL, &attribs);
+//        if (contextHandle) {
+//            platformData->renderingAPI = GLFMRenderingAPIOpenGLES3;
+//        }
+//    }
+    if (!contextHandle) {
+        // OpenGL ES 2.0 / WebGL 1.0
+        attribs.majorVersion = 1;
+        attribs.minorVersion = 0;
+        contextHandle = emscripten_webgl_create_context(NULL, &attribs);
+        if (contextHandle) {
+            platformData->renderingAPI = GLFMRenderingAPIOpenGLES2;
+        }
+    }
     if (!contextHandle) {
         reportSurfaceError(glfmDisplay, "Couldn't create GL context");
         return 0;

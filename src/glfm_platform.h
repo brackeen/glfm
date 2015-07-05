@@ -12,6 +12,7 @@ extern "C" {
     
     struct GLFMDisplay {
         // Config
+        GLFMRenderingAPI preferredAPI;
         GLFMColorFormat colorFormat;
         GLFMDepthFormat depthFormat;
         GLFMStencilFormat stencilFormat;
@@ -45,12 +46,14 @@ extern "C" {
     }
     
     void glfmSetDisplayConfig(GLFMDisplay *display,
+                              const GLFMRenderingAPI preferredAPI,
                               const GLFMColorFormat colorFormat,
                               const GLFMDepthFormat depthFormat,
                               const GLFMStencilFormat stencilFormat,
                               const GLFMMultisample multisample,
                               const GLFMUserInterfaceChrome uiChrome) {
         if (display) {
+            display->preferredAPI = preferredAPI;
             display->colorFormat = colorFormat;
             display->depthFormat = depthFormat;
             display->stencilFormat = stencilFormat;

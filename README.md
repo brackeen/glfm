@@ -3,10 +3,10 @@ Write OpenGL ES 2.0 code in C/C++ without writing platform-specific code.
 
 GLFM is an OpenGL ES 2.0 layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](http://www.glfw.org/).
 
-GLFM is written in C and runs on iOS 7, Android 2.3.3, and WebGL 1.0 (via [Emscripten 1.13.0](https://github.com/kripken/emscripten)).
+GLFM is written in C and runs on iOS 7, Android 2.3.3, and WebGL 1.0 (via [Emscripten](https://github.com/kripken/emscripten)).
 
 ## Features
-* OpenGL ES 2.0 display setup.
+* OpenGL ES 2.0, 3.0, and 3.1 display setup.
 * Retina / high-DPI support.
 * Touch and keyboard events. 
 * Events for application state and context loss. 
@@ -39,6 +39,7 @@ static void onSurfaceDestroyed(GLFMDisplay *display);
 
 void glfmMain(GLFMDisplay *display) {
     glfmSetDisplayConfig(display,
+                         GLFMRenderingAPIOpenGLES2,
                          GLFMColorFormatRGBA8888,
                          GLFMDepthFormatNone,
                          GLFMStencilFormatNone,
@@ -118,6 +119,11 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 ## API
 See [glfm.h](include/glfm.h)
 
+## Build requirements
+* iOS: Xcode 6.4
+* Android: Android Studio 1.2, SDK 22, NDK r10e
+* WebGL: Emscripten 1.34
+
 ## Create a new GLFM project
 Use the `new_project.py` command-line script to automatically create a new project setup for iOS, Android, and Emscripten.
 
@@ -130,11 +136,12 @@ The script will ask a few questions and output a new project. After creation, yo
 3. Include a <code>void glfmMain(GLFMDisplay *display)</code> function in a C/C++ file.
 
 ## Future ideas
-* OpenGL ES 3.0 and 3.1 support.
 * Accelerometer and gyroscope input.
 * Gamepad / MFi controller input.
 
 ## Caveats
+* OpenGL ES 3.1 support in Android is untested, and iOS currently has no OpenGL ES 3.1 support.
+* OpenGL ES 3.0 support in WebGL (WebGL 2) is currently disabled.
 * GLFM is not thread-safe. All GLFM functions must be called on the main thread (that is, from `glfmMain` or from the callback functions).
 * Key input on iOS is not ideal. Using the keyboard (on an iOS device via Bluetooth keyboard or on the simulator via a Mac's keyboard), only a few keys are detected (arrows, enter, space, escape). Also, only key press events can be detected, but not key repeat or key release events.
 * Orientation lock probably doesn't work on HTML5.

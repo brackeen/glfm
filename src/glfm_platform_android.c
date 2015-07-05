@@ -26,6 +26,10 @@
 #define LOG_LIFECYCLE(...) do { } while(0)
 #endif
 
+// TODO: These are defined in EGL 1.5? Not available in NDK r10e
+#define EGL_CONTEXT_MAJOR_VERSION_KHR   0x3098
+#define EGL_CONTEXT_MINOR_VERSION_KHR   0x30FB
+
 // MARK: Time utils
 
 static struct timespec now() {
@@ -79,6 +83,7 @@ typedef struct {
     float scale;
     
     GLFMDisplay *display;
+    GLFMRenderingAPI renderingAPI;
     
     JNIEnv *jniEnv;
     jobject sharedPreferencesEditor;
@@ -303,13 +308,44 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
 // MARK: EGL
 
 static bool egl_init_context(Engine *engine) {
-    
-    const EGLint contextAttribs[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE, EGL_NONE };
 
     bool created = false;
     if (engine->eglContext == EGL_NO_CONTEXT) {
-        engine->eglContext = eglCreateContext(engine->eglDisplay, engine->eglConfig, EGL_NO_CONTEXT, contextAttribs);
-        created = engine->eglContext != EGL_NO_CONTEXT;
+        // OpenGL ES 3.1
+        if (engine->display->preferredAPI >= GLFMRenderingAPIOpenGLES31) {
+            // TODO: Untested, need an OpenGL ES 3.1 device for testing
+            const EGLint contextAttribs[] = { EGL_CONTEXT_MAJOR_VERSION_KHR, 3, EGL_CONTEXT_MINOR_VERSION_KHR, 1, EGL_NONE };
+            engine->eglContext = eglCreateContext(engine->eglDisplay, engine->eglConfig, EGL_NO_CONTEXT, contextAttribs);
+            created = engine->eglContext != EGL_NO_CONTEXT;
+        }
+        // OpenGL ES 3.0
+        if (!created && engine->display->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
+            const EGLint contextAttribs[] = { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE, EGL_NONE };
+            engine->eglContext = eglCreateContext(engine->eglDisplay, engine->eglConfig, EGL_NO_CONTEXT, contextAttribs);
+            created = engine->eglContext != EGL_NO_CONTEXT;
+        }
+        // OpenGL ES 2.0
+        if (!created) {
+            const EGLint contextAttribs[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE, EGL_NONE };
+            engine->eglContext = eglCreateContext(engine->eglDisplay, engine->eglConfig, EGL_NO_CONTEXT, contextAttribs);
+            created = engine->eglContext != EGL_NO_CONTEXT;
+        }
+        
+        if (created) {
+            EGLint majorVersion = 0;
+            EGLint minorVersion = 0;
+            eglQueryContext(engine->eglDisplay, engine->eglContext, EGL_CONTEXT_MAJOR_VERSION_KHR, &majorVersion);
+            eglQueryContext(engine->eglDisplay, engine->eglContext, EGL_CONTEXT_MINOR_VERSION_KHR, &minorVersion);
+            if (majorVersion == 3 && minorVersion == 1) {
+                engine->renderingAPI = GLFMRenderingAPIOpenGLES31;
+            }
+            else if (majorVersion == 3) {
+                engine->renderingAPI = GLFMRenderingAPIOpenGLES3;
+            }
+            else {
+                engine->renderingAPI = GLFMRenderingAPIOpenGLES2;
+            }
+        }
     }
     
     if (!eglMakeCurrent(engine->eglDisplay, engine->eglSurface, engine->eglSurface, engine->eglContext)) {
@@ -963,6 +999,11 @@ int glfmGetDisplayHeight(GLFMDisplay *display) {
 float glfmGetDisplayScale(GLFMDisplay *display) {
     Engine *engine = (Engine*)display->platformData;
     return engine->scale;
+}
+
+GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
+    Engine *engine = (Engine *)display->platformData;
+    return engine->renderingAPI;
 }
 
 GLboolean glfmHasTouch(GLFMDisplay *display) {

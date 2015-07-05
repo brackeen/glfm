@@ -49,15 +49,37 @@
 #include <stddef.h> // For size_t
 
 //
-// OpenGL ES 2.0 includes
+// OpenGL ES includes
 //
 
-#ifdef __APPLE__
-#include <OpenGLES/ES2/gl.h>
-#include <OpenGLES/ES2/glext.h>
+#if defined(GLFM_INCLUDE_ES31)
+  #if defined(GLFM_PLATFORM_IOS)
+    #error No OpenGL ES 3.1 support as of iOS 8
+  #elif defined(GLFM_PLATFORM_EMSCRIPTEN)
+    #error No OpenGL ES 3.1 support in WebGL
+  #else
+    #include <GLES3/gl31.h>
+    #include <GLES3/gl3ext.h>
+  #endif
+#elif defined(GLFM_INCLUDE_ES3)
+  #if defined(GLFM_PLATFORM_IOS)
+    #include <OpenGLES/ES3/gl.h>
+    #include <OpenGLES/ES3/glext.h>
+  #elif defined(GLFM_PLATFORM_EMSCRIPTEN)
+    #include <GLES3/gl3.h>
+    #include <GLES3/gl2ext.h>
+  #else
+    #include <GLES3/gl3.h>
+    #include <GLES3/gl3ext.h>
+  #endif
 #else
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
+  #if defined(GLFM_PLATFORM_IOS)
+    #include <OpenGLES/ES2/gl.h>
+    #include <OpenGLES/ES2/glext.h>
+  #else
+    #include <GLES2/gl2.h>
+    #include <GLES2/gl2ext.h>
+  #endif
 #endif
 
 #ifdef __cplusplus
@@ -65,6 +87,12 @@ extern "C" {
 #endif
     
     // MARK: Enums
+    
+    typedef enum {
+        GLFMRenderingAPIOpenGLES2 = 0,
+        GLFMRenderingAPIOpenGLES3,
+        GLFMRenderingAPIOpenGLES31,
+    } GLFMRenderingAPI;
     
     typedef enum {
         GLFMColorFormatRGBA8888 = 0,
@@ -205,7 +233,11 @@ extern "C" {
     extern void glfmMain(GLFMDisplay *display);
     
     /// Init the display condifuration. Should only be called in glfmMain.
+    /// If the device does not support the preferred rendering API, the next available rendering API is chosen
+    /// (OpenGL ES 3.0 if OpenGL ES 3.1 is not available, and OpenGL ES 2.0 if OpenGL ES 3.0 is not available).
+    /// Call glfmGetRenderingAPI in the GLFMSurfaceCreatedFunc to see which rendering API was chosen.
     void glfmSetDisplayConfig(GLFMDisplay *display,
+                              const GLFMRenderingAPI preferredAPI,
                               const GLFMColorFormat colorFormat,
                               const GLFMDepthFormat depthFormat,
                               const GLFMStencilFormat stencilFormat,
@@ -238,6 +270,10 @@ extern "C" {
     
     /// Gets the display scale. On Apple devices, the value will be 1.0 for non-retina displays and 2.0 for retina.
     float glfmGetDisplayScale(GLFMDisplay *display);
+    
+    /// Gets the rendering API of the display. The return value is not valid until the surface is created.
+    /// Defaults to GLFMRenderingAPIOpenGLES2.
+    GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display);
     
     /// Gets whether the display has touch capabilities.
     GLboolean glfmHasTouch(GLFMDisplay *display);

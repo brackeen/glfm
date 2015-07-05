@@ -414,7 +414,12 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
 {
     [super viewDidLoad];
     
-    self.context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+    if (_glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
+        self.context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
+    }
+    if (!self.context) {
+        self.context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+    }
     
     if (!self.context) {
         reportSurfaceError(_glfmDisplay, "Failed to create ES context");
@@ -828,6 +833,22 @@ float glfmGetDisplayScale(GLFMDisplay *display)
     }
     else {
         return (float)[UIScreen mainScreen].scale;
+    }
+}
+
+GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display)
+{
+    if (display && display->platformData) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        if (vc.context.API == kEAGLRenderingAPIOpenGLES3) {
+            return GLFMRenderingAPIOpenGLES3;
+        }
+        else {
+            return GLFMRenderingAPIOpenGLES2;
+        }
+    }
+    else {
+        return GLFMRenderingAPIOpenGLES2;
     }
 }
 
