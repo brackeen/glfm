@@ -475,7 +475,7 @@ glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
     }
 }
 
-- (NSUInteger)supportedInterfaceOrientations
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations
 {
     BOOL isTablet = (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad);
     GLFMUserInterfaceOrientation uiOrientations = _glfmDisplay->allowedOrientations;
