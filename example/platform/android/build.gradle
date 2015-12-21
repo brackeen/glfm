@@ -1,44 +1,20 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
 buildscript {
     repositories {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.2.3'
+        classpath 'com.android.tools.build:gradle-experimental:0.4.0'
     }
-}
-
-apply plugin: 'com.android.application'
-
-android {
-    // NOTE: This was set to 19 because the C headers changed in 21, but it is no longer an issue?
-    compileSdkVersion 22
-    buildToolsVersion "22.0.1"
-
-    defaultConfig {
-        applicationId "com.brackeen.glfmexample"
-        minSdkVersion 10
-        targetSdkVersion 22
-
-        ndk {
-            moduleName "GLFMExample"
-            cFlags "-std=c99 -Wall"
-            ldLibs "log", "android", "EGL", "GLESv2"
-
-            // Comment this out to build for all platforms
-            abiFilter "armeabi-v7a"
-        }
-    }
-
-    sourceSets.main {
-        jni.srcDirs = ["../../src", "src/main/jni", "../../../include", "../../../src"]
-        assets.srcDirs = ["../../assets"]
-    }
-
-    buildTypes.debug.jniDebuggable true
 }
 
 allprojects {
     repositories {
         jcenter()
     }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
 }

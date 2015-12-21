@@ -30,7 +30,7 @@
 // GLFM_PLATFORM_EMSCRIPTEN
 //
 
-#if defined(ANDROID)
+#if defined(__ANDROID__)
   #define GLFM_PLATFORM_ANDROID
 #elif defined(__EMSCRIPTEN__)
   #define GLFM_PLATFORM_EMSCRIPTEN

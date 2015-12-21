@@ -1,0 +1,54 @@
+apply plugin: 'com.android.model.application'
+
+model {
+    android {
+        compileSdkVersion = 23
+        buildToolsVersion = "23.0.2"
+
+        defaultConfig.with {
+            applicationId = "com.brackeen.glfmexample"
+            minSdkVersion.apiLevel = 10
+            targetSdkVersion.apiLevel = 23
+            versionCode = 1
+            versionName = "1.0"
+        }
+    }
+
+    android.ndk {
+        moduleName = "GLFMExample"
+        CFlags.addAll(["-std=c99", "-Wall"])
+        CFlags.add("-I${file("src/main/jni/native_app_glue")}".toString())
+        CFlags.add("-I${file("../../../../include")}".toString())
+        //cppFlags.addAll(["-fno-rtti", "-fno-exceptions"])
+        ldLibs.addAll(["log", "android", "EGL", "GLESv2"])
+        stl = "stlport_static"
+    }
+
+    android.sources.main {
+        jni.source {
+            srcDirs = ["src/main/jni", "../../../src", "../../../../include", "../../../../src"]
+        }
+        assets.source {
+            srcDirs = ["../../../assets"]
+        }
+    }
+
+    android.productFlavors {
+        // See https://developer.android.com/ndk/guides/abis.html#sa
+        create("arm7") {
+            ndk.abiFilters.add("armeabi-v7a")
+        }
+        create("arm8") {
+            ndk.abiFilters.add("arm64-v8a")
+        }
+        create("x86-32") {
+            ndk.abiFilters.add("x86")
+        }
+        // Build one including all productFlavors
+        create("all")
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+}
