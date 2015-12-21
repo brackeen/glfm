@@ -82,8 +82,8 @@ print "  App name:", app_name
 print "  App package name:", package_name
 print "  Emscripten emsdk path:", emsdk_path
 print "  Project path:", output_dir
-confirm = get_input("Create (y/n)?", "Y")
-if confirm != "Y":
+confirm = get_input("Create (y/n)?", "y")
+if confirm != "Y" and confirm != "y":
   print ""
   print "Project creation canceled"
   exit(1)
@@ -92,7 +92,7 @@ if confirm != "Y":
 
 ignored_files = (".DS_Store", "Thumbs.db", "Desktop.ini")
 ignored_paths = (
-  "example/platform/android/build",
+  "example/platform/android/app/build",
   "example/platform/android/.gradle",
   "example/platform/android/.idea",
   "example/platform/emscripten/bin",
@@ -114,8 +114,8 @@ def copy_android_buildfile(src_file, dst_file):
   with open(dst_file, "wt") as fout:
     with open(src_file, "rt") as fin:
       for line in fin:
-        line = line.replace("../../../include", "../../glfm/include");
-        line = line.replace("../../../src", "../../glfm/src");
+        line = line.replace("../../../../include", "../../../glfm/include");
+        line = line.replace("../../../../src", "../../../glfm/src");
         fout.write(do_replace(line))
 
 def copy_emscripten_makefile(src_file, dst_file):
@@ -159,7 +159,7 @@ def copy_template(src_dir, dst_dir):
         copy_android_buildfile(src, dst)
       elif name == "project.pbxproj":
         copy_ios_project_file(src, dst)
-      elif (name == "AndroidManifest.xml" or name == "strings.xml" or name.endswith(".plist")):
+      elif (name == "AndroidManifest.xml" or name == "strings.xml" or name.endswith(".plist") or name.endswith(".java")):
         copy_generic_project_file(src, dst)
       else:
         shutil.copy2(src, dst)
