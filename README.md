@@ -120,9 +120,9 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 See [glfm.h](include/glfm.h)
 
 ## Build requirements
-* iOS: Xcode 6.4
-* Android: Android Studio 1.2, SDK 22, NDK r10e
-* WebGL: Emscripten 1.34
+* iOS: Xcode 7
+* Android: Android Studio 1.5, SDK 23, NDK Bundle 1.0
+* WebGL: Emscripten 1.35.0
 
 ## Create a new GLFM project
 Use the `new_project.py` command-line script to automatically create a new project setup for iOS, Android, and Emscripten.
