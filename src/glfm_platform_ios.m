@@ -30,7 +30,7 @@
 #define MAX_SIMULTANEOUS_TOUCHES 10
 
 #define CHECK_GL_ERROR() ({ GLenum error = glGetError(); if (error != GL_NO_ERROR) \
-glfmLog("OpenGL error 0x%04x at %s:%i", error, __FILE__, __LINE__); })
+glfmLog("OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
 
 #pragma mark - EAGLView
 
