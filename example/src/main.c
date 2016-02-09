@@ -8,23 +8,23 @@
 typedef struct {
     GLuint program;
     GLuint vertexBuffer;
-    
+
     GLuint textureId;
     GLuint textureProgram;
     GLuint textureVertexBuffer;
-    
+
     int lastTouchX;
     int lastTouchY;
-    
+
     float offsetX;
     float offsetY;
 } ExampleApp;
 
-static void onFrame(GLFMDisplay *display, const double frameTime);
-static void onSurfaceCreated(GLFMDisplay *display, const int width, const int height);
+static void onFrame(GLFMDisplay *display, double frameTime);
+static void onSurfaceCreated(GLFMDisplay *display, int width, int height);
 static void onSurfaceDestroyed(GLFMDisplay *display);
-static GLboolean onTouch(GLFMDisplay *display, const int touch, const GLFMTouchPhase phase, const int x, const int y);
-static GLboolean onKey(GLFMDisplay *display, const GLFMKey keyCode, const GLFMKeyAction action, const int modifiers);
+static GLboolean onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, int x, int y);
+static GLboolean onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, int modifiers);
 
 // Main entry point
 void glfmMain(GLFMDisplay *display) {
@@ -46,7 +46,7 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetKeyFunc(display, onKey);
 }
 
-static GLboolean onTouch(GLFMDisplay *display, const int touch, const GLFMTouchPhase phase, const int x, const int y) {
+static GLboolean onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, int x, int y) {
     if (phase == GLFMTouchPhaseHover) {
         return GL_FALSE;
     }
@@ -62,7 +62,7 @@ static GLboolean onTouch(GLFMDisplay *display, const int touch, const GLFMTouchP
     return GL_TRUE;
 }
 
-static GLboolean onKey(GLFMDisplay *display, const GLFMKey keyCode, const GLFMKeyAction action, const int modifiers) {
+static GLboolean onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, int modifiers) {
     GLboolean handled = GL_FALSE;
     if (action == GLFMKeyActionPressed) {
         ExampleApp *app = glfmGetUserData(display);
@@ -91,27 +91,25 @@ static GLboolean onKey(GLFMDisplay *display, const GLFMKey keyCode, const GLFMKe
 }
 
 #ifdef DRAW_TEST_PATTERN
-static GLuint createTestPatternTexture(const uint32_t width, const uint32_t height) {
+static GLuint createTestPatternTexture(uint32_t width, uint32_t height) {
     GLuint textureId = 0;
     uint32_t *data = malloc(width * height * sizeof(uint32_t));
     if (data) {
         uint32_t *out = data;
         for (int y = 0; y < height; y++) {
-            
             *out++ = 0xff0000ff;
             if (y == 0 || y == height - 1) {
                 for (int x = 1; x < width - 1; x++) {
                     *out++ = 0xff0000ff;
                 }
-            }
-            else {
+            } else {
                 for (int x = 1; x < width - 1; x++) {
                     *out++ = ((x & 1) == (y & 1)) ? 0xff000000 : 0xffffffff;
                 }
             }
             *out++ = 0xff0000ff;
         }
-        
+
         glGenTextures(1, &textureId);
         glBindTexture(GL_TEXTURE_2D, textureId);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -120,19 +118,19 @@ static GLuint createTestPatternTexture(const uint32_t width, const uint32_t heig
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        
+
         free(data);
     }
     return textureId;
 }
 #endif
 
-static void onSurfaceCreated(GLFMDisplay *display, const int width, const int height) {
+static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
     glViewport(0, 0, width, height);
-    
+
 //    GLFMRenderingAPI api = glfmGetRenderingAPI(display);
 //    glfmLog("OpenGL %s", api == 2 ? "ES 3.1" : api == 1 ? "ES 3.0" : "ES 2.0");
-    
+
 #ifdef DRAW_TEST_PATTERN
     ExampleApp *app = glfmGetUserData(display);
     if (app->textureId != 0) {
@@ -155,7 +153,7 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
     app->textureVertexBuffer = 0;
 }
 
-static GLuint compileShader(const GLenum type, const char *shaderName) {
+static GLuint compileShader(GLenum type, const char *shaderName) {
     GLFMAsset *asset = glfmAssetOpen(shaderName);
     const GLint shaderLength = (GLint)glfmAssetGetLength(asset);
     const char *shaderString = glfmAssetGetBuffer(asset);
@@ -163,7 +161,7 @@ static GLuint compileShader(const GLenum type, const char *shaderName) {
     glShaderSource(shader, 1, &shaderString, &shaderLength);
     glCompileShader(shader);
     glfmAssetClose(asset);
-    
+
     // Check compile status
     GLint status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
@@ -182,28 +180,28 @@ static GLuint compileShader(const GLenum type, const char *shaderName) {
     return shader;
 }
 
-static void onFrame(GLFMDisplay *display, const double frameTime) {
+static void onFrame(GLFMDisplay *display, double frameTime) {
     ExampleApp *app = glfmGetUserData(display);
-    
+
     // Draw background
     glClearColor(0.4f, 0.0f, 0.6f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    
+
     // Draw textrue background
     if (app->textureId != 0) {
         if (app->textureProgram == 0) {
             app->textureProgram = glCreateProgram();
             GLuint vertShader = compileShader(GL_VERTEX_SHADER, "texture.vert");
             GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, "texture.frag");
-            
+
             glAttachShader(app->textureProgram, vertShader);
             glAttachShader(app->textureProgram, fragShader);
-            
+
             glBindAttribLocation(app->textureProgram, 0, "position");
             glBindAttribLocation(app->textureProgram, 1, "texCoord");
-            
+
             glLinkProgram(app->textureProgram);
-            
+
             glDeleteShader(vertShader);
             glDeleteShader(fragShader);
         }
@@ -218,15 +216,15 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (void *)0);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void *)textureCoordsOffset);
-        
+
         const GLfloat vertices[] = {
             // viewX, viewY, textureX, textureY
             -1, -1, 0, 0,
-             1, -1, 1, 0,
-            -1,  1, 0, 1,
-             1,  1, 1, 1,
+            1, -1, 1, 0,
+            -1, 1, 0, 1,
+            1, 1, 1, 1,
         };
-        
+
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
         glBindTexture(GL_TEXTURE_2D, app->textureId);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -237,12 +235,12 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
         app->program = glCreateProgram();
         GLuint vertShader = compileShader(GL_VERTEX_SHADER, "simple.vert");
         GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, "simple.frag");
-        
+
         glAttachShader(app->program, vertShader);
         glAttachShader(app->program, fragShader);
-        
+
         glLinkProgram(app->program);
-        
+
         glDeleteShader(vertShader);
         glDeleteShader(fragShader);
     }
@@ -259,7 +257,7 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
         app->offsetX - 0.5f, app->offsetY - 0.5f,
         app->offsetX + 0.5f, app->offsetY - 0.5f,
     };
-    
+
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }

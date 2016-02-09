@@ -1,14 +1,34 @@
+/*
+ GLFM
+ https://github.com/brackeen/glfm
+ Copyright (c) 2014-2016 David Brackeen
+ 
+ This software is provided 'as-is', without any express or implied warranty.
+ In no event will the authors be held liable for any damages arising from the
+ use of this software. Permission is granted to anyone to use this software
+ for any purpose, including commercial applications, and to alter it and
+ redistribute it freely, subject to the following restrictions:
+ 
+ 1. The origin of this software must not be misrepresented; you must not
+    claim that you wrote the original software. If you use this software in a
+    product, an acknowledgment in the product documentation would be appreciated
+    but is not required.
+ 2. Altered source versions must be plainly marked as such, and must not be
+    misrepresented as being the original software.
+ 3. This notice may not be removed or altered from any source distribution.
+ */
+
 #include "glfm.h"
 
 #ifdef GLFM_PLATFORM_EMSCRIPTEN
 
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
-#include <stdlib.h>
-#include <stdbool.h>
 #include <math.h>
-#include <time.h>
+#include <stdbool.h>
+#include <stdlib.h>
 #include <sys/time.h>
+#include <time.h>
 
 #define GLFM_ASSETS_USE_STDIO
 #include "glfm_platform.h"
@@ -19,9 +39,9 @@ typedef struct {
     int32_t height;
     float scale;
     GLFMRenderingAPI renderingAPI;
-    
+
     bool mouseDown;
-    
+
     bool active;
 } PlatformData;
 
@@ -36,22 +56,21 @@ static char *replace_str(const char *str, const char *old, const char *new) {
     const char *p, *q;
     size_t oldlen = strlen(old);
     size_t count, retlen, newlen = strlen(new);
-    
+
     if (oldlen != newlen) {
         for (count = 0, p = str; (q = strstr(p, old)) != NULL; p = q + oldlen) {
             count++;
         }
         /* this is undefined if p - str > PTRDIFF_MAX */
         retlen = p - str + strlen(p) + count * (newlen - oldlen);
-    }
-    else {
+    } else {
         retlen = strlen(str);
     }
-    
+
     if ((ret = malloc(retlen + 1)) == NULL) {
         return NULL;
     }
-    
+
     for (r = ret, p = str; (q = strstr(p, old)) != NULL; p = q + oldlen) {
         /* this is undefined if q - p > PTRDIFF_MAX */
         ptrdiff_t l = q - p;
@@ -61,13 +80,15 @@ static char *replace_str(const char *str, const char *old, const char *new) {
         r += newlen;
     }
     strcpy(r, p);
-    
+
     return ret;
 }
 
 static char *escape_str(const char *str) {
-    static const char *from[] = {   "\\",   "\'",   "\"",   "\n",   "\r"};
-    static const char *to[]   = { "\\\\", "\\\'", "\\\"", "\\\n", "\\\r", };
+    static const char *from[] = {"\\", "\'", "\"", "\n", "\r"};
+    static const char *to[] = {
+        "\\\\", "\\\'", "\\\"", "\\\n", "\\\r",
+    };
     char *escaped_str = replace_str(str, from[0], to[0]);
     for (int i = 1; i < 5; i++) {
         char *new_str = replace_str(escaped_str, from[i], to[i]);
@@ -83,30 +104,30 @@ static char *vstrcat(const char *s, ...) {
     if (!s) {
         return NULL;
     }
-    
+
     char *value;
     char *p;
     size_t len = strlen(s);
-    
+
     va_list argp;
     va_start(argp, s);
     while ((p = va_arg(argp, char *)) != NULL) {
         len += strlen(p);
     }
     va_end(argp);
-    
+
     value = malloc(len + 1);
     if (!value) {
         return NULL;
     }
-    
+
     strcpy(value, s);
     va_start(argp, s);
     while ((p = va_arg(argp, char *)) != NULL) {
         strcat(value, p);
     }
     va_end(argp);
-    
+
     return value;
 }
 
@@ -116,7 +137,8 @@ static const char *glfmGetAssetPath() {
     return "";
 }
 
-void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfaceOrientation allowedOrientations) {
+void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
+                                     GLFMUserInterfaceOrientation allowedOrientations) {
     if (display->allowedOrientations != allowedOrientations) {
         display->allowedOrientations = allowedOrientations;
 
@@ -125,12 +147,10 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display, const GLFMUserInterfa
         if (allowedOrientations == GLFMUserInterfaceOrientationPortrait) {
             emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY |
                                         EMSCRIPTEN_ORIENTATION_PORTRAIT_SECONDARY);
-        }
-        else if (allowedOrientations == GLFMUserInterfaceOrientationLandscape) {
+        } else if (allowedOrientations == GLFMUserInterfaceOrientationLandscape) {
             emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_LANDSCAPE_PRIMARY |
                                         EMSCRIPTEN_ORIENTATION_LANDSCAPE_SECONDARY);
-        }
-        else {
+        } else {
             emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY |
                                         EMSCRIPTEN_ORIENTATION_PORTRAIT_SECONDARY |
                                         EMSCRIPTEN_ORIENTATION_LANDSCAPE_PRIMARY |
@@ -169,7 +189,8 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
     // Make sure the javascript array emCursors is refernced properly
     int emCursor;
     switch (mouseCursor) {
-        case GLFMMouseCursorAuto: default:
+        case GLFMMouseCursorAuto:
+        default:
             emCursor = 0;
             break;
         case GLFMMouseCursorNone:
@@ -189,9 +210,10 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
             break;
     }
     EM_ASM_({
-        var emCursors = new Array('auto', 'none', 'default', 'pointer', 'crosshair', 'text' );
+        var emCursors = new Array('auto', 'none', 'default', 'pointer', 'crosshair', 'text');
         Module['canvas'].style.cursor = emCursors[$0];
-    }, emCursor);
+    },
+            emCursor);
 }
 
 void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEnabled) {
@@ -212,10 +234,10 @@ void glfmLog(const char *format, ...) {
     time_t timer = tv.tv_sec;
     int timeMillis = tv.tv_usec / 1000;
     strftime(timeBuffer, 64, "%Y-%m-%d %H:%M:%S", localtime(&timer));
-    
+
     // Print prefix (time and log level)
     printf("%s.%03d GLFM: ", timeBuffer, timeMillis);
-    
+
     // Print message
     va_list args;
     va_start(args, format);
@@ -224,8 +246,8 @@ void glfmLog(const char *format, ...) {
     printf("\n");
 }
 
-// Emscripten currently doesn't have a way to send strings as function arguments (like the EM_ASM_* functions).
-// So, scripts are generated on the fly.
+// Emscripten currently doesn't have a way to send strings as function arguments
+// (like the EM_ASM_* functions). So, scripts are generated on the fly.
 
 void glfmSetPreference(const char *key, const char *value) {
     if (key) {
@@ -234,12 +256,12 @@ void glfmSetPreference(const char *key, const char *value) {
         if (value) {
             char *escaped_value = escape_str(value);
             script = vstrcat("try { window.localStorage.setItem('",
-                             escaped_key, "', '", escaped_value, "'); } catch(err) { }", (char *)NULL);
-            free(escaped_value);
-        }
-        else {
-            script = vstrcat("try { window.localStorage.removeItem('", escaped_key, "'); } catch(err) { }",
+                             escaped_key, "', '", escaped_value, "'); } catch(err) { }",
                              (char *)NULL);
+            free(escaped_value);
+        } else {
+            script = vstrcat("try { window.localStorage.removeItem('", escaped_key,
+                             "'); } catch(err) { }", (char *)NULL);
         }
         free(escaped_key);
         emscripten_run_script(script);
@@ -277,12 +299,12 @@ const char *glfmGetLanguageInternal() {
     // Probably overly paranoid with the try/catch, type checks, and null checks. Oh well.
     // navigator.userLanguage and navigator.browserLanguage are for older versions of IE.
     static const char *script =
-    "(function() { try { "
-    "var lang = navigator.language || navigator.userLanguage || navigator.browserLanguage;"
-    "if (typeof lang === 'string') { return lang; } "
-    "else { return 'en'; } "
-    "} catch(err) { return 'en'; } }())";
-    
+        "(function() { try { "
+        "var lang = navigator.language || navigator.userLanguage || navigator.browserLanguage;"
+        "if (typeof lang === 'string') { return lang; } "
+        "else { return 'en'; } "
+        "} catch(err) { return 'en'; } }())";
+
     return emscripten_run_script_string(script);
 }
 
@@ -310,8 +332,7 @@ static void setActive(GLFMDisplay *display, bool active) {
         platformData->active = active;
         if (active && display->resumingFunc) {
             display->resumingFunc(display);
-        }
-        else if (!active && display->pausingFunc) {
+        } else if (!active && display->pausingFunc) {
             display->pausingFunc(display);
         }
     }
@@ -330,8 +351,7 @@ static void mainLoopFunc(void *userData) {
                 canvas.width = width;
                 canvas.height = height;
                 return 1;
-            }
-            else {
+            } else {
                 return 0;
             }
         });
@@ -344,11 +364,11 @@ static void mainLoopFunc(void *userData) {
                 display->surfaceResizedFunc(display, platformData->width, platformData->height);
             }
         }
-        
+
         // Tick
         if (display->mainLoopFunc) {
-            // NOTE: The JavaScript requestAnimationFrame callback sends the frame time as a parameter,
-            // but Emscripten include send it.
+            // NOTE: The JavaScript requestAnimationFrame callback sends the frame time as a
+            // parameter, but Emscripten include send it.
             display->mainLoopFunc(display, emscripten_get_now() / 1000.0);
         }
     }
@@ -361,20 +381,19 @@ static EM_BOOL webglContextCallback(int eventType, const void *reserved, void *u
             display->surfaceDestroyedFunc(display);
         }
         return 1;
-    }
-    else if (eventType == EMSCRIPTEN_EVENT_WEBGLCONTEXTRESTORED) {
+    } else if (eventType == EMSCRIPTEN_EVENT_WEBGLCONTEXTRESTORED) {
         PlatformData *platformData = display->platformData;
         if (display->surfaceCreatedFunc) {
             display->surfaceCreatedFunc(display, platformData->width, platformData->height);
         }
         return 1;
-    }
-    else {
+    } else {
         return 0;
     }
 }
 
-static EM_BOOL visibilityChangeCallback(int eventType, const EmscriptenVisibilityChangeEvent *e, void *userData) {
+static EM_BOOL visibilityChangeCallback(int eventType, const EmscriptenVisibilityChangeEvent *e,
+                                        void *userData) {
     GLFMDisplay *display = userData;
     setActive(display, !e->hidden);
     return 1;
@@ -387,18 +406,15 @@ static EM_BOOL keyCallback(int eventType, const EmscriptenKeyboardEvent *e, void
         if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
             if (e->repeat) {
                 action = GLFMKeyActionRepeated;
-            }
-            else {
+            } else {
                 action = GLFMKeyActionPressed;
             }
-        }
-        else if (eventType == EMSCRIPTEN_EVENT_KEYUP) {
+        } else if (eventType == EMSCRIPTEN_EVENT_KEYUP) {
             action = GLFMKeyActionReleased;
-        }
-        else {
+        } else {
             return 0;
         }
-        
+
         /*
          TODO: Modifiers
          For now just send e->keyCode as is. It is identical to the defined values:
@@ -412,10 +428,9 @@ static EM_BOOL keyCallback(int eventType, const EmscriptenKeyboardEvent *e, void
          GLFMKeyRight     = 0x27,
          GLFMKeyDown      = 0x28,
          */
-        
+
         return display->keyFunc(display, e->keyCode, action, 0);
-    }
-    else {
+    } else {
         return 0;
     }
 }
@@ -430,29 +445,27 @@ static EM_BOOL mouseCallback(int eventType, const EmscriptenMouseEvent *e, void 
                 touchPhase = GLFMTouchPhaseBegan;
                 platformData->mouseDown = true;
                 break;
-            
+
             case EMSCRIPTEN_EVENT_MOUSEMOVE:
                 if (platformData->mouseDown) {
                     touchPhase = GLFMTouchPhaseMoved;
-                }
-                else {
+                } else {
                     touchPhase = GLFMTouchPhaseHover;
                 }
                 break;
-            
+
             case EMSCRIPTEN_EVENT_MOUSEUP:
                 touchPhase = GLFMTouchPhaseEnded;
                 platformData->mouseDown = false;
                 break;
-                
+
             default:
                 touchPhase = GLFMTouchPhaseCancelled;
                 platformData->mouseDown = false;
                 break;
         }
         return display->touchFunc(display, e->button, touchPhase, e->canvasX, e->canvasY);
-    }
-    else {
+    } else {
         return 0;
     }
 }
@@ -466,30 +479,31 @@ static EM_BOOL touchCallback(int eventType, const EmscriptenTouchEvent *e, void 
             case EMSCRIPTEN_EVENT_TOUCHSTART:
                 touchPhase = GLFMTouchPhaseBegan;
                 break;
-            
+
             case EMSCRIPTEN_EVENT_TOUCHMOVE:
                 touchPhase = GLFMTouchPhaseMoved;
                 break;
-            
+
             case EMSCRIPTEN_EVENT_TOUCHEND:
                 touchPhase = GLFMTouchPhaseEnded;
                 break;
-            
-            case EMSCRIPTEN_EVENT_TOUCHCANCEL: default:
+
+            case EMSCRIPTEN_EVENT_TOUCHCANCEL:
+            default:
                 touchPhase = GLFMTouchPhaseCancelled;
                 break;
         }
-        
+
         int handled = 0;
         for (int i = 0; i < e->numTouches; i++) {
             const EmscriptenTouchPoint *t = &e->touches[i];
             if (t->isChanged && (platformData->multitouchEnabled || t->identifier == 0)) {
-                handled |= display->touchFunc(display, t->identifier, touchPhase, t->canvasX, t->canvasY);
+                handled |= display->touchFunc(display, t->identifier, touchPhase,
+                                              t->canvasX, t->canvasY);
             }
         }
         return handled;
-    }
-    else {
+    } else {
         return 0;
     }
 }
@@ -501,10 +515,10 @@ int main(int argc, const char *argv[]) {
     PlatformData *platformData = calloc(1, sizeof(PlatformData));
     glfmDisplay->platformData = platformData;
     platformData->active = true;
-    
+
     // Main entry
     glfmMain(glfmDisplay);
-    
+
     // Init resizable canvas
     EM_ASM({
         var canvas = Module['canvas'];
@@ -515,7 +529,7 @@ int main(int argc, const char *argv[]) {
     platformData->width = getDisplayWidth(glfmDisplay);
     platformData->height = getDisplayHeight(glfmDisplay);
     platformData->scale = emscripten_get_device_pixel_ratio();
-    
+
     // Create WebGL context
     EmscriptenWebGLContextAttributes attribs;
     emscripten_webgl_init_context_attributes(&attribs);
@@ -528,19 +542,20 @@ int main(int argc, const char *argv[]) {
     attribs.preferLowPowerToHighPerformance = 0;
     attribs.failIfMajorPerformanceCaveat = 0;
     attribs.enableExtensionsByDefault = 0;
-    
+
     int contextHandle = 0;
-    // Disabled for now because I couldn't get it to work correctly (Firefox 39, webgl.enable-prototype-webgl2 set to true)
+    // Disabled for now because I couldn't get it to work correctly
+    // (Firefox 39, webgl.enable-prototype-webgl2 set to true)
     // Wait until WebGL2 support is more widespread.
-//    if (glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
-//        // OpenGL ES 3.0 / WebGL 2.0
-//        attribs.majorVersion = 2;
-//        attribs.minorVersion = 0;
-//        contextHandle = emscripten_webgl_create_context(NULL, &attribs);
-//        if (contextHandle) {
-//            platformData->renderingAPI = GLFMRenderingAPIOpenGLES3;
-//        }
-//    }
+    //    if (glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
+    //        // OpenGL ES 3.0 / WebGL 2.0
+    //        attribs.majorVersion = 2;
+    //        attribs.minorVersion = 0;
+    //        contextHandle = emscripten_webgl_create_context(NULL, &attribs);
+    //        if (contextHandle) {
+    //            platformData->renderingAPI = GLFMRenderingAPIOpenGLES3;
+    //        }
+    //    }
     if (!contextHandle) {
         // OpenGL ES 2.0 / WebGL 1.0
         attribs.majorVersion = 1;
@@ -554,9 +569,9 @@ int main(int argc, const char *argv[]) {
         reportSurfaceError(glfmDisplay, "Couldn't create GL context");
         return 0;
     }
-    
+
     emscripten_webgl_make_context_current(contextHandle);
-    
+
     if (glfmDisplay->surfaceCreatedFunc) {
         glfmDisplay->surfaceCreatedFunc(glfmDisplay, platformData->width, platformData->height);
     }

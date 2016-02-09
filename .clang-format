@@ -1,0 +1,10 @@
+---
+BasedOnStyle: llvm
+ColumnLimit: 0
+IndentWidth: 4
+IndentCaseLabels: true
+AllowShortFunctionsOnASingleLine: None
+KeepEmptyLinesAtTheStartOfBlocks: false
+AlignTrailingComments: false
+AlignOperands: false
+...
