@@ -25,10 +25,8 @@
 #include "android_native_app_glue.h"
 #include "glfm_platform.h"
 #include <EGL/egl.h>
-#include <android/asset_manager.h>
 #include <android/log.h>
 #include <android/window.h>
-#include <jni.h>
 #include <math.h>
 #include <stdbool.h>
 
@@ -752,6 +750,10 @@ static void app_cmd_callback(struct android_app *app, int32_t cmd) {
 #endif
             break;
         }
+        default: {
+            // Do nothing
+            break;
+        }
     }
 }
 
@@ -765,7 +767,7 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
             int32_t aKeyCode = AKeyEvent_getKeyCode(event);
             int32_t aAction = AKeyEvent_getAction(event);
             if (aKeyCode != 0) {
-                GLFMKey key = 0;
+                GLFMKey key;
                 switch (aKeyCode) {
                     case AKEYCODE_DPAD_LEFT:
                         key = GLFMKeyLeft;
@@ -795,14 +797,15 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                     case AKEYCODE_MENU:
                         key = GLFMKeyNavMenu;
                         break;
-                }
-
-                if (key == 0) {
-                    if (aKeyCode >= AKEYCODE_0 && aKeyCode <= AKEYCODE_9) {
-                        key = aKeyCode - AKEYCODE_0 + '0';
-                    } else if (aKeyCode >= AKEYCODE_A && aKeyCode <= AKEYCODE_Z) {
-                        key = aKeyCode - AKEYCODE_A + 'A';
-                    }
+                    default:
+                        if (aKeyCode >= AKEYCODE_0 && aKeyCode <= AKEYCODE_9) {
+                            key = (GLFMKey)(aKeyCode - AKEYCODE_0 + '0');
+                        } else if (aKeyCode >= AKEYCODE_A && aKeyCode <= AKEYCODE_Z) {
+                            key = (GLFMKey)(aKeyCode - AKEYCODE_A + 'A');
+                        } else {
+                            key = (GLFMKey)0;
+                        }
+                        break;
                 }
 
                 if (key != 0) {
@@ -857,6 +860,7 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                     phase = GLFMTouchPhaseCancelled;
                     break;
                 default:
+                    phase = GLFMTouchPhaseCancelled;
                     validAction = false;
                     break;
             }
@@ -868,8 +872,8 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                         const int touchNumber = AMotionEvent_getPointerId(event, i);
                         if (touchNumber >= 0 && touchNumber < maxTouches) {
                             // Only send move events if the position has changed
-                            const int x = roundf(AMotionEvent_getX(event, i));
-                            const int y = roundf(AMotionEvent_getY(event, i));
+                            const int x = (int)roundf(AMotionEvent_getX(event, i));
+                            const int y = (int)roundf(AMotionEvent_getY(event, i));
                             if (x != engine->touchX[touchNumber] ||
                                 y != engine->touchY[touchNumber]) {
                                 engine->touchX[touchNumber] = x;
@@ -881,12 +885,13 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                         }
                     }
                 } else {
-                    const int index = ((action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >>
-                                       AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
+                    const size_t index =
+                        (size_t)((action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >>
+                                 AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
                     const int touchNumber = AMotionEvent_getPointerId(event, index);
                     if (touchNumber >= 0 && touchNumber < maxTouches) {
-                        const int x = roundf(AMotionEvent_getX(event, index));
-                        const int y = roundf(AMotionEvent_getY(event, index));
+                        const int x = (int)roundf(AMotionEvent_getX(event, index));
+                        const int y = (int)roundf(AMotionEvent_getY(event, index));
                         engine->touchX[touchNumber] = x;
                         engine->touchY[touchNumber] = y;
                         engine->display->touchFunc(engine->display, touchNumber, phase, x, y);
@@ -1038,11 +1043,14 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
 }
 
 GLboolean glfmHasTouch(GLFMDisplay *display) {
+    (void)display;
     // This will need to change, for say, TV apps
     return GL_TRUE;
 }
 
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
+    (void)display;
+    (void)mouseCursor;
     // Do nothing
 }
 
@@ -1053,7 +1061,7 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEn
 
 GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display) {
     Engine *engine = (Engine *)display->platformData;
-    return engine->multitouchEnabled;
+    return (GLboolean)engine->multitouchEnabled;
 }
 
 void glfmLog(const char *format, ...) {
@@ -1230,13 +1238,13 @@ const char *glfmAssetGetName(GLFMAsset *asset) {
 }
 
 size_t glfmAssetGetLength(GLFMAsset *asset) {
-    return (asset && asset->asset) ? AAsset_getLength(asset->asset) : 0;
+    return (asset && asset->asset) ? (size_t)AAsset_getLength(asset->asset) : 0;
 }
 
 size_t glfmAssetRead(GLFMAsset *asset, void *buffer, size_t count) {
     if (asset && asset->asset) {
         int ret = AAsset_read(asset->asset, buffer, count);
-        return (ret <= 0) ? 0 : ret;
+        return (ret <= 0) ? 0 : (size_t)ret;
     } else {
         return 0;
     }

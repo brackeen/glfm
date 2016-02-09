@@ -180,12 +180,14 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
 }
 
 GLboolean glfmHasTouch(GLFMDisplay *display) {
+    (void)display;
     return EM_ASM_INT_V({
         return (('ontouchstart' in window) || (navigator.msMaxTouchPoints > 0));
     });
 }
 
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
+    (void)display;
     // Make sure the javascript array emCursors is refernced properly
     int emCursor;
     switch (mouseCursor) {
@@ -311,6 +313,7 @@ const char *glfmGetLanguageInternal() {
 // MARK: Emscripten glue
 
 static int getDisplayWidth(GLFMDisplay *display) {
+    (void)display;
     const double width = EM_ASM_DOUBLE_V({
         var canvas = Module['canvas'];
         return canvas.width;
@@ -319,6 +322,7 @@ static int getDisplayWidth(GLFMDisplay *display) {
 }
 
 static int getDisplayHeight(GLFMDisplay *display) {
+    (void)display;
     const double height = EM_ASM_DOUBLE_V({
         var canvas = Module['canvas'];
         return canvas.height;
@@ -375,6 +379,7 @@ static void mainLoopFunc(void *userData) {
 }
 
 static EM_BOOL webglContextCallback(int eventType, const void *reserved, void *userData) {
+    (void)reserved;
     GLFMDisplay *display = userData;
     if (eventType == EMSCRIPTEN_EVENT_WEBGLCONTEXTLOST) {
         if (display->surfaceDestroyedFunc) {
@@ -394,6 +399,7 @@ static EM_BOOL webglContextCallback(int eventType, const void *reserved, void *u
 
 static EM_BOOL visibilityChangeCallback(int eventType, const EmscriptenVisibilityChangeEvent *e,
                                         void *userData) {
+    (void)eventType;
     GLFMDisplay *display = userData;
     setActive(display, !e->hidden);
     return 1;
@@ -510,7 +516,7 @@ static EM_BOOL touchCallback(int eventType, const EmscriptenTouchEvent *e, void 
 
 // MARK: main
 
-int main(int argc, const char *argv[]) {
+int main() {
     GLFMDisplay *glfmDisplay = calloc(1, sizeof(GLFMDisplay));
     PlatformData *platformData = calloc(1, sizeof(PlatformData));
     glfmDisplay->platformData = platformData;
