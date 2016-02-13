@@ -8,14 +8,14 @@ GLFM is written in C and runs on iOS 7, Android 2.3.3, and WebGL 1.0 (via [Emscr
 ## Features
 * OpenGL ES 2.0, 3.0, and 3.1 display setup.
 * Retina / high-DPI support.
-* Touch and keyboard events. 
-* Events for application state and context loss. 
+* Touch and keyboard events.
+* Events for application state and context loss.
 * APIs for asset loading, preferences and logging.
 
 ## Non-goals
 GLFM is limited in scope, and isn't designed to provide everything needed for an app. For example, GLFM doesn't provide (and will never provide) the following:
 
-* No image loading. 
+* No image loading.
 * No text rendering.
 * No audio.
 * No menus, UI toolkit, or scene graph.
@@ -76,7 +76,7 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
             "void main() {\n"
             "   gl_Position = position;\n"
             "}";
-        
+
         const GLchar *fragmentShader =
             "void main() {\n"
             "  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
@@ -85,12 +85,12 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
         program = glCreateProgram();
         GLuint vertShader = compileShader(GL_VERTEX_SHADER, vertexShader);
         GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, fragmentShader);
-        
+
         glAttachShader(program, vertShader);
         glAttachShader(program, fragShader);
-        
+
         glLinkProgram(program);
-        
+
         glDeleteShader(vertShader);
         glDeleteShader(fragShader);
     }
@@ -104,10 +104,10 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
         glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     }
-    
+
     glClearColor(0.4f, 0.0f, 0.6f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    
+
     glUseProgram(program);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 
@@ -141,7 +141,6 @@ The script will ask a few questions and output a new project. After creation, yo
 
 ## Caveats
 * OpenGL ES 3.1 support in Android is untested, and iOS currently has no OpenGL ES 3.1 support.
-* OpenGL ES 3.0 support in WebGL (WebGL 2) is currently disabled.
 * GLFM is not thread-safe. All GLFM functions must be called on the main thread (that is, from `glfmMain` or from the callback functions).
 * Key input on iOS is not ideal. Using the keyboard (on an iOS device via Bluetooth keyboard or on the simulator via a Mac's keyboard), only a few keys are detected (arrows, enter, space, escape). Also, only key press events can be detected, but not key repeat or key release events.
 * Orientation lock probably doesn't work on HTML5.

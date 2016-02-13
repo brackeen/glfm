@@ -550,18 +550,15 @@ int main() {
     attribs.enableExtensionsByDefault = 0;
 
     int contextHandle = 0;
-    // Disabled for now because I couldn't get it to work correctly
-    // (Firefox 39, webgl.enable-prototype-webgl2 set to true)
-    // Wait until WebGL2 support is more widespread.
-    //    if (glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
-    //        // OpenGL ES 3.0 / WebGL 2.0
-    //        attribs.majorVersion = 2;
-    //        attribs.minorVersion = 0;
-    //        contextHandle = emscripten_webgl_create_context(NULL, &attribs);
-    //        if (contextHandle) {
-    //            platformData->renderingAPI = GLFMRenderingAPIOpenGLES3;
-    //        }
-    //    }
+    if (glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
+        // OpenGL ES 3.0 / WebGL 2.0
+        attribs.majorVersion = 2;
+        attribs.minorVersion = 0;
+        contextHandle = emscripten_webgl_create_context(NULL, &attribs);
+        if (contextHandle) {
+            platformData->renderingAPI = GLFMRenderingAPIOpenGLES3;
+        }
+    }
     if (!contextHandle) {
         // OpenGL ES 2.0 / WebGL 1.0
         attribs.majorVersion = 1;
