@@ -182,7 +182,6 @@ const char *glfmGetLanguage() {
 // MARK: Assets
 
 #ifdef GLFM_ASSETS_USE_STDIO
-#undef GLFM_ASSETS_USE_STDIO
 
 #include <sys/mman.h>
 
@@ -268,23 +267,15 @@ void glfmAssetClose(GLFMAsset *asset) {
     if (asset) {
         if (asset->file) {
             fclose(asset->file);
-            asset->file = NULL;
         }
-        if (asset->name) {
-            free(asset->name);
-            asset->name = NULL;
-        }
-        if (asset->path) {
-            free(asset->path);
-            asset->path = NULL;
-        }
+        free(asset->name);
+        free(asset->path);
         if (asset->buffer) {
             if (asset->bufferIsMap) {
                 munmap(asset->buffer, asset->bufferSize);
             } else {
                 free(asset->buffer);
             }
-            asset->buffer = NULL;
         }
         free(asset);
     }
