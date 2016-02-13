@@ -17,12 +17,13 @@ model {
     android.ndk {
         moduleName = "GLFMExample"
         //platformVersion = 19 // This may need to be set in your app because of NDK header changes in platform 21.
+        toolchain = "clang"
         CFlags.addAll(["-std=c99", "-Wall"])
         CFlags.add("-I${file("src/main/jni/native_app_glue")}".toString())
         CFlags.add("-I${file("../../../../include")}".toString())
         //cppFlags.addAll(["-fno-rtti", "-fno-exceptions"])
         ldLibs.addAll(["log", "android", "EGL", "GLESv2"])
-        stl = "stlport_static"
+        //stl = "c++_static"
     }
 
     android.sources.main {
