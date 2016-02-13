@@ -83,6 +83,7 @@
 // clang-format on
 
 #include <stddef.h> // For size_t
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -201,14 +202,13 @@ typedef struct GLFMAsset GLFMAsset;
 typedef void (*GLFMMainLoopFunc)(GLFMDisplay *display, double frameTime);
 
 /// Callback function for mouse or touch events. The (x,y) values are in pixels.
-/// The function should return GL_TRUE if the event was handled, and false otherwise.
-typedef GLboolean (*GLFMTouchFunc)(GLFMDisplay *display, int touch, GLFMTouchPhase phase,
-                                   int x, int y);
+/// The function should return true if the event was handled, and false otherwise.
+typedef bool (*GLFMTouchFunc)(GLFMDisplay *display, int touch, GLFMTouchPhase phase, int x, int y);
 
 /// Callback function for key events.
-/// The function should return GL_TRUE if the event was handled, and false otherwise.
-typedef GLboolean (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action,
-                                 int modifiers);
+/// The function should return true if the event was handled, and false otherwise.
+typedef bool (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action,
+                            int modifiers);
 
 /// Callback when the surface could not be created.
 typedef void (*GLFMSurfaceErrorFunc)(GLFMDisplay *display, const char *message);
@@ -260,10 +260,10 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
 GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *display);
 
 /// Sets whether multitouch input is enabled. By default, multitouch is disabled.
-void glfmSetMultitouchEnabled(GLFMDisplay *display, GLboolean multitouchEnabled);
+void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled);
 
 /// Gets whether multitouch input is enabled. By default, multitouch is disabled.
-GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display);
+bool glfmGetMultitouchEnabled(GLFMDisplay *display);
 
 /// Gets the display width, in pixels. The result will only be valid after the surface is created,
 /// or in GLFMMainLoopFunc
@@ -282,13 +282,13 @@ float glfmGetDisplayScale(GLFMDisplay *display);
 GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display);
 
 /// Gets whether the display has touch capabilities.
-GLboolean glfmHasTouch(GLFMDisplay *display);
+bool glfmHasTouch(GLFMDisplay *display);
 
 /// Sets the mouse cursor (only on platforms with a mouse)
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor);
 
 /// Checks if a named OpenGL extension is supported
-GLboolean glfmExtensionSupported(const char *extension);
+bool glfmExtensionSupported(const char *extension);
 
 /// Sets the function to call before each frame is displayed.
 void glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc);

@@ -28,7 +28,6 @@
 #include <android/log.h>
 #include <android/window.h>
 #include <math.h>
-#include <stdbool.h>
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "GLFM", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "GLFM", __VA_ARGS__))
@@ -1042,10 +1041,10 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
     return engine->renderingAPI;
 }
 
-GLboolean glfmHasTouch(GLFMDisplay *display) {
+bool glfmHasTouch(GLFMDisplay *display) {
     (void)display;
     // This will need to change, for say, TV apps
-    return GL_TRUE;
+    return true;
 }
 
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
@@ -1054,14 +1053,14 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
     // Do nothing
 }
 
-void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEnabled) {
+void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
     Engine *engine = (Engine *)display->platformData;
     engine->multitouchEnabled = multitouchEnabled;
 }
 
-GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display) {
+bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
     Engine *engine = (Engine *)display->platformData;
-    return (GLboolean)engine->multitouchEnabled;
+    return engine->multitouchEnabled;
 }
 
 void glfmLog(const char *format, ...) {
@@ -1104,7 +1103,7 @@ void glfmSetPreference(const char *key, const char *value) {
 char *glfmGetPreference(const char *key) {
     char *value = NULL;
     if (key) {
-        // Apply any edited prefernces
+        // Apply any edited preferences
         applyPreferencesIfNeeded();
 
         jobject sharedPreferences = getDefaultSharedPreferences();
@@ -1274,13 +1273,9 @@ int glfmAssetSeek(GLFMAsset *asset, long offset, GLFMAssetSeek whence) {
 
 void glfmAssetClose(GLFMAsset *asset) {
     if (asset) {
-        if (asset->name) {
-            free(asset->name);
-            asset->name = NULL;
-        }
+        free(asset->name);
         if (asset->asset) {
             AAsset_close(asset->asset);
-            asset->asset = NULL;
         }
         free(asset);
     }

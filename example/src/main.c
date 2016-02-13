@@ -23,8 +23,8 @@ typedef struct {
 static void onFrame(GLFMDisplay *display, double frameTime);
 static void onSurfaceCreated(GLFMDisplay *display, int width, int height);
 static void onSurfaceDestroyed(GLFMDisplay *display);
-static GLboolean onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, int x, int y);
-static GLboolean onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, int modifiers);
+static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, int x, int y);
+static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, int modifiers);
 
 // Main entry point
 void glfmMain(GLFMDisplay *display) {
@@ -46,9 +46,9 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetKeyFunc(display, onKey);
 }
 
-static GLboolean onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, int x, int y) {
+static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, int x, int y) {
     if (phase == GLFMTouchPhaseHover) {
-        return GL_FALSE;
+        return false;
     }
     ExampleApp *app = glfmGetUserData(display);
     if (phase != GLFMTouchPhaseBegan) {
@@ -59,29 +59,29 @@ static GLboolean onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, 
     }
     app->lastTouchX = x;
     app->lastTouchY = y;
-    return GL_TRUE;
+    return true;
 }
 
-static GLboolean onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, int modifiers) {
-    GLboolean handled = GL_FALSE;
+static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, int modifiers) {
+    bool handled = false;
     if (action == GLFMKeyActionPressed) {
         ExampleApp *app = glfmGetUserData(display);
         switch (keyCode) {
             case GLFMKeyLeft:
                 app->offsetX -= 0.1f;
-                handled = GL_TRUE;
+                handled = true;
                 break;
             case GLFMKeyRight:
                 app->offsetX += 0.1f;
-                handled = GL_TRUE;
+                handled = true;
                 break;
             case GLFMKeyUp:
                 app->offsetY += 0.1f;
-                handled = GL_TRUE;
+                handled = true;
                 break;
             case GLFMKeyDown:
                 app->offsetY -= 0.1f;
-                handled = GL_TRUE;
+                handled = true;
                 break;
             default:
                 break;

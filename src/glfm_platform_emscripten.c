@@ -25,7 +25,6 @@
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #include <math.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <time.h>
@@ -179,7 +178,7 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
     return platformData->renderingAPI;
 }
 
-GLboolean glfmHasTouch(GLFMDisplay *display) {
+bool glfmHasTouch(GLFMDisplay *display) {
     (void)display;
     return EM_ASM_INT_V({
         return (('ontouchstart' in window) || (navigator.msMaxTouchPoints > 0));
@@ -218,12 +217,12 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
             emCursor);
 }
 
-void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEnabled) {
+void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
     PlatformData *platformData = display->platformData;
     platformData->multitouchEnabled = multitouchEnabled;
 }
 
-GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display) {
+bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
     PlatformData *platformData = display->platformData;
     return platformData->multitouchEnabled;
 }

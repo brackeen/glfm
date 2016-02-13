@@ -794,16 +794,16 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
     }
 }
 
-GLboolean glfmHasTouch(GLFMDisplay *display) {
+bool glfmHasTouch(GLFMDisplay *display) {
     // This will need to change, for say, TV apps
-    return GL_TRUE;
+    return true;
 }
 
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
     // Do nothing
 }
 
-void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEnabled) {
+void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         vc.multipleTouchEnabled = (BOOL)multitouchEnabled;
@@ -813,12 +813,12 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, const GLboolean multitouchEn
     }
 }
 
-GLboolean glfmGetMultitouchEnabled(GLFMDisplay *display) {
+bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return (GLboolean)vc.multipleTouchEnabled;
+        return vc.multipleTouchEnabled;
     } else {
-        return 0;
+        return false;
     }
 }
 

@@ -361,11 +361,11 @@ static void reportSurfaceError(GLFMDisplay *display, const char *format, ...) {
 
 // glfmExtensionSupported function is from
 // http://www.opengl.org/archives/resources/features/OGLextensions/
-GLboolean glfmExtensionSupported(const char *extension) {
+bool glfmExtensionSupported(const char *extension) {
     // Extension names should not have spaces.
     GLubyte *where = (GLubyte *)strchr(extension, ' ');
     if (where || *extension == '\0') {
-        return GL_FALSE;
+        return false;
     }
 
     const GLubyte *extensions = glGetString(GL_EXTENSIONS);
@@ -382,14 +382,14 @@ GLboolean glfmExtensionSupported(const char *extension) {
         GLubyte *terminator = where + strlen(extension);
         if (where == start || *(where - 1) == ' ') {
             if (*terminator == ' ' || *terminator == '\0') {
-                return GL_TRUE;
+                return true;
             }
         }
 
         start = terminator;
     }
 
-    return GL_FALSE;
+    return false;
 }
 
 #ifdef __cplusplus
