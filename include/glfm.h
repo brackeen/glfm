@@ -25,64 +25,64 @@
 #define GLFM_VERSION_MINOR 7
 #define GLFM_VERSION_REVISION 0
 
-//
-// Platform, which defines one of:
+// clang-format off
+
+// One of these will be defined:
 // GLFM_PLATFORM_IOS
 // GLFM_PLATFORM_ANDROID
 // GLFM_PLATFORM_EMSCRIPTEN
-//
 
 #if defined(__ANDROID__)
-#define GLFM_PLATFORM_ANDROID
+    #define GLFM_PLATFORM_ANDROID
 #elif defined(__EMSCRIPTEN__)
-#define GLFM_PLATFORM_EMSCRIPTEN
-#define _POSIX_SOURCE // For fileno()
+    #define GLFM_PLATFORM_EMSCRIPTEN
+    #define _POSIX_SOURCE // For fileno()
 #elif defined(__APPLE__)
-#include <TargetConditionals.h>
-#if TARGET_OS_IPHONE
-#define GLFM_PLATFORM_IOS
+    #include <TargetConditionals.h>
+    #if TARGET_OS_IPHONE
+        #define GLFM_PLATFORM_IOS
+    #else
+        #error Unknown Apple platform
+    #endif
 #else
-#error Unknown Apple platform
-#endif
-#else
-#error Unknown platform
+    #error Unknown platform
 #endif
 
-#include <stddef.h> // For size_t
-
-//
 // OpenGL ES includes
-//
 
 #if defined(GLFM_INCLUDE_ES31)
-#if defined(GLFM_PLATFORM_IOS)
-#error No OpenGL ES 3.1 support as of iOS 8
-#elif defined(GLFM_PLATFORM_EMSCRIPTEN)
-#error No OpenGL ES 3.1 support in WebGL
-#else
-#include <GLES3/gl31.h>
-#include <GLES3/gl3ext.h>
-#endif
+    #if defined(GLFM_PLATFORM_IOS)
+        #error No OpenGL ES 3.1 support as of iOS 9
+    #elif defined(GLFM_PLATFORM_EMSCRIPTEN)
+        #error No OpenGL ES 3.1 support in WebGL
+    #else
+        #include <GLES3/gl31.h>
+        #include <GLES3/gl3ext.h>
+    #endif
 #elif defined(GLFM_INCLUDE_ES3)
-#if defined(GLFM_PLATFORM_IOS)
-#include <OpenGLES/ES3/gl.h>
-#include <OpenGLES/ES3/glext.h>
-#elif defined(GLFM_PLATFORM_EMSCRIPTEN)
-#include <GLES3/gl2ext.h>
-#include <GLES3/gl3.h>
+    #if defined(GLFM_PLATFORM_IOS)
+        #include <OpenGLES/ES3/gl.h>
+        #include <OpenGLES/ES3/glext.h>
+    #elif defined(GLFM_PLATFORM_EMSCRIPTEN)
+        #include <GLES3/gl3.h>
+        #include <GLES3/gl2ext.h>
+    #else
+        #include <GLES3/gl3.h>
+        #include <GLES3/gl3ext.h>
+    #endif
 #else
-#include <GLES3/gl3.h>
-#include <GLES3/gl3ext.h>
+    #if defined(GLFM_PLATFORM_IOS)
+        #include <OpenGLES/ES2/gl.h>
+        #include <OpenGLES/ES2/glext.h>
+    #else
+        #include <GLES2/gl2.h>
+        #include <GLES2/gl2ext.h>
+    #endif
 #endif
-#else
-#if defined(GLFM_PLATFORM_IOS)
-#include <OpenGLES/ES2/gl.h>
-#include <OpenGLES/ES2/glext.h>
-#else
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#endif
-#endif
+
+// clang-format on
+
+#include <stddef.h> // For size_t
 
 #ifdef __cplusplus
 extern "C" {
