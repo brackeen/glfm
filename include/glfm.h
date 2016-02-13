@@ -92,29 +92,29 @@ extern "C" {
 // MARK: Enums
 
 typedef enum {
-    GLFMRenderingAPIOpenGLES2 = 0,
+    GLFMRenderingAPIOpenGLES2,
     GLFMRenderingAPIOpenGLES3,
     GLFMRenderingAPIOpenGLES31,
 } GLFMRenderingAPI;
 
 typedef enum {
-    GLFMColorFormatRGBA8888 = 0,
+    GLFMColorFormatRGBA8888,
     GLFMColorFormatRGB565,
 } GLFMColorFormat;
 
 typedef enum {
-    GLFMDepthFormatNone = 0,
+    GLFMDepthFormatNone,
     GLFMDepthFormat16,
     GLFMDepthFormat24,
 } GLFMDepthFormat;
 
 typedef enum {
-    GLFMStencilFormatNone = 0,
+    GLFMStencilFormatNone,
     GLFMStencilFormat8,
 } GLFMStencilFormat;
 
 typedef enum {
-    GLFMMultisampleNone = 0,
+    GLFMMultisampleNone,
     GLFMMultisample4X,
 } GLFMMultisample;
 
@@ -132,19 +132,19 @@ typedef enum {
 ///  - Android: Show the navigation bar and status bar
 ///  - iOS: Show status bar
 typedef enum {
-    GLFMUserInterfaceChromeFullscreen = 0,
+    GLFMUserInterfaceChromeFullscreen,
     GLFMUserInterfaceChromeNavigation,
     GLFMUserInterfaceChromeNavigationAndStatusBar,
 } GLFMUserInterfaceChrome;
 
 typedef enum {
-    GLFMUserInterfaceOrientationAny = 0,
+    GLFMUserInterfaceOrientationAny,
     GLFMUserInterfaceOrientationPortrait,
     GLFMUserInterfaceOrientationLandscape,
 } GLFMUserInterfaceOrientation;
 
 typedef enum {
-    GLFMTouchPhaseHover = 0,
+    GLFMTouchPhaseHover,
     GLFMTouchPhaseBegan,
     GLFMTouchPhaseMoved,
     GLFMTouchPhaseEnded,
@@ -152,7 +152,7 @@ typedef enum {
 } GLFMTouchPhase;
 
 typedef enum {
-    GLFMMouseCursorAuto = 0,
+    GLFMMouseCursorAuto,
     GLFMMouseCursorNone,
     GLFMMouseCursorDefault,
     GLFMMouseCursorPointer,
@@ -182,7 +182,7 @@ typedef enum {
 } GLFMKeyModifier;
 
 typedef enum {
-    GLFMKeyActionPressed = 0,
+    GLFMKeyActionPressed,
     GLFMKeyActionRepeated,
     GLFMKeyActionReleased,
 } GLFMKeyAction;
