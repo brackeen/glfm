@@ -227,7 +227,27 @@ bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
     return platformData->multitouchEnabled;
 }
 
-void glfmLog(const char *format, ...) {
+void glfmLog(GLFMLogLevel logLevel, const char *format, ...) {
+    char *level;
+    switch (logLevel) {
+        case GLFMLogLevelDebug:
+            level = "Debug";
+            break;
+        case GLFMLogLevelInfo:
+        default:
+            level = "Info";
+            break;
+        case GLFMLogLevelWarning:
+            level = "Warning";
+            break;
+        case GLFMLogLevelError:
+            level = "Error";
+            break;
+        case GLFMLogLevelCritical:
+            level = "Critical";
+            break;
+    }
+
     // Get time
     char timeBuffer[64];
     struct timeval tv;
@@ -237,7 +257,7 @@ void glfmLog(const char *format, ...) {
     strftime(timeBuffer, 64, "%Y-%m-%d %H:%M:%S", localtime(&timer));
 
     // Print prefix (time and log level)
-    printf("%s.%03d GLFM: ", timeBuffer, timeMillis);
+    printf("%s.%03d GLFM %s: ", timeBuffer, timeMillis, level);
 
     // Print message
     va_list args;

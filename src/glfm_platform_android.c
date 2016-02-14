@@ -29,21 +29,12 @@
 #include <android/window.h>
 #include <math.h>
 
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "GLFM", __VA_ARGS__))
-#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "GLFM", __VA_ARGS__))
-
 // If KEEP_CONTEXT is defined, the GL context is kept after onDestroy()
 // Currently commented out because it causes a crash. Thread issue?
 //#define KEEP_CONTEXT
 
-//#define DEBUG_LIFECYCLE
-#ifdef DEBUG_LIFECYCLE
-#define LOG_LIFECYCLE(...) ((void)__android_log_print(ANDROID_LOG_INFO, "GLFM", __VA_ARGS__))
-#else
-#define LOG_LIFECYCLE(...) \
-    do {                   \
-    } while (0)
-#endif
+//#define LOG_LIFECYCLE(...) glfmLogDebug(__VA_ARGS__)
+#define LOG_LIFECYCLE(...) do { } while (0)
 
 // TODO: These are defined in EGL 1.5? Not available in NDK r10e
 #define EGL_CONTEXT_MAJOR_VERSION_KHR 0x3098
@@ -370,8 +361,10 @@ static bool egl_init_context(Engine *engine) {
             EGLint minorVersion = 0;
             eglQueryContext(engine->eglDisplay, engine->eglContext,
                             EGL_CONTEXT_MAJOR_VERSION_KHR, &majorVersion);
-            eglQueryContext(engine->eglDisplay, engine->eglContext,
-                            EGL_CONTEXT_MINOR_VERSION_KHR, &minorVersion);
+            if (majorVersion >= 3) { 
+                eglQueryContext(engine->eglDisplay, engine->eglContext,
+                                EGL_CONTEXT_MINOR_VERSION_KHR, &minorVersion);
+            }
             if (majorVersion == 3 && minorVersion == 1) {
                 engine->renderingAPI = GLFMRenderingAPIOpenGLES31;
             } else if (majorVersion == 3) {
@@ -414,28 +407,28 @@ static void egl_init_surface(Engine *engine) {
 }
 
 static void egl_log_config(Engine *engine, EGLConfig config) {
-    LOGI("Config: %p", config);
+    glfmLogDebug("Config: %p", config);
     EGLint value;
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_RENDERABLE_TYPE, &value);
-    LOGI("  EGL_RENDERABLE_TYPE %i", value);
+    glfmLogDebug("  EGL_RENDERABLE_TYPE %i", value);
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_SURFACE_TYPE, &value);
-    LOGI("  EGL_SURFACE_TYPE    %i", value);
+    glfmLogDebug("  EGL_SURFACE_TYPE    %i", value);
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_RED_SIZE, &value);
-    LOGI("  EGL_RED_SIZE        %i", value);
+    glfmLogDebug("  EGL_RED_SIZE        %i", value);
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_GREEN_SIZE, &value);
-    LOGI("  EGL_GREEN_SIZE      %i", value);
+    glfmLogDebug("  EGL_GREEN_SIZE      %i", value);
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_BLUE_SIZE, &value);
-    LOGI("  EGL_BLUE_SIZE       %i", value);
+    glfmLogDebug("  EGL_BLUE_SIZE       %i", value);
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_ALPHA_SIZE, &value);
-    LOGI("  EGL_ALPHA_SIZE      %i", value);
+    glfmLogDebug("  EGL_ALPHA_SIZE      %i", value);
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_DEPTH_SIZE, &value);
-    LOGI("  EGL_DEPTH_SIZE      %i", value);
+    glfmLogDebug("  EGL_DEPTH_SIZE      %i", value);
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_STENCIL_SIZE, &value);
-    LOGI("  EGL_STENCIL_SIZE    %i", value);
+    glfmLogDebug("  EGL_STENCIL_SIZE    %i", value);
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_SAMPLE_BUFFERS, &value);
-    LOGI("  EGL_SAMPLE_BUFFERS  %i", value);
+    glfmLogDebug("  EGL_SAMPLE_BUFFERS  %i", value);
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_SAMPLES, &value);
-    LOGI("  EGL_SAMPLES         %i", value);
+    glfmLogDebug("  EGL_SAMPLES         %i", value);
 }
 
 static bool egl_init(Engine *engine) {
@@ -529,17 +522,17 @@ static bool egl_init(Engine *engine) {
             static bool printedConfigs = false;
             if (!printedConfigs) {
                 printedConfigs = true;
-                LOGW("eglChooseConfig() failed");
+                glfmLogDebug("eglChooseConfig() failed");
                 EGLConfig configs[256];
                 EGLint numTotalConfigs;
                 if (eglGetConfigs(engine->eglDisplay, configs, 256, &numTotalConfigs)) {
-                    LOGI("Num available configs: %i", numTotalConfigs);
+                    glfmLogDebug("Num available configs: %i", numTotalConfigs);
                     int i;
                     for (i = 0; i < numTotalConfigs; i++) {
                         egl_log_config(engine, configs[i]);
                     }
                 } else {
-                    LOGI("Couldn't get any EGL configs");
+                    glfmLogDebug("Couldn't get any EGL configs");
                 }
             }
 
@@ -879,7 +872,7 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                                 engine->touchY[touchNumber] = y;
                                 engine->display->touchFunc(engine->display, touchNumber, phase,
                                                            x, y);
-                                //LOGI("Touch %i: (%i) %i,%i", touchNumber, phase, x, y);
+                                //glfmLogDebug("Touch %i: (%i) %i,%i", touchNumber, phase, x, y);
                             }
                         }
                     }
@@ -894,7 +887,7 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                         engine->touchX[touchNumber] = x;
                         engine->touchY[touchNumber] = y;
                         engine->display->touchFunc(engine->display, touchNumber, phase, x, y);
-                        //LOGI("Touch %i: (%i) %i,%i", touchNumber, phase, x, y);
+                        //glfmLogDebug("Touch %i: (%i) %i,%i", touchNumber, phase, x, y);
                     }
                 }
             }
@@ -981,7 +974,7 @@ void android_main(struct android_app *app) {
                 //                    ASensorEvent event;
                 //                    while (ASensorEventQueue_getEvents(engine->sensorEventQueue,
                 //                                                       &event, 1) > 0) {
-                //                        LOGI("accelerometer: x=%f y=%f z=%f",
+                //                        glfmLogDebug("accelerometer: x=%f y=%f z=%f",
                 //                             event.acceleration.x, event.acceleration.y,
                 //                             event.acceleration.z);
                 //                    }
@@ -1063,10 +1056,30 @@ bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
     return engine->multitouchEnabled;
 }
 
-void glfmLog(const char *format, ...) {
+void glfmLog(GLFMLogLevel logLevel, const char *format, ...) {
+    int level;
+    switch (logLevel) {
+        case GLFMLogLevelDebug:
+            level = ANDROID_LOG_DEBUG;
+            break;
+        case GLFMLogLevelInfo:
+        default:
+            level = ANDROID_LOG_INFO;
+            break;
+        case GLFMLogLevelWarning:
+            level = ANDROID_LOG_WARN;
+            break;
+        case GLFMLogLevelError:
+            level = ANDROID_LOG_ERROR;
+            break;
+        case GLFMLogLevelCritical:
+            level = ANDROID_LOG_FATAL;
+            break;
+    }
+
     va_list args;
     va_start(args, format);
-    __android_log_vprint(ANDROID_LOG_INFO, "GLFM", format, args);
+    __android_log_vprint(level, "GLFM", format, args);
     va_end(args);
 }
 

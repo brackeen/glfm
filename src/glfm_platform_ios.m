@@ -31,7 +31,7 @@
 #define MAX_SIMULTANEOUS_TOUCHES 10
 
 #define CHECK_GL_ERROR() ({ GLenum error = glGetError(); if (error != GL_NO_ERROR) \
-glfmLog("OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
+glfmLogError("OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
 
 #pragma mark - EAGLView
 
@@ -118,7 +118,7 @@ glfmLog("OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
     }
 
     if (![self.context renderbufferStorage:GL_RENDERBUFFER fromDrawable:eaglLayer]) {
-        glfmLog("Call to renderbufferStorage failed");
+        glfmLogError("Call to renderbufferStorage failed");
     }
 
     eaglLayer.bounds = oldBounds;
@@ -149,7 +149,7 @@ glfmLog("OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
 
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE) {
-            glfmLog("Couldn't create multisample framebuffer: 0x%04x", status);
+            glfmLogError("Couldn't create multisample framebuffer: 0x%04x", status);
         }
     }
 
@@ -187,7 +187,7 @@ glfmLog("OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
 
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE) {
-        glfmLog("Framebuffer incomplete: 0x%04x", status);
+        glfmLogError("Framebuffer incomplete: 0x%04x", status);
     }
 
     CHECK_GL_ERROR();
@@ -822,7 +822,7 @@ bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
     }
 }
 
-void glfmLog(const char *format, ...) {
+void glfmLog(GLFMLogLevel logLevel, const char *format, ...) {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
       // This method requires Mac OS X 10.9 or iOS 7.
@@ -830,13 +830,33 @@ void glfmLog(const char *format, ...) {
       // NOTE: The ".3" format here shows 3 digits of sub-second time. It doesn't seem to be
       // documented in the asl.h file, but is documented in the syslog man page.
       asl_add_output_file(NULL, STDERR_FILENO,
-                          "$((Time)(J.3)) $(Sender)[$(PID)] $Message",
+                          "$((Time)(J.3)) $(Sender)[$(PID)] $((Level)(str)): $Message",
                           ASL_TIME_FMT_UTC, ASL_FILTER_MASK_UPTO(ASL_LEVEL_DEBUG), ASL_ENCODE_SAFE);
     });
 
+    int level;
+    switch (logLevel) {
+        case GLFMLogLevelDebug:
+            level = ASL_LEVEL_DEBUG;
+            break;
+        case GLFMLogLevelInfo:
+        default:
+            level = ASL_LEVEL_INFO;
+            break;
+        case GLFMLogLevelWarning:
+            level = ASL_LEVEL_WARNING;
+            break;
+        case GLFMLogLevelError:
+            level = ASL_LEVEL_ERR;
+            break;
+        case GLFMLogLevelCritical:
+            level = ASL_LEVEL_CRIT;
+            break;
+    }
+
     va_list args;
     va_start(args, format);
-    asl_vlog(NULL, NULL, ASL_LEVEL_INFO, format, args);
+    asl_vlog(NULL, NULL, level, format, args);
     va_end(args);
 }
 

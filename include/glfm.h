@@ -80,6 +80,26 @@
     #endif
 #endif
 
+#ifndef glfmLogDebug
+    #ifdef NDEBUG
+        #define glfmLogDebug(...) do { } while (0)
+    #else
+        #define glfmLogDebug(fmt, ...) glfmLog(GLFMLogLevelDebug, (fmt), ##__VA_ARGS__)
+    #endif
+#endif
+#ifndef glfmLogInfo
+    #define glfmLogInfo(fmt, ...) glfmLog(GLFMLogLevelInfo, (fmt), ##__VA_ARGS__)
+#endif
+#ifndef glfmLogWarning
+    #define glfmLogWarning(fmt, ...) glfmLog(GLFMLogLevelWarning, (fmt), ##__VA_ARGS__)
+#endif
+#ifndef glfmLogError
+    #define glfmLogError(fmt, ...) glfmLog(GLFMLogLevelError, (fmt), ##__VA_ARGS__)
+#endif
+#ifndef glfmLogCritical
+    #define glfmLogCritical(fmt, ...) glfmLog(GLFMLogLevelCritical, (fmt), ##__VA_ARGS__)
+#endif
+
 // clang-format on
 
 #include <stddef.h> // For size_t
@@ -186,6 +206,14 @@ typedef enum {
     GLFMKeyActionRepeated,
     GLFMKeyActionReleased,
 } GLFMKeyAction;
+
+typedef enum {
+    GLFMLogLevelDebug,
+    GLFMLogLevelInfo,
+    GLFMLogLevelWarning,
+    GLFMLogLevelError,
+    GLFMLogLevelCritical,
+} GLFMLogLevel;
 
 typedef enum {
     GLFMAssetSeekSet,
@@ -321,7 +349,8 @@ void glfmSetAppPausingFunc(GLFMDisplay *display, GLFMAppPausingFunc pausingFunc)
 
 void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFunc);
 
-void glfmLog(const char *format, ...) __attribute__((__format__(__printf__, 1, 2)));
+void glfmLog(GLFMLogLevel logLevel, const char *format, ...)
+    __attribute__((__format__(__printf__, 2, 3)));
 
 /// Sets the preference value of the specified key.
 /// If 'value' is NULL, any existing value for the key is cleared.
