@@ -1,7 +1,7 @@
 /*
  GLFM
  https://github.com/brackeen/glfm
- Copyright (c) 2014-2016 David Brackeen
+ Copyright (c) 2014-2017 David Brackeen
  
  This software is provided 'as-is', without any express or implied warranty.
  In no event will the authors be held liable for any damages arising from the
@@ -343,51 +343,36 @@ glfmLogError("OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); 
 }
 
 - (CGSize)preferredDrawableSize {
+    // TODO: Remove deprecated interfaceOrientation, but wait until Split View is implemented.
     BOOL isPortrait = UIInterfaceOrientationIsPortrait(self.interfaceOrientation);
-    if ([[UIScreen mainScreen] respondsToSelector:@selector(nativeBounds)]) {
-        // NOTE: [UIScreen mainScreen].nativeBounds is always in portrait orientation
-        CGSize size = [UIScreen mainScreen].nativeBounds.size;
+    // NOTE: [UIScreen mainScreen].nativeBounds is always in portrait orientation,
+    // and [UIScreen mainScreen].bounds is orientation-aware in iOS 8 and newer.
+    CGSize size = [UIScreen mainScreen].nativeBounds.size;
 
-        /*
-         iPhone 6 Display Zoom hack
-         Device (Mode)                scale   bounds    nativeScale         nativeBounds   drawable
-         iPhone 6 (Display Zoom)        2.0   320x568   2.34375             750x1331.25    750x1331
-         iPhone 6 (Standard)            2.0   375x667   2.0                 750x1334       750x1334
-         iPhone 6 Plus (Display Zoom)   3.0   375x667   2.88                1080x1920.96   1080x1920
-         iPhone 6 Plus (Standard)       3.0   414x736   2.608695652173913   1080x1920      1080x1920
-         */
-        if (size.width == 750 && size.height == 1331.25) {
-            size.height = 1334;
-        } else if (size.width == 1080 && size.height == 1920.96) {
-            size.height = 1920;
-        }
-        if (isPortrait) {
-            return CGSizeMake(size.width, size.height);
-        } else {
-            return CGSizeMake(size.height, size.width);
-        }
+    /*
+     iPhone 6 Display Zoom hack
+     Device (Mode)                scale   bounds    nativeScale         nativeBounds   drawable
+     iPhone 6 (Display Zoom)        2.0   320x568   2.34375             750x1331.25    750x1331
+     iPhone 6 (Standard)            2.0   375x667   2.0                 750x1334       750x1334
+     iPhone 6 Plus (Display Zoom)   3.0   375x667   2.88                1080x1920.96   1080x1920
+     iPhone 6 Plus (Standard)       3.0   414x736   2.608695652173913   1080x1920      1080x1920
+     */
+    if (size.width == 750 && size.height == 1331.25) {
+        size.height = 1334;
+    } else if (size.width == 1080 && size.height == 1920.96) {
+        size.height = 1920;
+    }
+    if (isPortrait) {
+        return CGSizeMake(size.width, size.height);
     } else {
-        // NOTE: [UIScreen mainScreen].bounds is orientation-aware in iOS 8, but not in iOS 7.
-        CGSize size = [UIScreen mainScreen].bounds.size;
-        CGFloat scale = [UIScreen mainScreen].scale;
-        if (isPortrait) {
-            return CGSizeMake(size.width * scale, size.height * scale);
-        } else {
-            return CGSizeMake(size.height * scale, size.width * scale);
-        }
+        return CGSizeMake(size.height, size.width);
     }
 }
 
 - (void)loadView {
     self.view = [[EAGLView alloc] initWithFrame:[[UIScreen mainScreen] applicationFrame]];
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    CGFloat nativeScale = 1;
-    if ([[UIScreen mainScreen] respondsToSelector:@selector(nativeScale)]) {
-        nativeScale = [[UIScreen mainScreen] nativeScale];
-    } else {
-        nativeScale = [[UIScreen mainScreen] scale];
-    }
-    self.view.contentScaleFactor = nativeScale;
+    self.view.contentScaleFactor = [UIScreen mainScreen].nativeScale;
 }
 
 - (void)viewDidLoad {
