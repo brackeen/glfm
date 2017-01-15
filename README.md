@@ -3,14 +3,13 @@ Write OpenGL ES 2.0 code in C/C++ without writing platform-specific code.
 
 GLFM is an OpenGL ES 2.0 layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](http://www.glfw.org/).
 
-GLFM is written in C and runs on iOS 7, Android 2.3.3, and WebGL 1.0 (via [Emscripten](https://github.com/kripken/emscripten)).
+GLFM is written in C and runs on iOS 8, Android 2.3.3, and WebGL 1.0 (via [Emscripten](https://github.com/kripken/emscripten)).
 
 ## Features
 * OpenGL ES 2.0, 3.0, and 3.1 display setup.
 * Retina / high-DPI support.
 * Touch and keyboard events.
 * Events for application state and context loss.
-* APIs for asset loading, preferences and logging.
 
 ## Non-goals
 GLFM is limited in scope, and isn't designed to provide everything needed for an app. For example, GLFM doesn't provide (and will never provide) the following:
@@ -120,8 +119,8 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 See [glfm.h](include/glfm.h)
 
 ## Build requirements
-* iOS: Xcode 7
-* Android: Android Studio 1.5, SDK 23, NDK Bundle 1.0
+* iOS: Xcode 8
+* Android: Android Studio 2.2, SDK 25, NDK Bundle 13.1.3345770
 * WebGL: Emscripten 1.35.0
 
 ## Create a new GLFM project
