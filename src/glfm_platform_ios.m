@@ -730,7 +730,7 @@ int main(int argc, char *argv[]) {
 static const char *glfmGetAssetPath() {
     static char *path = NULL;
     if (!path) {
-        path = strdup([NSBundle mainBundle].bundlePath.UTF8String);
+        path = strdup([NSBundle mainBundle].bundlePath.fileSystemRepresentation);
     }
     return path;
 }
