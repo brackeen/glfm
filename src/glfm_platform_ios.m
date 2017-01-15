@@ -860,31 +860,6 @@ void glfmLog(GLFMLogLevel logLevel, const char *format, ...) {
     va_end(args);
 }
 
-void glfmSetPreference(const char *key, const char *value) {
-    if (key) {
-        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-        NSString *keyString = [NSString stringWithUTF8String:key];
-        if (value) {
-            [defaults setObject:[NSString stringWithUTF8String:value] forKey:keyString];
-        } else {
-            [defaults removeObjectForKey:keyString];
-        }
-    }
-}
-
-char *glfmGetPreference(const char *key) {
-    char *value = NULL;
-    if (key) {
-        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-        NSString *keyString = [NSString stringWithUTF8String:key];
-        NSString *valueString = [defaults stringForKey:keyString];
-        if (valueString) {
-            value = strdup([valueString UTF8String]);
-        }
-    }
-    return value;
-}
-
 const char *glfmGetLanguageInternal() {
     return [[[NSLocale autoupdatingCurrentLocale] localeIdentifier] UTF8String];
 }

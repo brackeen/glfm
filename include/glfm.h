@@ -352,18 +352,6 @@ void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFu
 void glfmLog(GLFMLogLevel logLevel, const char *format, ...)
     __attribute__((__format__(__printf__, 2, 3)));
 
-/// Sets the preference value of the specified key.
-/// If 'value' is NULL, any existing value for the key is cleared.
-/// If 'key' is NULL, this function does nothing.
-/// Both key are value are assumed to be UTF8 encoded.
-void glfmSetPreference(const char *key, const char *value);
-
-/// Returns a newly allocated string representing the preference value of the specified key.
-/// Returns NULL if no value exists for this key, or if 'key' is NULL.
-/// If the return value is not NULL, it should be freed by the calling code.
-/// Both key are value are assumed to be UTF8 encoded.
-char *glfmGetPreference(const char *key);
-
 /// Gets the preferred user language. The return value is a static variable and should not be freed.
 /// The return value is a RFC-4646 language code. Valid examples are "en", "en-US", "zh-Hans",
 /// "zh-Hans-HK". Some systems (Safari browser) may return values in all lowercase ("en-us"

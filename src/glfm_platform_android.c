@@ -94,8 +94,6 @@ typedef struct {
     GLFMRenderingAPI renderingAPI;
 
     JNIEnv *jniEnv;
-    jobject sharedPreferencesEditor;
-    jobject sharedPreferences;
 } Engine;
 static Engine *engineGlobal = NULL;
 
@@ -111,105 +109,6 @@ static Engine *engineGlobal = NULL;
         (*jni)->ExceptionClear(jni);   \
         goto jnifail;                  \
     }
-
-static jobject getDefaultSharedPreferences() {
-    Engine *engine = engineGlobal;
-    if (engine->sharedPreferences == NULL) {
-        JNIEnv *jni = engine->jniEnv;
-
-        jclass preferenceManagerClass =
-            (*jni)->FindClass(jni, "android.preference.PreferenceManager");
-        EXCEPTION_CHECK_FAIL()
-
-        if (preferenceManagerClass) {
-            jmethodID getDefaultSharedPreferences =
-                (*jni)->GetStaticMethodID(jni, preferenceManagerClass,
-                                          "getDefaultSharedPreferences",
-                                          "(Landroid/content/Context;)"
-                                          "Landroid/content/SharedPreferences;");
-            EXCEPTION_CHECK_FAIL()
-
-            jobject sharedPreferences =
-                (*jni)->CallStaticObjectMethod(jni,
-                                               preferenceManagerClass,
-                                               getDefaultSharedPreferences,
-                                               engine->app->activity->clazz);
-            EXCEPTION_CHECK_FAIL();
-
-            if (sharedPreferences) {
-                engine->sharedPreferences = (*jni)->NewGlobalRef(jni, sharedPreferences);
-                EXCEPTION_CHECK_FAIL();
-            }
-        }
-    }
-jnifail:
-    return engine->sharedPreferences;
-}
-
-static jobject getSharedPreferencesEditor() {
-    Engine *engine = engineGlobal;
-    JNIEnv *jni = engine->jniEnv;
-    if (engine->sharedPreferencesEditor == NULL) {
-        jobject sharedPreferences = getDefaultSharedPreferences();
-        if (sharedPreferences) {
-            jclass sharedPreferencesClass = (*jni)->GetObjectClass(jni, sharedPreferences);
-            EXCEPTION_CHECK_FAIL()
-
-            jmethodID edit = (*jni)->GetMethodID(jni, sharedPreferencesClass, "edit",
-                                                 "()Landroid/content/SharedPreferences$Editor;");
-            EXCEPTION_CHECK_FAIL();
-
-            jobject sharedPreferencesEditor = (*jni)->CallObjectMethod(jni, sharedPreferences,
-                                                                       edit);
-            EXCEPTION_CHECK_FAIL();
-
-            if (sharedPreferencesEditor) {
-                engine->sharedPreferencesEditor = (*jni)->NewGlobalRef(jni,
-                                                                       sharedPreferencesEditor);
-                EXCEPTION_CHECK_FAIL();
-            }
-        }
-    }
-jnifail:
-    return engine->sharedPreferencesEditor;
-}
-
-static void applyPreferencesIfNeeded() {
-    Engine *engine = engineGlobal;
-    if (engine->sharedPreferencesEditor) {
-        JNIEnv *jni = engine->jniEnv;
-
-        if (!(*jni)->ExceptionCheck(jni)) {
-            // Apply preferences
-            jclass sharedPreferencesEditorClass =
-                (*jni)->GetObjectClass(jni, engine->sharedPreferencesEditor);
-            EXCEPTION_CHECK_FAIL()
-
-            jmethodID apply = (*jni)->GetMethodID(jni, sharedPreferencesEditorClass,
-                                                  "apply", "()V");
-            EXCEPTION_CHECK_FAIL()
-
-            (*jni)->CallVoidMethod(jni, engine->sharedPreferencesEditor, apply);
-            EXCEPTION_CHECK_FAIL()
-        }
-
-    jnifail:
-        // Delete global reference
-        (*jni)->DeleteGlobalRef(jni, engine->sharedPreferencesEditor);
-        engine->sharedPreferencesEditor = NULL;
-    }
-}
-
-static void deleteGlobalRefs() {
-    applyPreferencesIfNeeded();
-
-    Engine *engine = engineGlobal;
-    JNIEnv *jni = engine->jniEnv;
-    if (engine->sharedPreferences) {
-        (*jni)->DeleteGlobalRef(jni, engine->sharedPreferences);
-        engine->sharedPreferences = NULL;
-    }
-}
 
 #define ActivityInfo_SCREEN_ORIENTATION_SENSOR 0x00000004
 #define ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE 0x00000006
@@ -920,8 +819,6 @@ void android_main(struct android_app *app) {
     // Init java env
     JavaVM *vm = app->activity->vm;
     (*vm)->AttachCurrentThread(vm, &engine->jniEnv, NULL);
-    engine->sharedPreferencesEditor = NULL;
-    engine->sharedPreferences = NULL;
 
     // Get display scale
     const int32_t density = AConfiguration_getDensity(app->config);
@@ -988,7 +885,6 @@ void android_main(struct android_app *app) {
                 egl_disable_context(engine);
 #endif
                 set_animating(engine, false);
-                deleteGlobalRefs();
                 (*vm)->DetachCurrentThread(vm);
                 engine->app = NULL;
                 // App is destroyed, but android_main() can be called again in the same process.
@@ -996,7 +892,6 @@ void android_main(struct android_app *app) {
             }
         }
 
-        applyPreferencesIfNeeded();
         if (engine->animating && engine->display) {
             engine_draw_frame(engine);
         }
@@ -1081,72 +976,6 @@ void glfmLog(GLFMLogLevel logLevel, const char *format, ...) {
     va_start(args, format);
     __android_log_vprint(level, "GLFM", format, args);
     va_end(args);
-}
-
-// NOTE: Android says that after preferences are edited, either commit() or apply() must be called.
-// In this implementation, edited preferences are applied at the end of the frame,
-// or if preferences are retrieved after an edit.
-
-void glfmSetPreference(const char *key, const char *value) {
-    if (key) {
-        jobject sharedPreferencesEditor = getSharedPreferencesEditor();
-        if (sharedPreferencesEditor) {
-            Engine *engine = engineGlobal;
-            JNIEnv *jni = engine->jniEnv;
-
-            jstring keyString = (*jni)->NewStringUTF(jni, key);
-            jstring valueString = value ? (*jni)->NewStringUTF(jni, value) : NULL;
-
-            jclass sharedPreferencesEditorClass = (*jni)->GetObjectClass(jni,
-                                                                         sharedPreferencesEditor);
-            EXCEPTION_CHECK()
-
-            jmethodID setter =
-                (*jni)->GetMethodID(jni, sharedPreferencesEditorClass, "putString",
-                                    "(Ljava/lang/String;Ljava/lang/String;)"
-                                    "Landroid/content/SharedPreferences$Editor;");
-            EXCEPTION_CHECK()
-
-            (*jni)->CallObjectMethod(jni, sharedPreferencesEditor, setter, keyString, valueString);
-            EXCEPTION_CHECK()
-        }
-    }
-}
-
-char *glfmGetPreference(const char *key) {
-    char *value = NULL;
-    if (key) {
-        // Apply any edited preferences
-        applyPreferencesIfNeeded();
-
-        jobject sharedPreferences = getDefaultSharedPreferences();
-        if (sharedPreferences) {
-            Engine *engine = engineGlobal;
-            JNIEnv *jni = engine->jniEnv;
-
-            jstring keyString = (*jni)->NewStringUTF(jni, key);
-
-            jclass sharedPreferencesClass = (*jni)->GetObjectClass(jni, sharedPreferences);
-            EXCEPTION_CHECK_FAIL()
-
-            jmethodID getter =
-                (*jni)->GetMethodID(jni, sharedPreferencesClass, "getString",
-                                    "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
-            EXCEPTION_CHECK_FAIL()
-
-            jstring valueString = (*jni)->CallObjectMethod(jni, sharedPreferences, getter,
-                                                           keyString, NULL);
-            EXCEPTION_CHECK_FAIL()
-
-            if (valueString) {
-                const char *nativeString = (*jni)->GetStringUTFChars(jni, valueString, 0);
-                value = strdup(nativeString);
-                (*jni)->ReleaseStringUTFChars(jni, valueString, nativeString);
-            }
-        }
-    }
-jnifail:
-    return value;
 }
 
 const char *glfmGetLanguageInternal() {

@@ -267,55 +267,6 @@ void glfmLog(GLFMLogLevel logLevel, const char *format, ...) {
     printf("\n");
 }
 
-// Emscripten currently doesn't have a way to send strings as function arguments
-// (like the EM_ASM_* functions). So, scripts are generated on the fly.
-
-void glfmSetPreference(const char *key, const char *value) {
-    if (key) {
-        char *script;
-        char *escaped_key = escape_str(key);
-        if (value) {
-            char *escaped_value = escape_str(value);
-            script = vstrcat("try { window.localStorage.setItem('",
-                             escaped_key, "', '", escaped_value, "'); } catch(err) { }",
-                             (char *)NULL);
-            free(escaped_value);
-        } else {
-            script = vstrcat("try { window.localStorage.removeItem('", escaped_key,
-                             "'); } catch(err) { }", (char *)NULL);
-        }
-        free(escaped_key);
-        emscripten_run_script(script);
-        free(script);
-    }
-}
-
-char *glfmGetPreference(const char *key) {
-    // NOTE: emscripten_run_script_string can't handle null as a return value.
-    // So, first check to see if the key-value exists.
-    char *value = NULL;
-    if (key) {
-        char *escaped_key = escape_str(key);
-        char *has_key_script = vstrcat("(function() { try { ",
-                                       "return typeof (window.localStorage.getItem('",
-                                       escaped_key, "')) === 'string'",
-                                       "} catch(err) { return 0; } }())", (char *)NULL);
-        bool hasKey = emscripten_run_script_int(has_key_script);
-        free(has_key_script);
-        if (hasKey) {
-            char *script = vstrcat("(function() { try { ",
-                                   "return window.localStorage.getItem('", escaped_key, "');",
-                                   "} catch(err) { return ''; } }())", (char *)NULL);
-            const char *raw_value = emscripten_run_script_string(script);
-            if (raw_value) {
-                value = strdup(raw_value);
-            }
-            free(script);
-        }
-    }
-    return value;
-}
-
 const char *glfmGetLanguageInternal() {
     // Probably overly paranoid with the try/catch, type checks, and null checks. Oh well.
     // navigator.userLanguage and navigator.browserLanguage are for older versions of IE.
