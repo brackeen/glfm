@@ -18,7 +18,6 @@ if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     if (${HAS_STYLE} EQUAL -1)
         message(WARNING "<style> not found in shell_minimal.html, copying as-is")
     else()
-        #string(REPLACE "<style>" "BOOGERS" EMSCRIPTEN_SHELL_HTML "${EMSCRIPTEN_SHELL_HTML}")
         string(CONCAT STYLE_REPLACEMENT "<meta name=\"viewport\" content=\"width=device-width,user-scalable=no\">\n"
             "    <style>\n"
             "      /* GLFM: Start changes */\n"
