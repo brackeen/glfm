@@ -5,16 +5,38 @@ project(glfm-example)
 set(APP_ORGANIZATION_IDENTIFIER "com.brackeen")
 set(APP_VERSION "1.0")
 set(APP_VERSION_ITERATION 1)
-file(GLOB APP_ASSETS assets/*)
+set(APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
+file(GLOB APP_ASSETS ${APP_ASSETS_DIR}/*)
 file(GLOB APP_SRC src/*.c)
 
 # GLFM
 set(glfm-include ../include/glfm.h)
 if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
-    # UNTESTED
-    #set(CMAKE_EXECUTABLE_SUFFIX ".html")
-    #set(glfm-src ../src/glfm_platform.h ../src/glfm_platform_emscripten.c)
-    #add_executable(${CMAKE_PROJECT_NAME} ${glfm-include} ${glfm-src} ${APP_SRC} ${APP_ASSETS})
+    # HACK: Make modifications to shell_minimal.html to take up the entire browser window
+    file(READ ${EMSCRIPTEN_ROOT_PATH}/src/shell_minimal.html EMSCRIPTEN_SHELL_HTML)
+    string(FIND "${EMSCRIPTEN_SHELL_HTML}" "<style>" HAS_STYLE)
+    if (${HAS_STYLE} EQUAL -1)
+        message(WARNING "<style> not found in shell_minimal.html, copying as-is")
+    else()
+        #string(REPLACE "<style>" "BOOGERS" EMSCRIPTEN_SHELL_HTML "${EMSCRIPTEN_SHELL_HTML}")
+        string(CONCAT STYLE_REPLACEMENT "<meta name=\"viewport\" content=\"width=device-width,user-scalable=no\">\n"
+            "    <style>\n"
+            "      /* GLFM: Start changes */\n"
+            "      body, html {  border: 0px none; padding: 0px; margin: 0px; width: 100%; height: 100%; overflow: hidden; }\n"
+            "      canvas.emscripten { background: black; width: 100%; height: 100%; }\n"
+            "      .emscripten_border { width: 100%; height: 100%; }\n"
+            "      hr { display: none; }\n"
+            "      /* GLFM: End changes */"
+        )
+        string(REPLACE "<style>" "${STYLE_REPLACEMENT}" EMSCRIPTEN_SHELL_HTML "${EMSCRIPTEN_SHELL_HTML}")
+    endif()
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/shell.html.in "${EMSCRIPTEN_SHELL_HTML}")
+    
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    set(glfm-src ../src/glfm_platform.h ../src/glfm_platform_emscripten.c)
+    include_directories(../include/)
+    add_executable(${CMAKE_PROJECT_NAME} ${glfm-include} ${glfm-src} ${APP_SRC})
+    set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES LINK_FLAGS "--shell-file ${CMAKE_CURRENT_BINARY_DIR}/shell.html.in --preload-file ${APP_ASSETS_DIR}@")
 elseif (ANDROID_NDK)
     # UNTESTED
     #include_directories(${ANDROID_NDK}/sources/android/native_app_glue/)
