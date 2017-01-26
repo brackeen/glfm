@@ -1,16 +1,18 @@
 cmake_minimum_required(VERSION 3.7.1) # Tested with 3.7.1, might run on earlier versions. Probably requires 3.4 or 3.5
 
+link_libraries(glfm)
+
 # Example code
-project(glfm-example)
+set(APP_TARGET_NAME glfm-example)
 set(APP_ORGANIZATION_IDENTIFIER "com.brackeen")
 set(APP_VERSION "1.0")
 set(APP_VERSION_ITERATION 1)
 set(APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 file(GLOB APP_ASSETS ${APP_ASSETS_DIR}/*)
 file(GLOB APP_SRC src/*.c)
+source_group("src" FILES ${APP_SRC})
 
-# GLFM
-set(glfm-include ../include/glfm.h)
+# GLFM Project files
 if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     # HACK: Make modifications to shell_minimal.html to take up the entire browser window
     file(READ ${EMSCRIPTEN_ROOT_PATH}/src/shell_minimal.html EMSCRIPTEN_SHELL_HTML)
@@ -32,14 +34,11 @@ if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/shell.html.in "${EMSCRIPTEN_SHELL_HTML}")
     
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
-    set(glfm-src ../src/glfm_platform.h ../src/glfm_platform_emscripten.c)
-    include_directories(../include/)
-    add_executable(${CMAKE_PROJECT_NAME} ${glfm-include} ${glfm-src} ${APP_SRC})
-    set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES LINK_FLAGS "--shell-file ${CMAKE_CURRENT_BINARY_DIR}/shell.html.in --preload-file ${APP_ASSETS_DIR}@")
+    add_executable(${APP_TARGET_NAME} ${APP_SRC})
+    set_target_properties(${APP_TARGET_NAME} PROPERTIES LINK_FLAGS "--shell-file ${CMAKE_CURRENT_BINARY_DIR}/shell.html.in --preload-file ${APP_ASSETS_DIR}@")
 elseif (ANDROID_NDK)
     # UNTESTED
     #include_directories(${ANDROID_NDK}/sources/android/native_app_glue/)
-    #set(glfm-src ../src/glfm_platform.h ../src/glfm_platform_android.c ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
     ## Set NDEBUG for android_native_app_glue to remove some superfluous logging
     #set_source_files_properties(${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c PROPERTIES COMPILE_FLAGS "-DNDEBUG")
     #
@@ -47,22 +46,20 @@ elseif (ANDROID_NDK)
     #find_library(android-lib android)
     #find_library(EGL-lib EGL)
     #find_library(GLESv2-lib GLESv2)
-    #add_executable(${CMAKE_PROJECT_NAME} ${glfm-include} ${glfm-src} ${APP_SRC} ${APP_ASSETS})
-    #target_link_libraries(${CMAKE_PROJECT_NAME} ${log-lib} ${android-lib} ${EGL-lib} ${GLESv2-lib})
+    #add_executable(${APP_TARGET_NAME} ${glfm-include} ${glfm-src} ${APP_SRC} ${APP_ASSETS})
+    #target_link_libraries(${APP_TARGET_NAME} ${log-lib} ${android-lib} ${EGL-lib} ${GLESv2-lib})
 else()
     # iOS. If you change this section, test archiving too.
     set(CMAKE_MACOSX_BUNDLE YES)
-    set(CMAKE_OSX_SYSROOT "iphoneos")
-    set(glfm-src ../src/glfm_platform.h ../src/glfm_platform_ios.m)
     set(APP_ASSETS ${APP_ASSETS} LaunchScreen.storyboard)
 
-    add_executable(${CMAKE_PROJECT_NAME} ${glfm-include} ${glfm-src} ${APP_SRC} ${APP_ASSETS})
-    target_link_libraries(${CMAKE_PROJECT_NAME} "-framework Foundation -framework CoreGraphics -framework UIKit -framework OpenGLES -framework QuartzCore")
-
-    set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
+    add_executable(${APP_TARGET_NAME} ${APP_SRC} ${APP_ASSETS})
+    
+    set_target_properties(${APP_TARGET_NAME} PROPERTIES
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${APP_ORGANIZATION_IDENTIFIER}.\${PRODUCT_NAME:rfc1034identifier}"
         XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 8.0          # Version required for GLFM 
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES               # ARC required for GLFM
+        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"            # iPhone, iPad
         XCODE_ATTRIBUTE_USE_HEADERMAP YES                       # Avoid header search paths
         XCODE_ATTRIBUTE_COMBINE_HIDPI_IMAGES NO                 # For Archiving
         XCODE_ATTRIBUTE_OTHER_LDFLAGS ""                        # For Archiving
@@ -71,7 +68,7 @@ else()
         XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"   # For convenience
     )
     set_source_files_properties(${APP_ASSETS} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-    set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/CMake-Info.plist.in)
+    set_property(TARGET ${APP_TARGET_NAME} PROPERTY MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/CMake-Info.plist.in)
     
     set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION})
     set(MACOSX_BUNDLE_BUNDLE_VERSION ${APP_VERSION_ITERATION})
@@ -158,7 +155,3 @@ else()
         "</plist>\n"
     )
 endif()
-
-source_group(glfm\\include FILES ${glfm-include})
-source_group(glfm\\src FILES ${glfm-src})
-source_group(src FILES ${APP_SRC})
