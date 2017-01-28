@@ -119,20 +119,97 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 See [glfm.h](include/glfm.h)
 
 ## Build requirements
-* iOS: Xcode 8
+* iOS: Xcode 8.2
 * Android: Android Studio 2.2, SDK 25, NDK Bundle 13.1.3345770
 * WebGL: Emscripten 1.35.0
-
-## Create a new GLFM project
-Use the `new_project.py` command-line script to automatically create a new project setup for iOS, Android, and Emscripten.
-
-The script will ask a few questions and output a new project. After creation, you can edit the `main.c` file.
 
 ## Use GLFM in an existing project
 
 1. Remove the project's existing <code>void main()</code> function, if any.
 2. Add the GLFM source files (in `include` and `src`).
 3. Include a <code>void glfmMain(GLFMDisplay *display)</code> function in a C/C++ file.
+
+## Build the example GLFM projects
+Use the `CMakeLists.txt` file with the `-DGLFM_BUILD_EXAMPLE=ON` option to build the example projects.
+
+### Xcode 8.2
+```Shell
+mkdir -p build/ios 
+cd build/ios
+cmake -DGLFM_BUILD_EXAMPLE=ON -G Xcode ../..
+open GLFM.xcodeproj
+```
+Switch to the `glfm-example` target and run on the simulator or a device.
+
+### Emscripten
+Assuming `EMSCRIPTEN_ROOT_PATH` points to active installed version of Emscripten.
+```Shell
+mkdir -p build/emscripten 
+cd build/emscripten
+cmake -DGLFM_BUILD_EXAMPLE=ON -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN_ROOT_PATH/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../..
+cmake --build .
+```
+If you're opening files locally in Chrome, you may need to [enable local file access](http://stackoverflow.com/a/18587027). Instead, you could use Firefox, which doesn't have this restriction.
+
+### Android Studio 2.2
+There is no CMake generator for Android Studio projects, but you can include `CMakeLists.txt` in a new or existing project.
+
+The `AndroidManifest.xml`:
+```XML
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.brackeen.glfmexample">
+
+    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true">
+        <activity android:name="android.app.NativeActivity"
+                  android:configChanges="orientation|screenLayout|screenSize|keyboardHidden|keyboard">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="glfm-example" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
+```
+And the `app/build.gradle`:
+```Gradle
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
+    defaultConfig {
+        applicationId "com.brackeen.glfmexample"
+        minSdkVersion 10
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+        externalNativeBuild {
+            cmake {
+                arguments "-DGLFM_BUILD_EXAMPLE=ON"
+            }
+        }
+    }
+    sourceSets.main {
+        assets.srcDirs = ["../../../../example/assets"]
+    }
+    externalNativeBuild {
+        cmake {
+            path "../../../../CMakeLists.txt"
+        }
+    }
+}
+```
 
 ## Future ideas
 * Accelerometer and gyroscope input.
