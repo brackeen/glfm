@@ -176,6 +176,8 @@ static GLuint compileShader(GLenum type, const char *shaderName) {
                 glfmLogInfo("Shader log: %s", log);
             }
         }
+        glDeleteShader(shader);
+        shader = 0;
     }
     return shader;
 }
@@ -187,12 +189,17 @@ static void onFrame(GLFMDisplay *display, double frameTime) {
     glClearColor(0.4f, 0.0f, 0.6f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Draw textrue background
+    // Draw texture background
     if (app->textureId != 0) {
         if (app->textureProgram == 0) {
-            app->textureProgram = glCreateProgram();
             GLuint vertShader = compileShader(GL_VERTEX_SHADER, "texture.vert");
             GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, "texture.frag");
+            if (vertShader == 0 || fragShader == 0) {
+                glfmSetMainLoopFunc(display, NULL);
+                return;
+            }
+
+            app->textureProgram = glCreateProgram();
 
             glAttachShader(app->textureProgram, vertShader);
             glAttachShader(app->textureProgram, fragShader);
@@ -232,9 +239,13 @@ static void onFrame(GLFMDisplay *display, double frameTime) {
 
     // Draw triangle
     if (app->program == 0) {
-        app->program = glCreateProgram();
         GLuint vertShader = compileShader(GL_VERTEX_SHADER, "simple.vert");
         GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, "simple.frag");
+        if (vertShader == 0 || fragShader == 0) {
+            glfmSetMainLoopFunc(display, NULL);
+            return;
+        }
+        app->program = glCreateProgram();
 
         glAttachShader(app->program, vertShader);
         glAttachShader(app->program, fragShader);
