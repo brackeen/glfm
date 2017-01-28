@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.7.1) # Tested with 3.7.1, might run on earlier versions. Probably requires 3.4 or 3.5
+cmake_minimum_required(VERSION 3.6.0) # Might run on earlier versions. Probably requires 3.4 or 3.5
 
 link_libraries(glfm)
 
@@ -36,18 +36,9 @@ if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
     add_executable(${APP_TARGET_NAME} ${APP_SRC})
     set_target_properties(${APP_TARGET_NAME} PROPERTIES LINK_FLAGS "--shell-file ${CMAKE_CURRENT_BINARY_DIR}/shell.html.in --preload-file ${APP_ASSETS_DIR}@")
-elseif (ANDROID_NDK)
-    # UNTESTED
-    #include_directories(${ANDROID_NDK}/sources/android/native_app_glue/)
-    ## Set NDEBUG for android_native_app_glue to remove some superfluous logging
-    #set_source_files_properties(${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c PROPERTIES COMPILE_FLAGS "-DNDEBUG")
-    #
-    #find_library(log-lib log)
-    #find_library(android-lib android)
-    #find_library(EGL-lib EGL)
-    #find_library(GLESv2-lib GLESv2)
-    #add_executable(${APP_TARGET_NAME} ${glfm-include} ${glfm-src} ${APP_SRC} ${APP_ASSETS})
-    #target_link_libraries(${APP_TARGET_NAME} ${log-lib} ${android-lib} ${EGL-lib} ${GLESv2-lib})
+elseif (CMAKE_SYSTEM_NAME MATCHES "Android")
+    add_library(${APP_TARGET_NAME} SHARED ${APP_SRC})
+    target_link_libraries(${APP_TARGET_NAME} glfm)
 else()
     # iOS. If you change this section, test archiving too.
     set(CMAKE_MACOSX_BUNDLE YES)
