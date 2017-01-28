@@ -1,6 +1,7 @@
 // Example app that draws a triangle. The triangle can be moved via touch or keyboard arrow keys.
 
 #include "glfm.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 //#define DRAW_TEST_PATTERN
@@ -128,8 +129,9 @@ static GLuint createTestPatternTexture(uint32_t width, uint32_t height) {
 static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
     glViewport(0, 0, width, height);
 
-//    GLFMRenderingAPI api = glfmGetRenderingAPI(display);
-//    glfmLogDebug("OpenGL %s", api == 2 ? "ES 3.1" : api == 1 ? "ES 3.0" : "ES 2.0");
+    GLFMRenderingAPI api = glfmGetRenderingAPI(display);
+    printf("Hello from GLFM! Using OpenGL %s\n", api == GLFMRenderingAPIOpenGLES31 ? "ES 3.1" :
+           api == GLFMRenderingAPIOpenGLES3 ? "ES 3.0" : "ES 2.0");
 
 #ifdef DRAW_TEST_PATTERN
     ExampleApp *app = glfmGetUserData(display);
@@ -138,7 +140,7 @@ static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
     }
     app->textureId = createTestPatternTexture(width, height);
     if (app->textureId != 0) {
-        glfmLogDebug("Created test pattern %ix%i", width, height);
+        printf("Created test pattern %ix%i\n", width, height);
     }
 #endif
 }
@@ -166,14 +168,14 @@ static GLuint compileShader(GLenum type, const char *shaderName) {
     GLint status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (status == 0) {
-        glfmLogError("Couldn't compile shader: %s", shaderName);
+        printf("Couldn't compile shader: %s\n", shaderName);
         GLint logLength;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
         if (logLength > 0) {
             GLchar log[logLength];
             glGetShaderInfoLog(shader, logLength, &logLength, log);
             if (log[0] != 0) {
-                glfmLogInfo("Shader log: %s", log);
+                printf("Shader log: %s\n", log);
             }
         }
         glDeleteShader(shader);

@@ -1,7 +1,7 @@
 /*
  GLFM
  https://github.com/brackeen/glfm
- Copyright (c) 2014-2016 David Brackeen
+ Copyright (c) 2014-2017 David Brackeen
  
  This software is provided 'as-is', without any express or implied warranty.
  In no event will the authors be held liable for any damages arising from the
@@ -22,7 +22,7 @@
 #define _GLFM_H_
 
 #define GLFM_VERSION_MAJOR 0
-#define GLFM_VERSION_MINOR 7
+#define GLFM_VERSION_MINOR 8
 #define GLFM_VERSION_REVISION 0
 
 // clang-format off
@@ -78,26 +78,6 @@
         #include <GLES2/gl2.h>
         #include <GLES2/gl2ext.h>
     #endif
-#endif
-
-#ifndef glfmLogDebug
-    #ifdef NDEBUG
-        #define glfmLogDebug(...) do { } while (0)
-    #else
-        #define glfmLogDebug(fmt, ...) glfmLog(GLFMLogLevelDebug, (fmt), ##__VA_ARGS__)
-    #endif
-#endif
-#ifndef glfmLogInfo
-    #define glfmLogInfo(fmt, ...) glfmLog(GLFMLogLevelInfo, (fmt), ##__VA_ARGS__)
-#endif
-#ifndef glfmLogWarning
-    #define glfmLogWarning(fmt, ...) glfmLog(GLFMLogLevelWarning, (fmt), ##__VA_ARGS__)
-#endif
-#ifndef glfmLogError
-    #define glfmLogError(fmt, ...) glfmLog(GLFMLogLevelError, (fmt), ##__VA_ARGS__)
-#endif
-#ifndef glfmLogCritical
-    #define glfmLogCritical(fmt, ...) glfmLog(GLFMLogLevelCritical, (fmt), ##__VA_ARGS__)
 #endif
 
 // clang-format on
@@ -206,14 +186,6 @@ typedef enum {
     GLFMKeyActionRepeated,
     GLFMKeyActionReleased,
 } GLFMKeyAction;
-
-typedef enum {
-    GLFMLogLevelDebug,
-    GLFMLogLevelInfo,
-    GLFMLogLevelWarning,
-    GLFMLogLevelError,
-    GLFMLogLevelCritical,
-} GLFMLogLevel;
 
 typedef enum {
     GLFMAssetSeekSet,
@@ -349,8 +321,6 @@ void glfmSetAppPausingFunc(GLFMDisplay *display, GLFMAppPausingFunc pausingFunc)
 
 void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFunc);
 
-void glfmLog(GLFMLogLevel logLevel, const char *format, ...)
-    __attribute__((__format__(__printf__, 2, 3)));
 
 /// Gets the preferred user language. The return value is a static variable and should not be freed.
 /// The return value is a RFC-4646 language code. Valid examples are "en", "en-US", "zh-Hans",
@@ -387,6 +357,16 @@ void glfmAssetClose(GLFMAsset *asset);
 /// Gets the asset contents as a buffer, memory-mapping if possible. The buffer is freed in
 /// glfmAssetClose().
 const void *glfmAssetGetBuffer(GLFMAsset *asset);
+
+#ifdef GLFM_PLATFORM_ANDROID
+
+int glfm_android_printf(const char *format, ...) __attribute__((__format__(__printf__, 1, 2)));
+
+#ifndef GLFM_NO_STDIO_MACROS
+    #define printf glfm_android_printf
+#endif
+
+#endif // GLFM_PLATFORM_ANDROID
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,7 @@
 /*
  GLFM
  https://github.com/brackeen/glfm
- Copyright (c) 2014-2016 David Brackeen
+ Copyright (c) 2014-2017 David Brackeen
  
  This software is provided 'as-is', without any express or implied warranty.
  In no event will the authors be held liable for any damages arising from the
@@ -225,46 +225,6 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
 bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
     PlatformData *platformData = display->platformData;
     return platformData->multitouchEnabled;
-}
-
-void glfmLog(GLFMLogLevel logLevel, const char *format, ...) {
-    char *level;
-    switch (logLevel) {
-        case GLFMLogLevelDebug:
-            level = "Debug";
-            break;
-        case GLFMLogLevelInfo:
-        default:
-            level = "Info";
-            break;
-        case GLFMLogLevelWarning:
-            level = "Warning";
-            break;
-        case GLFMLogLevelError:
-            level = "Error";
-            break;
-        case GLFMLogLevelCritical:
-            level = "Critical";
-            break;
-    }
-
-    // Get time
-    char timeBuffer[64];
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    time_t timer = tv.tv_sec;
-    int timeMillis = tv.tv_usec / 1000;
-    strftime(timeBuffer, 64, "%Y-%m-%d %H:%M:%S", localtime(&timer));
-
-    // Print prefix (time and log level)
-    printf("%s.%03d GLFM %s: ", timeBuffer, timeMillis, level);
-
-    // Print message
-    va_list args;
-    va_start(args, format);
-    vprintf(format, args);
-    va_end(args);
-    printf("\n");
 }
 
 const char *glfmGetLanguageInternal() {
