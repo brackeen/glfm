@@ -36,7 +36,6 @@
     #define GLFM_PLATFORM_ANDROID
 #elif defined(__EMSCRIPTEN__)
     #define GLFM_PLATFORM_EMSCRIPTEN
-    #define _POSIX_SOURCE // For fileno()
 #elif defined(__APPLE__)
     #include <TargetConditionals.h>
     #if TARGET_OS_IPHONE
@@ -188,15 +187,15 @@ typedef enum {
 } GLFMKeyAction;
 
 typedef enum {
-    GLFMAssetSeekSet,
-    GLFMAssetSeekCur,
-    GLFMAssetSeekEnd,
-} GLFMAssetSeek;
+    /// Directory where the executable and assets are located. Read-only.
+    GLFMDirectoryApp,
+    /// Directory where application documents can be saved. Read/write, and backed up.
+    GLFMDirectoryDocuments,
+} GLFMDirectory;
 
 // MARK: Structs and function pointers
 
 typedef struct GLFMDisplay GLFMDisplay;
-typedef struct GLFMAsset GLFMAsset;
 
 /// Main loop callback function. The frame time is in seconds, and is not related to wall time.
 typedef void (*GLFMMainLoopFunc)(GLFMDisplay *display, double frameTime);
@@ -329,42 +328,27 @@ void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFu
 /// This function never returns NULL. If the language cannot be determined, returns "en".
 const char *glfmGetLanguage(void);
 
-// MARK: Assets (File input)
-// NOTE: Normal file operations (fopen, fread, fseek) can't be used on regular Android assets
-/// inside the APK.
+/// Gets a specified directory path. At app start, the current working directory is
+/// `GLFMDirectoryApp`, where assets are located. For `GLFMDirectoryDocuments` on Emscripten,
+/// which uses IndexedDB to store files, this function may return `NULL` if the virtual filesystem
+/// hasn't been mounted yet.
+const char *glfmGetDirectoryPath(GLFMDirectory directory);
 
-/// Opens an asset (from the "bundle" on iOS, "assets" on Android). The asset must be closed with
-/// glfmAssetClose().
-/// If the asset cannot be opened (for example, the file was not found), returns NULL.
-GLFMAsset *glfmAssetOpen(const char *name);
+#if defined(GLFM_PLATFORM_ANDROID) && !defined(GLFM_NO_STDIO_HELPERS)
 
-/// Gets the asset name (the original name passed to the glfmAssetOpen function).
-/// The name is freed in glfmAssetClose().
-const char *glfmAssetGetName(GLFMAsset *asset);
+#include <stdio.h>
 
-size_t glfmAssetGetLength(GLFMAsset *asset);
+/// Opens a file. For read mode, this function first tries to read the file via Android's native
+/// `AAssetManager`. For write mode, or if opening the file via `AAssetManager` fails, the normal
+/// `fopen` function is used. For writing, use `glfmGetDirectoryPath(GLFMDirectoryDocuments)` as
+/// the base path.
+FILE *glfm_android_fopen(const char *filename, const char *mode);
 
-/// Reads 'count' bytes from the file. Returns number of bytes read.
-size_t glfmAssetRead(GLFMAsset *asset, void *buffer, size_t count);
-
-/// Sets the position of the asset.
-/// Returns 0 on success.
-int glfmAssetSeek(GLFMAsset *asset, long offset, GLFMAssetSeek whence);
-
-/// Closes the asset, releasing any resources.
-void glfmAssetClose(GLFMAsset *asset);
-
-/// Gets the asset contents as a buffer, memory-mapping if possible. The buffer is freed in
-/// glfmAssetClose().
-const void *glfmAssetGetBuffer(GLFMAsset *asset);
-
-#ifdef GLFM_PLATFORM_ANDROID
-
+/// A printf-like function that outputs to Android's logger.
 int glfm_android_printf(const char *format, ...) __attribute__((__format__(__printf__, 1, 2)));
 
-#ifndef GLFM_NO_STDIO_MACROS
-    #define printf glfm_android_printf
-#endif
+#define fopen glfm_android_fopen
+#define printf glfm_android_printf
 
 #endif // GLFM_PLATFORM_ANDROID
 

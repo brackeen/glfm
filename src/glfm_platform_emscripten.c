@@ -29,7 +29,6 @@
 #include <sys/time.h>
 #include <time.h>
 
-#define GLFM_ASSETS_USE_STDIO
 #include "glfm_platform.h"
 
 typedef struct {
@@ -43,6 +42,8 @@ typedef struct {
 
     bool active;
 } PlatformData;
+
+static bool fileSystemMounted = false;
 
 // MARK: String util
 
@@ -132,8 +133,12 @@ static char *vstrcat(const char *s, ...) {
 
 // MARK: GLFM implementation
 
-static const char *glfmGetAssetPath() {
-    return "";
+const char *glfmGetDirectoryPath(GLFMDirectory directory) {
+    if (directory == GLFMDirectoryDocuments) {
+        return fileSystemMounted ? "/.glfm_documents" : NULL;
+    } else {
+        return "/";
+    }
 }
 
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
@@ -240,6 +245,35 @@ const char *glfmGetLanguageInternal() {
     return emscripten_run_script_string(script);
 }
 
+// MARK: Filesystem
+
+static void initFS() {
+    fileSystemMounted = false;
+    EM_ASM(
+        FS.mkdir("/.glfm_documents");
+        FS.mount(IDBFS, {}, "/.glfm_documents");
+        FS.syncfs(true, function (err) {
+            ccall('syncFSComplete', 'v');
+        });
+    );
+}
+
+static void syncFS() {
+    if (fileSystemMounted) {
+        fileSystemMounted = false;
+        EM_ASM(
+            FS.syncfs(function (err) {
+                ccall('syncFSComplete', 'v');
+            });
+        );
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE
+static void syncFSComplete() {
+    fileSystemMounted = true;
+}
+
 // MARK: Emscripten glue
 
 static int getDisplayWidth(GLFMDisplay *display) {
@@ -332,7 +366,18 @@ static EM_BOOL visibilityChangeCallback(int eventType, const EmscriptenVisibilit
     (void)eventType;
     GLFMDisplay *display = userData;
     setActive(display, !e->hidden);
+    if (e->hidden) {
+        syncFS();
+    }
     return 1;
+}
+
+static const char *beforeUnloadCallback(int eventType, const void *reserved, void *userData) {
+    (void)eventType;
+    (void)reserved;
+    (void)userData;
+    syncFS();
+    return "";
 }
 
 static EM_BOOL keyCallback(int eventType, const EmscriptenKeyboardEvent *e, void *userData) {
@@ -447,6 +492,8 @@ static EM_BOOL touchCallback(int eventType, const EmscriptenTouchEvent *e, void 
 // MARK: main
 
 int main() {
+    initFS();
+
     GLFMDisplay *glfmDisplay = calloc(1, sizeof(GLFMDisplay));
     PlatformData *platformData = calloc(1, sizeof(PlatformData));
     glfmDisplay->platformData = platformData;
@@ -526,6 +573,7 @@ int main() {
     emscripten_set_webglcontextlost_callback(0, glfmDisplay, 1, webglContextCallback);
     emscripten_set_webglcontextrestored_callback(0, glfmDisplay, 1, webglContextCallback);
     emscripten_set_visibilitychange_callback(glfmDisplay, 1, visibilityChangeCallback);
+    emscripten_set_beforeunload_callback(glfmDisplay, beforeUnloadCallback);
     return 0;
 }
 

@@ -24,7 +24,6 @@
 
 #import <UIKit/UIKit.h>
 
-#define GLFM_ASSETS_USE_STDIO
 #include "glfm_platform.h"
 
 #define MAX_SIMULTANEOUS_TOUCHES 10
@@ -315,6 +314,10 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
         _glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         _glfmDisplay->platformData = (__bridge void *)self;
         self.drawableSize = [self preferredDrawableSize];
+        const char *path = glfmGetDirectoryPath(GLFMDirectoryApp);
+        if (path) {
+            chdir(path);
+        }
         glfmMain(_glfmDisplay);
     }
     return self;
@@ -711,12 +714,27 @@ int main(int argc, char *argv[]) {
 
 #pragma mark - GLFM implementation
 
-static const char *glfmGetAssetPath() {
-    static char *path = NULL;
-    if (!path) {
-        path = strdup([NSBundle mainBundle].bundlePath.fileSystemRepresentation);
+const char *glfmGetDirectoryPath(GLFMDirectory directory) {
+    static char *appPath = NULL;
+    static char *docPath = NULL;
+
+    switch (directory) {
+        case GLFMDirectoryApp: default:
+            if (!appPath) {
+                appPath = strdup([NSBundle mainBundle].bundlePath.fileSystemRepresentation);
+            }
+            return appPath;
+        case GLFMDirectoryDocuments:
+            if (!docPath) {
+                NSArray<NSString *> *path = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,
+                                                                                NSUserDomainMask,
+                                                                                YES);
+                if (path.count > 0) {
+                    docPath = strdup(path[0].fileSystemRepresentation);
+                }
+            }
+            return docPath;
     }
-    return path;
 }
 
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display,

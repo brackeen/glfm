@@ -21,12 +21,16 @@
 #include "glfm.h"
 
 #ifdef GLFM_PLATFORM_ANDROID
+// Undefine convenience macros
+#undef fopen
+#undef printf
 
 #include "android_native_app_glue.h"
 #include "glfm_platform.h"
 #include <EGL/egl.h>
 #include <android/log.h>
 #include <android/window.h>
+#include <errno.h>
 #include <math.h>
 
 // If KEEP_CONTEXT is defined, the GL context is kept after onDestroy()
@@ -1033,78 +1037,54 @@ jnifail:
 
 // MARK: GLFM Asset reading
 
-struct GLFMAsset {
-    AAsset *asset;
-    char *name;
-};
-
-GLFMAsset *glfmAssetOpen(const char *name) {
-    AAssetManager *assetManager = engineGlobal->app->activity->assetManager;
-    GLFMAsset *asset = calloc(1, sizeof(GLFMAsset));
-    if (asset) {
-        asset->name = malloc(strlen(name) + 1);
-        strcpy(asset->name, name);
-        asset->asset = AAssetManager_open(assetManager, name, AASSET_MODE_UNKNOWN);
-        if (asset->asset == NULL) {
-            free(asset);
-            asset = NULL;
+const char *glfmGetDirectoryPath(GLFMDirectory directory) {
+    if (directory == GLFMDirectoryDocuments) {
+        if (engineGlobal && engineGlobal->app && engineGlobal->app->activity) {
+            return engineGlobal->app->activity->internalDataPath;
+        } else {
+            return NULL;
         }
-    }
-    return asset;
-}
-
-const char *glfmAssetGetName(GLFMAsset *asset) {
-    return asset ? asset->name : NULL;
-}
-
-size_t glfmAssetGetLength(GLFMAsset *asset) {
-    return (asset && asset->asset) ? (size_t)AAsset_getLength(asset->asset) : 0;
-}
-
-size_t glfmAssetRead(GLFMAsset *asset, void *buffer, size_t count) {
-    if (asset && asset->asset) {
-        int ret = AAsset_read(asset->asset, buffer, count);
-        return (ret <= 0) ? 0 : (size_t)ret;
     } else {
-        return 0;
+        return "";
     }
 }
 
-int glfmAssetSeek(GLFMAsset *asset, long offset, GLFMAssetSeek whence) {
-    if (asset && asset->asset) {
-        int stdioWhence;
-        switch (whence) {
-            default:
-            case GLFMAssetSeekSet:
-                stdioWhence = SEEK_SET;
-                break;
-            case GLFMAssetSeekCur:
-                stdioWhence = SEEK_CUR;
-                break;
-            case GLFMAssetSeekEnd:
-                stdioWhence = SEEK_END;
-                break;
-        }
-        off_t ret = AAsset_seek(asset->asset, offset, stdioWhence);
-        return (ret == (off_t)-1) ? -1 : 0;
-    } else {
-        return -1;
-    }
+static int glfm_android_read(void *cookie, char *buf, int size) {
+    return AAsset_read((AAsset *)cookie, buf, (size_t)size);
 }
 
-void glfmAssetClose(GLFMAsset *asset) {
+static int glfm_android_write(void *cookie, const char *buf, int size) {
+    errno = EACCES;
+    return -1;
+}
+
+static fpos_t glfm_android_seek(void *cookie, fpos_t offset, int whence) {
+    return AAsset_seek((AAsset *)cookie, offset, whence);
+}
+
+static int glfm_android_close(void *cookie) {
+    AAsset_close((AAsset *)cookie);
+    return 0;
+}
+
+FILE *glfm_android_fopen(const char *filename, const char *mode) {
+    AAssetManager *assetManager = NULL;
+    if (engineGlobal && engineGlobal->app && engineGlobal->app->activity) {
+        assetManager = engineGlobal->app->activity->assetManager;
+    }
+    AAsset *asset = NULL;
+    if (assetManager && mode && mode[0] == 'r') {
+        asset = AAssetManager_open(assetManager, filename, AASSET_MODE_UNKNOWN);
+    }
     if (asset) {
-        free(asset->name);
-        if (asset->asset) {
-            AAsset_close(asset->asset);
-        }
-        free(asset);
+        return funopen(asset, glfm_android_read, glfm_android_write, glfm_android_seek,
+                       glfm_android_close);
+    } else {
+        return fopen(filename, mode);
     }
 }
 
-const void *glfmAssetGetBuffer(GLFMAsset *asset) {
-    return (asset && asset->asset) ? AAsset_getBuffer(asset->asset) : NULL;
-}
+// MARK: stdout helpers
 
 int glfm_android_printf(const char *format, ...) {
     va_list args;

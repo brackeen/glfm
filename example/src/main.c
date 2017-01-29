@@ -156,13 +156,32 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
 }
 
 static GLuint compileShader(GLenum type, const char *shaderName) {
-    GLFMAsset *asset = glfmAssetOpen(shaderName);
-    const GLint shaderLength = (GLint)glfmAssetGetLength(asset);
-    const char *shaderString = glfmAssetGetBuffer(asset);
+    // Get shader string
+    char *shaderString = NULL;
+    FILE *shaderFile = fopen(shaderName, "rb");
+    if (shaderFile) {
+        fseek(shaderFile, 0, SEEK_END);
+        long length = ftell(shaderFile);
+        fseek(shaderFile, 0, SEEK_SET);
+
+        shaderString = malloc(length + 1);
+        if (shaderString) {
+            fread(shaderString, length, 1, shaderFile);
+            shaderString[length] = 0;
+        }
+        fclose(shaderFile);
+    }
+    if (!shaderString) {
+        printf("Couldn't read file: %s\n", shaderName);
+        return 0;
+    }
+
+    // Compile
+    const char *constChaderString = shaderString;
     GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &shaderString, &shaderLength);
+    glShaderSource(shader, 1, &constChaderString, NULL);
     glCompileShader(shader);
-    glfmAssetClose(asset);
+    free(shaderString);
 
     // Check compile status
     GLint status;
