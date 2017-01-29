@@ -10,6 +10,7 @@ GLFM is written in C and runs on iOS 8, Android 2.3.3, and WebGL 1.0 (via [Emscr
 * Retina / high-DPI support.
 * Touch and keyboard events.
 * Events for application state and context loss.
+* Convenience helper functions for `printf` and `fopen` on Android.
 
 ## Non-goals
 GLFM is limited in scope, and isn't designed to provide everything needed for an app. For example, GLFM doesn't provide (and will never provide) the following:
@@ -229,10 +230,6 @@ Otherwise, it wouldn't work on iOS. To initialize the Objective-C environment, t
 **Why is GLFM event-driven? Why does GLFM take over the main loop?**
 
 Otherwise, it wouldn't work on iOS (see above) or on HTML5, which is event-driven.
-
-**What are the `glfmAsset*` functions for? Doesn't `stdio` work?**
-
-The `stdio` functions work fine on iOS and Emscripten, but Android's assets are stored in a compressed file (the APK) that can only be accessed via a proprietary API. The `glfmAsset*` functions use NDK's proprietary assets API on Android, and `stdio` on iOS and Emscripten.
 
 ## License
 [ZLIB](http://en.wikipedia.org/wiki/Zlib_License)
