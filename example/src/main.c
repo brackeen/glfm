@@ -207,7 +207,7 @@ static void onFrame(GLFMDisplay *display, double frameTime) {
     ExampleApp *app = glfmGetUserData(display);
 
     // Draw background
-    glClearColor(0.4f, 0.0f, 0.6f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw texture background
@@ -271,6 +271,9 @@ static void onFrame(GLFMDisplay *display, double frameTime) {
         glAttachShader(app->program, vertShader);
         glAttachShader(app->program, fragShader);
 
+        glBindAttribLocation(app->program, 0, "a_position");
+        glBindAttribLocation(app->program, 1, "a_color");
+
         glLinkProgram(app->program);
 
         glDeleteShader(vertShader);
@@ -281,13 +284,17 @@ static void onFrame(GLFMDisplay *display, double frameTime) {
         glGenBuffers(1, &app->vertexBuffer);
     }
     glBindBuffer(GL_ARRAY_BUFFER, app->vertexBuffer);
+    const size_t stride = sizeof(GLfloat) * 6;
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void *)(sizeof(GLfloat) * 3));
 
     const GLfloat vertices[] = {
-        app->offsetX + 0.0f, app->offsetY + 0.5f,
-        app->offsetX - 0.5f, app->offsetY - 0.5f,
-        app->offsetX + 0.5f, app->offsetY - 0.5f,
+        // x,y,z, r,g,b
+        app->offsetX + 0.0f, app->offsetY + 0.5f, 0.0,  1.0, 0.0, 0.0,
+        app->offsetX - 0.5f, app->offsetY - 0.5f, 0.0,  0.0, 1.0, 0.0,
+        app->offsetX + 0.5f, app->offsetY - 0.5f, 0.0,  0.0, 0.0, 1.0,
     };
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
