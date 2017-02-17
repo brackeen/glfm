@@ -35,7 +35,7 @@ typedef struct {
     bool multitouchEnabled;
     int32_t width;
     int32_t height;
-    float scale;
+    double scale;
     GLFMRenderingAPI renderingAPI;
 
     bool mouseDown;
@@ -87,7 +87,7 @@ int glfmGetDisplayHeight(GLFMDisplay *display) {
     return platformData->height;
 }
 
-float glfmGetDisplayScale(GLFMDisplay *display) {
+double glfmGetDisplayScale(GLFMDisplay *display) {
     PlatformData *platformData = display->platformData;
     return platformData->scale;
 }
@@ -107,10 +107,9 @@ bool glfmHasTouch(GLFMDisplay *display) {
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
     (void)display;
     // Make sure the javascript array emCursors is refernced properly
-    int emCursor;
+    int emCursor = 0;
     switch (mouseCursor) {
         case GLFMMouseCursorAuto:
-        default:
             emCursor = 0;
             break;
         case GLFMMouseCursorNone:
@@ -196,7 +195,7 @@ static int getDisplayWidth(GLFMDisplay *display) {
         var canvas = Module['canvas'];
         return canvas.width;
     });
-    return roundf(width);
+    return (int)(round(width));
 }
 
 static int getDisplayHeight(GLFMDisplay *display) {
@@ -205,7 +204,7 @@ static int getDisplayHeight(GLFMDisplay *display) {
         var canvas = Module['canvas'];
         return canvas.height;
     });
-    return roundf(height);
+    return (int)(round(height));
 }
 
 static void setActive(GLFMDisplay *display, bool active) {

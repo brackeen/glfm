@@ -98,7 +98,7 @@ typedef struct {
 
     int32_t width;
     int32_t height;
-    float scale;
+    double scale;
 
     GLFMDisplay *display;
     GLFMRenderingAPI renderingAPI;
@@ -929,7 +929,7 @@ int glfmGetDisplayHeight(GLFMDisplay *display) {
     return engine->height;
 }
 
-float glfmGetDisplayScale(GLFMDisplay *display) {
+double glfmGetDisplayScale(GLFMDisplay *display) {
     Engine *engine = (Engine *)display->platformData;
     return engine->scale;
 }

@@ -18,8 +18,8 @@
  3. This notice may not be removed or altered from any source distribution.
  */
 
-#ifndef _GLFM_PLATFORM_H_
-#define _GLFM_PLATFORM_H_
+#ifndef GLFM_PLATFORM_H
+#define GLFM_PLATFORM_H
 
 #include "glfm.h"
 #include <stdarg.h>
@@ -181,16 +181,9 @@ const char *glfmGetLanguage() {
 
 // MARK: Helper functions
 
-static void reportSurfaceError(GLFMDisplay *display, const char *format, ...) {
-    if (display->surfaceErrorFunc && format) {
-        char message[1024];
-
-        va_list args;
-        va_start(args, format);
-        vsnprintf(message, sizeof(message), format, args);
-        va_end(args);
-
-        display->surfaceErrorFunc(display, message);
+static void reportSurfaceError(GLFMDisplay *display, const char *errorMessage) {
+    if (display->surfaceErrorFunc && errorMessage) {
+        display->surfaceErrorFunc(display, errorMessage);
     }
 }
 

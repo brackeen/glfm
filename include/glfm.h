@@ -18,8 +18,8 @@
  3. This notice may not be removed or altered from any source distribution.
  */
 
-#ifndef _GLFM_H_
-#define _GLFM_H_
+#ifndef GLFM_H
+#define GLFM_H
 
 #define GLFM_VERSION_MAJOR 0
 #define GLFM_VERSION_MINOR 8
@@ -274,7 +274,7 @@ int glfmGetDisplayHeight(GLFMDisplay *display);
 
 /// Gets the display scale. On Apple devices, the value will be 1.0 for non-retina displays and 2.0
 /// for retina.
-float glfmGetDisplayScale(GLFMDisplay *display);
+double glfmGetDisplayScale(GLFMDisplay *display);
 
 /// Gets the rendering API of the display. The return value is not valid until the surface is
 /// created. Defaults to GLFMRenderingAPIOpenGLES2.

@@ -28,8 +28,8 @@
 
 #define MAX_SIMULTANEOUS_TOUCHES 10
 
-#define CHECK_GL_ERROR() ({ GLenum error = glGetError(); if (error != GL_NO_ERROR) \
-NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
+#define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
+NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } while(0)
 
 #pragma mark - EAGLView
 
@@ -104,11 +104,11 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
     // iPhone 6 Display Zoom hack
     CGRect oldBounds = eaglLayer.bounds;
     if (eaglLayer.contentsScale == 2.343750) {
-        if (eaglLayer.bounds.size.width == 320 && eaglLayer.bounds.size.height == 568) {
+        if (eaglLayer.bounds.size.width == 320.0 && eaglLayer.bounds.size.height == 568.0) {
             eaglLayer.bounds = CGRectMake(eaglLayer.bounds.origin.x, eaglLayer.bounds.origin.y,
                                           eaglLayer.bounds.size.width,
                                           1334 / eaglLayer.contentsScale);
-        } else if (eaglLayer.bounds.size.width == 568 && eaglLayer.bounds.size.height == 320) {
+        } else if (eaglLayer.bounds.size.width == 568.0 && eaglLayer.bounds.size.height == 320.0) {
             eaglLayer.bounds = CGRectMake(eaglLayer.bounds.origin.x, eaglLayer.bounds.origin.y,
                                           1334 / eaglLayer.contentsScale,
                                           eaglLayer.bounds.size.height);
@@ -359,9 +359,9 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
      iPhone 6 Plus (Display Zoom)   3.0   375x667   2.88                1080x1920.96   1080x1920
      iPhone 6 Plus (Standard)       3.0   414x736   2.608695652173913   1080x1920      1080x1920
      */
-    if (size.width == 750 && size.height == 1331.25) {
+    if (size.width == 750.0 && size.height == 1331.25) {
         size.height = 1334;
-    } else if (size.width == 1080 && size.height == 1920.96) {
+    } else if (size.width == 1080.0 && size.height == 1920.96) {
         size.height = 1920;
     }
     if (isPortrait) {
@@ -456,7 +456,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
         }
     } else if (uiOrientations == GLFMUserInterfaceOrientationPortrait) {
         if (isTablet) {
-            return (UIInterfaceOrientationMaskPortrait |
+            return (UIInterfaceOrientationMask)(UIInterfaceOrientationMaskPortrait |
                     UIInterfaceOrientationMaskPortraitUpsideDown);
         } else {
             return UIInterfaceOrientationMaskPortrait;
@@ -582,31 +582,31 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
     static NSArray *keyCommands = NULL;
     if (!keyCommands) {
         keyCommands = @[ [UIKeyCommand keyCommandWithInput:UIKeyInputUpArrow
-                                             modifierFlags:0
+                                             modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)],
                          [UIKeyCommand keyCommandWithInput:UIKeyInputDownArrow
-                                             modifierFlags:0
+                                             modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)],
                          [UIKeyCommand keyCommandWithInput:UIKeyInputLeftArrow
-                                             modifierFlags:0
+                                             modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)],
                          [UIKeyCommand keyCommandWithInput:UIKeyInputRightArrow
-                                             modifierFlags:0
+                                             modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)],
                          [UIKeyCommand keyCommandWithInput:UIKeyInputEscape
-                                             modifierFlags:0
+                                             modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)],
                          [UIKeyCommand keyCommandWithInput:@" "
-                                             modifierFlags:0
+                                             modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)],
                          [UIKeyCommand keyCommandWithInput:@"\r"
-                                             modifierFlags:0
+                                             modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)],
                          [UIKeyCommand keyCommandWithInput:@"\t"
-                                             modifierFlags:0
+                                             modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)],
                          [UIKeyCommand keyCommandWithInput:@"\b"
-                                             modifierFlags:0
+                                             modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)] ];
     };
 
@@ -616,7 +616,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); })
 - (void)keyPressed:(UIKeyCommand *)keyCommand {
     if (_glfmDisplay->keyFunc) {
         NSString *key = [keyCommand input];
-        GLFMKey keyCode = 0;
+        GLFMKey keyCode = (GLFMKey)0;
         if (key == UIKeyInputUpArrow) {
             keyCode = GLFMKeyUp;
         } else if (key == UIKeyInputDownArrow) {
@@ -774,12 +774,12 @@ int glfmGetDisplayHeight(GLFMDisplay *display) {
     }
 }
 
-float glfmGetDisplayScale(GLFMDisplay *display) {
+double glfmGetDisplayScale(GLFMDisplay *display) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return (float)vc.view.contentScaleFactor;
+        return vc.view.contentScaleFactor;
     } else {
-        return (float)[UIScreen mainScreen].scale;
+        return [UIScreen mainScreen].scale;
     }
 }
 
