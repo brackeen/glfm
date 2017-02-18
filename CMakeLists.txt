@@ -16,7 +16,7 @@ else() # Assume iOS
     set(IOS TRUE)
     set(GLFM_SRC src/glfm_platform.h src/glfm_platform_ios.m)
     set(CMAKE_OSX_SYSROOT "iphoneos")
-    set(COMPILE_FLAGS "-Wno-objc-interface-ivars -Wno-objc-missing-property-synthesis -Wno-direct-ivar-access")
+    set(GLFM_COMPILE_FLAGS "-Wno-objc-interface-ivars -Wno-objc-missing-property-synthesis -Wno-direct-ivar-access")
 endif()
 
 add_library(glfm ${GLFM_SRC} ${GLFM_HEADERS})
@@ -27,11 +27,11 @@ source_group(include FILES ${GLFM_HEADERS})
 source_group(src FILES ${GLFM_SRC})
 
 if (CMAKE_C_COMPILER_ID MATCHES "Clang")
-    set_target_properties(glfm PROPERTIES COMPILE_FLAGS "-Weverything -Wwrite-strings -Wno-padded -Wno-covered-switch-default ${COMPILE_FLAGS}")
+    set_target_properties(glfm PROPERTIES COMPILE_FLAGS "-Weverything -Wwrite-strings -Wno-padded -Wno-covered-switch-default ${GLFM_COMPILE_FLAGS}")
 elseif (CMAKE_C_COMPILER_ID MATCHES "GNU")
-    set_target_properties(glfm PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Wwrite-strings ${COMPILE_FLAGS}")
+    set_target_properties(glfm PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Wwrite-strings ${GLFM_COMPILE_FLAGS}")
 elseif (CMAKE_C_COMPILER_ID MATCHES "MSVC")
-    set_target_properties(glfm PROPERTIES COMPILE_FLAGS "/Wall ${COMPILE_FLAGS}")
+    set_target_properties(glfm PROPERTIES COMPILE_FLAGS "/Wall ${GLFM_COMPILE_FLAGS}")
 endif()
 
 if (CMAKE_SYSTEM_NAME MATCHES "Android")
