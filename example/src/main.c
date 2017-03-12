@@ -191,11 +191,12 @@ static GLuint compileShader(GLenum type, const char *shaderName) {
         GLint logLength;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
         if (logLength > 0) {
-            GLchar log[logLength];
+            GLchar *log = malloc(logLength);
             glGetShaderInfoLog(shader, logLength, &logLength, log);
             if (log[0] != 0) {
                 printf("Shader log: %s\n", log);
             }
+            free(log);
         }
         glDeleteShader(shader);
         shader = 0;
