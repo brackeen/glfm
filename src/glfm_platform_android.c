@@ -34,10 +34,6 @@
 #include <errno.h>
 #include <math.h>
 
-// If KEEP_CONTEXT is defined, the GL context is kept after onDestroy()
-// Currently commented out because it causes a crash. Thread issue?
-//#define KEEP_CONTEXT
-
 #ifdef NDEBUG
 #define LOG_DEBUG(...) do { } while (0)
 #else
@@ -665,11 +661,7 @@ static void app_cmd_callback(struct android_app *app, int32_t cmd) {
         }
         case APP_CMD_DESTROY: {
             LOG_LIFECYCLE("APP_CMD_DESTROY");
-#ifndef KEEP_CONTEXT
             egl_destroy(engine);
-#else
-            egl_disable_context(engine);
-#endif
             break;
         }
         default: {
@@ -914,11 +906,7 @@ void android_main(struct android_app *app) {
 
             if (app->destroyRequested != 0) {
                 LOG_LIFECYCLE("Destroying thread");
-#ifndef KEEP_CONTEXT
                 egl_destroy(engine);
-#else
-                egl_disable_context(engine);
-#endif
                 set_animating(engine, false);
                 (*vm)->DetachCurrentThread(vm);
                 engine->app = NULL;
