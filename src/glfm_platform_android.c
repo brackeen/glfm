@@ -21,6 +21,7 @@
 #include "glfm.h"
 
 #ifdef GLFM_PLATFORM_ANDROID
+
 // Undefine convenience macros
 #undef fopen
 #undef printf
@@ -234,6 +235,26 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
             EXCEPTION_CHECK()
         }
     }
+}
+
+// Move task to the back if it is root task (same as pressing home button).
+static bool handleBackButton(struct android_app *app) {
+    Engine *engine = (Engine *)app->userData;
+    JNIEnv *jni = engine->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return false;
+    }
+
+    jclass activityClass = (*jni)->GetObjectClass(jni, app->activity->clazz);
+    EXCEPTION_CHECK(false)
+
+    jmethodID moveTaskToBack = (*jni)->GetMethodID(jni, activityClass, "moveTaskToBack", "(Z)Z");
+    EXCEPTION_CHECK(false)
+
+    jboolean handled = (*jni)->CallBooleanMethod(jni, app->activity->clazz, moveTaskToBack, false);
+    EXCEPTION_CHECK(false)
+
+    return handled;
 }
 
 // MARK: EGL
@@ -714,6 +735,9 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                     if (aAction == AKEY_EVENT_ACTION_UP) {
                         handled = engine->display->keyFunc(engine->display, key,
                                                            GLFMKeyActionReleased, 0);
+                        if (handled == 0 && aKeyCode == AKEYCODE_BACK) {
+                            handled = handleBackButton(app) ? 1 : 0;
+                        }
                     } else if (aAction == AKEY_EVENT_ACTION_DOWN) {
                         GLFMKeyAction keyAction;
                         if (AKeyEvent_getRepeatCount(event) > 0) {
@@ -889,6 +913,7 @@ void android_main(struct android_app *app) {
             }
 
             if (app->destroyRequested != 0) {
+                LOG_LIFECYCLE("Destroying thread");
 #ifndef KEEP_CONTEXT
                 egl_destroy(engine);
 #else
