@@ -22,6 +22,7 @@
 
 #ifdef GLFM_PLATFORM_EMSCRIPTEN
 
+#include <EGL/egl.h>
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #include <math.h>
@@ -156,6 +157,10 @@ const char *glfmGetLanguageInternal() {
         "} catch(err) { return 'en'; } }())";
 
     return emscripten_run_script_string(script);
+}
+
+GLFMProc glfmGetProcAddress(const char *functionName) {
+    return eglGetProcAddress(functionName);
 }
 
 // MARK: Filesystem

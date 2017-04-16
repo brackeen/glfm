@@ -31,6 +31,7 @@
 #include <EGL/egl.h>
 #include <android/log.h>
 #include <android/window.h>
+#include <dlfcn.h>
 #include <errno.h>
 #include <math.h>
 
@@ -1046,6 +1047,18 @@ const char *glfmGetLanguageInternal() {
 
 jnifail:
     return lang;
+}
+
+GLFMProc glfmGetProcAddress(const char *functionName) {
+    GLFMProc function = eglGetProcAddress(functionName);
+    if (!function) {
+        static void *handle = NULL;
+        if (!handle) {
+            handle = dlopen(NULL, RTLD_LAZY);
+        }
+        function = handle ? (GLFMProc)dlsym(handle, functionName) : NULL;
+    }
+    return function;
 }
 
 // MARK: GLFM Asset reading

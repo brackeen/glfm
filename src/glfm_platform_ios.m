@@ -24,6 +24,7 @@
 
 #import <UIKit/UIKit.h>
 
+#include <dlfcn.h>
 #include "glfm_platform.h"
 
 #define MAX_SIMULTANEOUS_TOUCHES 10
@@ -735,6 +736,14 @@ const char *glfmGetDirectoryPath(GLFMDirectory directory) {
             }
             return docPath;
     }
+}
+
+GLFMProc glfmGetProcAddress(const char *functionName) {
+    static void *handle = NULL;
+    if (!handle) {
+        handle = dlopen(NULL, RTLD_LAZY);
+    }
+    return handle ? (GLFMProc)dlsym(handle, functionName) : NULL;
 }
 
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display,

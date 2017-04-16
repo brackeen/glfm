@@ -77,8 +77,6 @@
     #endif
 #endif
 
-
-#include <stddef.h> // For size_t
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -194,6 +192,8 @@ typedef enum {
 
 typedef struct GLFMDisplay GLFMDisplay;
 
+typedef void (*GLFMProc)(void);
+
 /// Main loop callback function. The frame time is in seconds, and is not related to wall time.
 typedef void (*GLFMMainLoopFunc)(GLFMDisplay *display, double frameTime);
 
@@ -286,6 +286,9 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor);
 /// Checks if a named OpenGL extension is supported
 bool glfmExtensionSupported(const char *extension);
 
+/// Gets the address of the specified function.
+GLFMProc glfmGetProcAddress(const char *functionName);
+
 /// Sets the function to call before each frame is displayed.
 void glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc);
 
@@ -316,7 +319,6 @@ void glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMem
 void glfmSetAppPausingFunc(GLFMDisplay *display, GLFMAppPausingFunc pausingFunc);
 
 void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFunc);
-
 
 /// Gets the preferred user language. The return value is a static variable and should not be freed.
 /// The return value is a RFC-4646 language code. Valid examples are "en", "en-US", "zh-Hans",
