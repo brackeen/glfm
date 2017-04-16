@@ -25,8 +25,6 @@
 #define GLFM_VERSION_MINOR 8
 #define GLFM_VERSION_REVISION 0
 
-// clang-format off
-
 // One of these will be defined:
 // GLFM_PLATFORM_IOS
 // GLFM_PLATFORM_ANDROID
@@ -79,7 +77,6 @@
     #endif
 #endif
 
-// clang-format on
 
 #include <stddef.h> // For size_t
 #include <stdbool.h>
