@@ -50,7 +50,7 @@ static bool fileSystemMounted = false;
 
 const char *glfmGetDirectoryPath(GLFMDirectory directory) {
     if (directory == GLFMDirectoryDocuments) {
-        return fileSystemMounted ? "/.glfm_documents" : NULL;
+        return fileSystemMounted ? "/.local/share" : NULL;
     } else {
         return "/";
     }
