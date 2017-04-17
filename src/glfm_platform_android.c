@@ -893,17 +893,17 @@ void android_main(struct android_app *app) {
                 source->process(app, source);
             }
 
-            if (ident == LOOPER_ID_USER) {
-                //                if (engine->accelerometerSensor != NULL) {
-                //                    ASensorEvent event;
-                //                    while (ASensorEventQueue_getEvents(engine->sensorEventQueue,
-                //                                                       &event, 1) > 0) {
-                //                        LOG_DEBUG("accelerometer: x=%f y=%f z=%f",
-                //                             event.acceleration.x, event.acceleration.y,
-                //                             event.acceleration.z);
-                //                    }
-                //                }
-            }
+//          if (ident == LOOPER_ID_USER) {
+//              if (engine->accelerometerSensor != NULL) {
+//                  ASensorEvent event;
+//                  while (ASensorEventQueue_getEvents(engine->sensorEventQueue,
+//                                                     &event, 1) > 0) {
+//                      LOG_DEBUG("accelerometer: x=%f y=%f z=%f",
+//                           event.acceleration.x, event.acceleration.y,
+//                           event.acceleration.z);
+//                  }
+//              }
+//          }
 
             if (app->destroyRequested != 0) {
                 LOG_LIFECYCLE("Destroying thread");
