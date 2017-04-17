@@ -799,8 +799,8 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                         const int touchNumber = AMotionEvent_getPointerId(event, i);
                         if (touchNumber >= 0 && touchNumber < maxTouches) {
                             // Only send move events if the position has changed
-                            const int x = (int)roundf(AMotionEvent_getX(event, i));
-                            const int y = (int)roundf(AMotionEvent_getY(event, i));
+                            const int x = (int)(roundf(AMotionEvent_getX(event, i)));
+                            const int y = (int)(roundf(AMotionEvent_getY(event, i)));
                             if (x != engine->touchX[touchNumber] ||
                                 y != engine->touchY[touchNumber]) {
                                 engine->touchX[touchNumber] = x;
@@ -817,8 +817,8 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                                  AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
                     const int touchNumber = AMotionEvent_getPointerId(event, index);
                     if (touchNumber >= 0 && touchNumber < maxTouches) {
-                        const int x = (int)roundf(AMotionEvent_getX(event, index));
-                        const int y = (int)roundf(AMotionEvent_getY(event, index));
+                        const int x = (int)(roundf(AMotionEvent_getX(event, index)));
+                        const int y = (int)(roundf(AMotionEvent_getY(event, index)));
                         engine->touchX[touchNumber] = x;
                         engine->touchY[touchNumber] = y;
                         engine->display->touchFunc(engine->display, touchNumber, phase, x, y);
@@ -859,9 +859,9 @@ void android_main(struct android_app *app) {
     // Get display scale
     const int32_t density = AConfiguration_getDensity(app->config);
     if (density == ACONFIGURATION_DENSITY_DEFAULT || density == ACONFIGURATION_DENSITY_NONE) {
-        engine->scale = 1.0f;
+        engine->scale = 1.0;
     } else {
-        engine->scale = density / 160.0f;
+        engine->scale = density / 160.0;
     }
 
     if (engine->display == NULL) {
@@ -879,7 +879,7 @@ void android_main(struct android_app *app) {
         case GLFMColorFormatRGB565:
             windowFormat = WINDOW_FORMAT_RGB_565;
             break;
-        default:
+        case GLFMColorFormatRGBA8888: default:
             windowFormat = WINDOW_FORMAT_RGBA_8888;
             break;
     }
@@ -1089,6 +1089,9 @@ static int glfm_android_read(void *cookie, char *buf, int size) {
 }
 
 static int glfm_android_write(void *cookie, const char *buf, int size) {
+    (void)cookie;
+    (void)buf;
+    (void)size;
     errno = EACCES;
     return -1;
 }
