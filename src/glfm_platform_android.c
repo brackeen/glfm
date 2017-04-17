@@ -44,7 +44,7 @@
 //#define LOG_LIFECYCLE(...) __android_log_print(ANDROID_LOG_INFO, "GLFM", __VA_ARGS__)
 #define LOG_LIFECYCLE(...) do { } while (0)
 
-// TODO: These are defined in EGL 1.5? Not available in NDK r10e
+// Available in eglext.h in API 18
 #define EGL_CONTEXT_MAJOR_VERSION_KHR 0x3098
 #define EGL_CONTEXT_MINOR_VERSION_KHR 0x30FB
 
@@ -259,6 +259,15 @@ static bool handleBackButton(struct android_app *app) {
 static bool egl_init_context(Engine *engine) {
     bool created = false;
     if (engine->eglContext == EGL_NO_CONTEXT) {
+        // OpenGL ES 3.2
+        if (engine->display->preferredAPI >= GLFMRenderingAPIOpenGLES32) {
+            // TODO: Untested, need an OpenGL ES 3.2 device for testing
+            const EGLint contextAttribs[] = {EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
+                                             EGL_CONTEXT_MINOR_VERSION_KHR, 2, EGL_NONE};
+            engine->eglContext = eglCreateContext(engine->eglDisplay, engine->eglConfig,
+                                                  EGL_NO_CONTEXT, contextAttribs);
+            created = engine->eglContext != EGL_NO_CONTEXT;
+        }
         // OpenGL ES 3.1
         if (engine->display->preferredAPI >= GLFMRenderingAPIOpenGLES31) {
             // TODO: Untested, need an OpenGL ES 3.1 device for testing

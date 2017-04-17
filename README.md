@@ -1,12 +1,12 @@
 # GLFM
-Write OpenGL ES 2.0 code in C/C++ without writing platform-specific code.
+Write OpenGL ES code in C/C++ without writing platform-specific code.
 
-GLFM is an OpenGL ES 2.0 layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](http://www.glfw.org/).
+GLFM is an OpenGL ES layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](http://www.glfw.org/).
 
 GLFM is written in C and runs on iOS 8, Android 2.3.3, and WebGL 1.0 (via [Emscripten](https://github.com/kripken/emscripten)).
 
 ## Features
-* OpenGL ES 2.0, 3.0, and 3.1 display setup.
+* OpenGL ES 2.0, 3.0, 3.1, and 3.2 display setup.
 * Retina / high-DPI support.
 * Touch and keyboard events.
 * Events for application state and context loss.
@@ -135,7 +135,7 @@ Use the `CMakeLists.txt` file with the `-DGLFM_BUILD_EXAMPLE=ON` option to build
 
 ### Xcode 8.2
 ```Shell
-mkdir -p build/ios 
+mkdir -p build/ios
 cd build/ios
 cmake -DGLFM_BUILD_EXAMPLE=ON -G Xcode ../..
 open GLFM.xcodeproj
@@ -145,7 +145,7 @@ Switch to the `glfm-example` target and run on the simulator or a device.
 ### Emscripten
 Assuming `EMSCRIPTEN_ROOT_PATH` points to active installed version of Emscripten.
 ```Shell
-mkdir -p build/emscripten 
+mkdir -p build/emscripten
 cd build/emscripten
 cmake -DGLFM_BUILD_EXAMPLE=ON -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN_ROOT_PATH/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../..
 cmake --build .
@@ -217,7 +217,7 @@ android {
 * Gamepad / MFi controller input.
 
 ## Caveats
-* OpenGL ES 3.1 support in Android is untested, and iOS currently has no OpenGL ES 3.1 support.
+* OpenGL ES 3.1 and 3.2 support is only available in Android, and the GLFM implementation is currently untested.
 * GLFM is not thread-safe. All GLFM functions must be called on the main thread (that is, from `glfmMain` or from the callback functions).
 * Key input on iOS is not ideal. Using the keyboard (on an iOS device via Bluetooth keyboard or on the simulator via a Mac's keyboard), only a few keys are detected (arrows, enter, space, escape). Also, only key press events can be detected, but not key repeat or key release events.
 * Orientation lock probably doesn't work on HTML5.

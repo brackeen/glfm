@@ -130,7 +130,9 @@ static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
     glViewport(0, 0, width, height);
 
     GLFMRenderingAPI api = glfmGetRenderingAPI(display);
-    printf("Hello from GLFM! Using OpenGL %s\n", api == GLFMRenderingAPIOpenGLES31 ? "ES 3.1" :
+    printf("Hello from GLFM! Using OpenGL %s\n",
+           api == GLFMRenderingAPIOpenGLES32 ? "ES 3.2" :
+           api == GLFMRenderingAPIOpenGLES31 ? "ES 3.1" :
            api == GLFMRenderingAPIOpenGLES3 ? "ES 3.0" : "ES 2.0");
 
 #ifdef DRAW_TEST_PATTERN
