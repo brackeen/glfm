@@ -32,9 +32,9 @@
 #define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
 NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } while(0)
 
-#pragma mark - EAGLView
+#pragma mark - GLFMView
 
-@interface EAGLView : UIView {
+@interface GLFMView : UIView {
     GLint _drawableWidth;
     GLint _drawableHeight;
     GLuint _defaultFramebuffer;
@@ -60,7 +60,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
 @end
 
-@implementation EAGLView
+@implementation GLFMView
 
 @dynamic drawableWidth, drawableHeight;
 
@@ -373,7 +373,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 }
 
 - (void)loadView {
-    self.view = [[EAGLView alloc] initWithFrame:[[UIScreen mainScreen] applicationFrame]];
+    self.view = [[GLFMView alloc] initWithFrame:[[UIScreen mainScreen] applicationFrame]];
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.view.contentScaleFactor = [UIScreen mainScreen].nativeScale;
 }
@@ -393,7 +393,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         return;
     }
 
-    EAGLView *view = (EAGLView *)self.view;
+    GLFMView *view = (GLFMView *)self.view;
     view.multipleTouchEnabled = self.multipleTouchEnabled;
     view.context = self.context;
 
@@ -486,7 +486,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 }
 
 - (void)render:(CADisplayLink *)displayLink {
-    EAGLView *view = (EAGLView *)self.view;
+    GLFMView *view = (GLFMView *)self.view;
 
     CGSize newDrawableSize = CGSizeMake(view.drawableWidth, view.drawableHeight);
     if (!CGSizeEqualToSize(self.drawableSize, newDrawableSize)) {
