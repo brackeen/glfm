@@ -14,17 +14,17 @@ typedef struct {
     GLuint textureProgram;
     GLuint textureVertexBuffer;
 
-    int lastTouchX;
-    int lastTouchY;
+    double lastTouchX;
+    double lastTouchY;
 
-    float offsetX;
-    float offsetY;
+    double offsetX;
+    double offsetY;
 } ExampleApp;
 
 static void onFrame(GLFMDisplay *display, double frameTime);
 static void onSurfaceCreated(GLFMDisplay *display, int width, int height);
 static void onSurfaceDestroyed(GLFMDisplay *display);
-static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, int x, int y);
+static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, double x, double y);
 static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, int modifiers);
 
 // Main entry point
@@ -47,7 +47,7 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetKeyFunc(display, onKey);
 }
 
-static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, int x, int y) {
+static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, double x, double y) {
     if (phase == GLFMTouchPhaseHover) {
         return false;
     }

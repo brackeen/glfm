@@ -363,7 +363,8 @@ static EM_BOOL mouseCallback(int eventType, const EmscriptenMouseEvent *e, void 
                 platformData->mouseDown = false;
                 break;
         }
-        return display->touchFunc(display, e->button, touchPhase, e->canvasX, e->canvasY);
+        return display->touchFunc(display, e->button, touchPhase,
+                                  (double)e->canvasX, (double)e->canvasY);
     } else {
         return 0;
     }

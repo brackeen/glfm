@@ -538,7 +538,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         currLocation.y *= self.view.contentScaleFactor;
 
         _glfmDisplay->touchFunc(_glfmDisplay, index, phase,
-                                (int)currLocation.x, (int)currLocation.y);
+                                (double)currLocation.x, (double)currLocation.y);
     }
 
     if (phase == GLFMTouchPhaseEnded || phase == GLFMTouchPhaseCancelled) {

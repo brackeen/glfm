@@ -209,7 +209,8 @@ typedef void (*GLFMMainLoopFunc)(GLFMDisplay *display, double frameTime);
 
 /// Callback function for mouse or touch events. The (x,y) values are in pixels.
 /// The function should return true if the event was handled, and false otherwise.
-typedef bool (*GLFMTouchFunc)(GLFMDisplay *display, int touch, GLFMTouchPhase phase, int x, int y);
+typedef bool (*GLFMTouchFunc)(GLFMDisplay *display, int touch, GLFMTouchPhase phase,
+                              double x, double y);
 
 /// Callback function for key events.
 /// The function should return true if the event was handled, and false otherwise.

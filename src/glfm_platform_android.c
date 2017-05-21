@@ -91,9 +91,6 @@ typedef struct {
     EGLContext eglContext;
     bool eglContextCurrent;
 
-    int touchX[MAX_SIMULTANEOUS_TOUCHES];
-    int touchY[MAX_SIMULTANEOUS_TOUCHES];
-
     int32_t width;
     int32_t height;
     double scale;
@@ -798,17 +795,10 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                     for (i = 0; i < count; i++) {
                         const int touchNumber = AMotionEvent_getPointerId(event, i);
                         if (touchNumber >= 0 && touchNumber < maxTouches) {
-                            // Only send move events if the position has changed
-                            const int x = (int)(roundf(AMotionEvent_getX(event, i)));
-                            const int y = (int)(roundf(AMotionEvent_getY(event, i)));
-                            if (x != engine->touchX[touchNumber] ||
-                                y != engine->touchY[touchNumber]) {
-                                engine->touchX[touchNumber] = x;
-                                engine->touchY[touchNumber] = y;
-                                engine->display->touchFunc(engine->display, touchNumber, phase,
-                                                           x, y);
-                                //LOG_DEBUG("Touch %i: (%i) %i,%i", touchNumber, phase, x, y);
-                            }
+                            double x = (double)AMotionEvent_getX(event, i);
+                            double y = (double)AMotionEvent_getY(event, i);
+                            engine->display->touchFunc(engine->display, touchNumber, phase, x, y);
+                            //LOG_DEBUG("Touch %i: (%i) %i,%i", touchNumber, phase, x, y);
                         }
                     }
                 } else {
@@ -817,10 +807,8 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                                  AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
                     const int touchNumber = AMotionEvent_getPointerId(event, index);
                     if (touchNumber >= 0 && touchNumber < maxTouches) {
-                        const int x = (int)(roundf(AMotionEvent_getX(event, index)));
-                        const int y = (int)(roundf(AMotionEvent_getY(event, index)));
-                        engine->touchX[touchNumber] = x;
-                        engine->touchY[touchNumber] = y;
+                        double x = (double)AMotionEvent_getX(event, index);
+                        double y = (double)AMotionEvent_getY(event, index);
                         engine->display->touchFunc(engine->display, touchNumber, phase, x, y);
                         //LOG_DEBUG("Touch %i: (%i) %i,%i", touchNumber, phase, x, y);
                     }
