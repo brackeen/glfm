@@ -746,7 +746,8 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                         }
                         handled = engine->display->keyFunc(engine->display, key, keyAction, 0);
                     } else if (aAction == AKEY_EVENT_ACTION_MULTIPLE) {
-                        for (int32_t i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
+                        int32_t i;
+                        for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
                             handled |= engine->display->keyFunc(engine->display, key,
                                                                 GLFMKeyActionPressed, 0);
                             handled |= engine->display->keyFunc(engine->display, key,
