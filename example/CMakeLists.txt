@@ -9,7 +9,7 @@ set(APP_VERSION "1.0")
 set(APP_VERSION_ITERATION 1)
 set(APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 file(GLOB APP_ASSETS ${APP_ASSETS_DIR}/*)
-file(GLOB APP_SRC src/*.c)
+file(GLOB APP_SRC src/main.c)
 source_group("src" FILES ${APP_SRC})
 
 # GLFM Project files

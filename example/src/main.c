@@ -4,15 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//#define DRAW_TEST_PATTERN
-
 typedef struct {
     GLuint program;
     GLuint vertexBuffer;
-
-    GLuint textureId;
-    GLuint textureProgram;
-    GLuint textureVertexBuffer;
 
     double lastTouchX;
     double lastTouchY;
@@ -91,41 +85,6 @@ static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, i
     return handled;
 }
 
-#ifdef DRAW_TEST_PATTERN
-static GLuint createTestPatternTexture(uint32_t width, uint32_t height) {
-    GLuint textureId = 0;
-    uint32_t *data = malloc(width * height * sizeof(uint32_t));
-    if (data) {
-        uint32_t *out = data;
-        for (int y = 0; y < height; y++) {
-            *out++ = 0xff0000ff;
-            if (y == 0 || y == height - 1) {
-                for (int x = 1; x < width - 1; x++) {
-                    *out++ = 0xff0000ff;
-                }
-            } else {
-                for (int x = 1; x < width - 1; x++) {
-                    *out++ = ((x & 1) == (y & 1)) ? 0xff000000 : 0xffffffff;
-                }
-            }
-            *out++ = 0xff0000ff;
-        }
-
-        glGenTextures(1, &textureId);
-        glBindTexture(GL_TEXTURE_2D, textureId);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        free(data);
-    }
-    return textureId;
-}
-#endif
-
 static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
     glViewport(0, 0, width, height);
 
@@ -134,17 +93,6 @@ static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
            api == GLFMRenderingAPIOpenGLES32 ? "ES 3.2" :
            api == GLFMRenderingAPIOpenGLES31 ? "ES 3.1" :
            api == GLFMRenderingAPIOpenGLES3 ? "ES 3.0" : "ES 2.0");
-
-#ifdef DRAW_TEST_PATTERN
-    ExampleApp *app = glfmGetUserData(display);
-    if (app->textureId != 0) {
-        glDeleteTextures(1, &app->textureId);
-    }
-    app->textureId = createTestPatternTexture(width, height);
-    if (app->textureId != 0) {
-        printf("Created test pattern %ix%i\n", width, height);
-    }
-#endif
 }
 
 static void onSurfaceDestroyed(GLFMDisplay *display) {
@@ -152,9 +100,6 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
     ExampleApp *app = glfmGetUserData(display);
     app->program = 0;
     app->vertexBuffer = 0;
-    app->textureId = 0;
-    app->textureProgram = 0;
-    app->textureVertexBuffer = 0;
 }
 
 static GLuint compileShader(GLenum type, const char *shaderName) {
@@ -212,54 +157,6 @@ static void onFrame(GLFMDisplay *display, double frameTime) {
     // Draw background
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-
-    // Draw texture background
-    if (app->textureId != 0) {
-        if (app->textureProgram == 0) {
-            GLuint vertShader = compileShader(GL_VERTEX_SHADER, "texture.vert");
-            GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, "texture.frag");
-            if (vertShader == 0 || fragShader == 0) {
-                glfmSetMainLoopFunc(display, NULL);
-                return;
-            }
-
-            app->textureProgram = glCreateProgram();
-
-            glAttachShader(app->textureProgram, vertShader);
-            glAttachShader(app->textureProgram, fragShader);
-
-            glBindAttribLocation(app->textureProgram, 0, "position");
-            glBindAttribLocation(app->textureProgram, 1, "texCoord");
-
-            glLinkProgram(app->textureProgram);
-
-            glDeleteShader(vertShader);
-            glDeleteShader(fragShader);
-        }
-        glUseProgram(app->textureProgram);
-        if (app->textureVertexBuffer == 0) {
-            glGenBuffers(1, &app->textureVertexBuffer);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, app->textureVertexBuffer);
-        const size_t stride = sizeof(GLfloat) * 4;
-        const size_t textureCoordsOffset = sizeof(GLfloat) * 2;
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (void *)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void *)textureCoordsOffset);
-
-        const GLfloat vertices[] = {
-            // viewX, viewY, textureX, textureY
-            -1, -1, 0, 0,
-            1, -1, 1, 0,
-            -1, 1, 0, 1,
-            1, 1, 1, 1,
-        };
-
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-        glBindTexture(GL_TEXTURE_2D, app->textureId);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    }
 
     // Draw triangle
     if (app->program == 0) {
