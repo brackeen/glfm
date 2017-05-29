@@ -140,7 +140,7 @@ cd build/ios
 cmake -DGLFM_BUILD_EXAMPLE=ON -G Xcode ../..
 open GLFM.xcodeproj
 ```
-Switch to the `glfm-example` target and run on the simulator or a device.
+Switch to the `glfm_example` target and run on the simulator or a device.
 
 ### Emscripten
 Assuming `EMSCRIPTEN_ROOT_PATH` points to active installed version of Emscripten.
@@ -172,7 +172,7 @@ The `AndroidManifest.xml`:
                   android:configChanges="orientation|screenLayout|screenSize|keyboardHidden|keyboard">
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="glfm-example" />
+                android:value="glfm_example" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
