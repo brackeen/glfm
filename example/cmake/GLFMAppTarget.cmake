@@ -21,7 +21,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
             "      /* GLFM: Start changes */\n"
             "      body, html {  border: 0px none; padding: 0px; margin: 0px; width: 100%; height: 100%; overflow: hidden; }\n"
             "      canvas.emscripten { background: black; width: 100%; height: 100%; }\n"
-            "      .emscripten_border { width: 100%; height: 100%; }\n"
+            "      .emscripten_border { width: 100%; height: 100%; border: 0px none !important;}\n"
             "      hr { display: none; }\n"
             "      /* GLFM: End changes */"
         )
