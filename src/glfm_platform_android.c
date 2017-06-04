@@ -33,7 +33,6 @@
 #include <android/window.h>
 #include <dlfcn.h>
 #include <errno.h>
-#include <math.h>
 
 #ifdef NDEBUG
 #define LOG_DEBUG(...) do { } while (0)
@@ -104,20 +103,49 @@ static Engine *engineGlobal = NULL;
 
 // MARK: JNI code
 
-#define EXCEPTION_CHECK(ret)           \
+#define EXCEPTION_THROWN() \
+    ((*jni)->ExceptionCheck(jni) ? ((*jni)->ExceptionClear(jni), true) : false)
+
+#define EXCEPTION_CLEAR(ret)           \
     if ((*jni)->ExceptionCheck(jni)) { \
         (*jni)->ExceptionClear(jni);   \
-        return ret;                    \
-    }
-#define EXCEPTION_CHECK_FAIL()         \
-    if ((*jni)->ExceptionCheck(jni)) { \
-        (*jni)->ExceptionClear(jni);   \
-        goto jnifail;                  \
     }
 
 #define ActivityInfo_SCREEN_ORIENTATION_SENSOR 0x00000004
 #define ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE 0x00000006
 #define ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT 0x00000007
+
+static jmethodID getJavaMethodID(JNIEnv *jni, jobject object, const char *name, const char *sig) {
+    if (object) {
+        jclass class = (*jni)->GetObjectClass(jni, object);
+        jmethodID methodID = (*jni)->GetMethodID(jni, class, name, sig);
+        return EXCEPTION_THROWN() ? NULL : methodID;
+    } else {
+        return NULL;
+    }
+}
+
+static jfieldID getJavaFieldID(JNIEnv *jni, jobject object, const char *name, const char *sig) {
+    if (object) {
+        jclass class = (*jni)->GetObjectClass(jni, object);
+        jfieldID fieldID = (*jni)->GetFieldID(jni, class, name, sig);
+        return EXCEPTION_THROWN() ? NULL : fieldID;
+    } else {
+        return NULL;
+    }
+}
+
+#define callJavaMethod(jni, object, methodName, methodSig, returnType) \
+    (*jni)->Call##returnType##Method(jni, object, \
+        getJavaMethodID(jni, object, methodName, methodSig))
+
+#define callJavaMethodWithArgs(jni, object, methodName, methodSig, returnType, ...) \
+    (*jni)->Call##returnType##Method(jni, object, \
+        getJavaMethodID(jni, object, methodName, methodSig), __VA_ARGS__)
+
+#define getJavaField(jni, object, fieldName, fieldSig, fieldType) \
+    (*jni)->Get##fieldType##Field(jni, object, \
+        getJavaFieldID(jni, object, fieldName, fieldSig))
 
 static void setOrientation(struct android_app *app) {
     Engine *engine = (Engine *)app->userData;
@@ -135,15 +163,9 @@ static void setOrientation(struct android_app *app) {
         return;
     }
 
-    jclass activityClass = (*jni)->GetObjectClass(jni, app->activity->clazz);
-    EXCEPTION_CHECK()
-
-    jmethodID setRequestedOrientation = (*jni)->GetMethodID(jni, activityClass,
-                                                            "setRequestedOrientation", "(I)V");
-    EXCEPTION_CHECK()
-
-    (*jni)->CallVoidMethod(jni, app->activity->clazz, setRequestedOrientation, orientation);
-    EXCEPTION_CHECK()
+    callJavaMethodWithArgs(jni, app->activity->clazz, "setRequestedOrientation", "(I)V", Void,
+                           orientation);
+    EXCEPTION_CLEAR()
 }
 
 static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome) {
@@ -178,57 +200,40 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
         return;
     }
 
-    jclass activityClass = (*jni)->GetObjectClass(jni, app->activity->clazz);
-    EXCEPTION_CHECK()
-
-    jmethodID getWindow = (*jni)->GetMethodID(jni, activityClass, "getWindow",
-                                              "()Landroid/view/Window;");
-    EXCEPTION_CHECK()
-    jobject window = (*jni)->CallObjectMethod(jni, app->activity->clazz, getWindow);
-    EXCEPTION_CHECK();
-
-    if (window) {
-        jclass windowClass = (*jni)->GetObjectClass(jni, window);
-        EXCEPTION_CHECK()
-
-        jmethodID getDecorView = (*jni)->GetMethodID(jni, windowClass, "getDecorView",
-                                                     "()Landroid/view/View;");
-        EXCEPTION_CHECK()
-
-        jobject decorView = (*jni)->CallObjectMethod(jni, window, getDecorView);
-        EXCEPTION_CHECK()
-
-        if (decorView) {
-            jclass decorViewClass = (*jni)->GetObjectClass(jni, decorView);
-            EXCEPTION_CHECK()
-
-            jmethodID setSystemUiVisibility = (*jni)->GetMethodID(jni, decorViewClass,
-                                                                  "setSystemUiVisibility", "(I)V");
-            EXCEPTION_CHECK()
-
-            if (uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
-                (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility, 0);
-            } else if (SDK_INT >= 11 && SDK_INT < 14) {
-                (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility, 0x00000001);
-            } else if (SDK_INT >= 14 && SDK_INT < 19) {
-                if (uiChrome == GLFMUserInterfaceChromeNavigation) {
-                    (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility, 0x00000004);
-                } else {
-                    (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility,
-                                           0x00000001 | 0x00000004);
-                }
-            } else if (SDK_INT >= 19) {
-                if (uiChrome == GLFMUserInterfaceChromeNavigation) {
-                    (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility, 0x00000004);
-                } else {
-                    (*jni)->CallVoidMethod(jni, decorView, setSystemUiVisibility,
-                                           0x00000002 | 0x00000004 | 0x00000100 |
-                                               0x00000200 | 0x00000400 | 0x00001000);
-                }
-            }
-            EXCEPTION_CHECK()
+    jobject window = callJavaMethod(jni, app->activity->clazz, "getWindow",
+                                    "()Landroid/view/Window;", Object);
+    if (!window || EXCEPTION_THROWN()) {
+        return;
+    }
+    jobject decorView = callJavaMethod(jni, window, "getDecorView", "()Landroid/view/View;",
+                                           Object);
+    if (!decorView || EXCEPTION_THROWN()) {
+        return;
+    }
+    if (uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
+        callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void, 0);
+    } else if (SDK_INT >= 11 && SDK_INT < 14) {
+        callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
+                               0x00000001);
+    } else if (SDK_INT >= 14 && SDK_INT < 19) {
+        if (uiChrome == GLFMUserInterfaceChromeNavigation) {
+            callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
+                                   0x00000004);
+        } else {
+            callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
+                                   0x00000001 | 0x00000004);
+        }
+    } else if (SDK_INT >= 19) {
+        if (uiChrome == GLFMUserInterfaceChromeNavigation) {
+            callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
+                                   0x00000004);
+        } else {
+            callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
+                                   0x00000002 | 0x00000004 | 0x00000100 |
+                                   0x00000200 | 0x00000400 | 0x00001000);
         }
     }
+    EXCEPTION_CLEAR()
 }
 
 // Move task to the back if it is root task (same as pressing home button).
@@ -239,16 +244,54 @@ static bool handleBackButton(struct android_app *app) {
         return false;
     }
 
-    jclass activityClass = (*jni)->GetObjectClass(jni, app->activity->clazz);
-    EXCEPTION_CHECK(false)
+    jboolean handled = callJavaMethodWithArgs(jni, app->activity->clazz, "moveTaskToBack", "(Z)Z",
+                                              Boolean, false);
+    return !EXCEPTION_THROWN() && handled;
+}
 
-    jmethodID moveTaskToBack = (*jni)->GetMethodID(jni, activityClass, "moveTaskToBack", "(Z)Z");
-    EXCEPTION_CHECK(false)
+static const char *getLocale() {
+    static char *lang = NULL;
 
-    jboolean handled = (*jni)->CallBooleanMethod(jni, app->activity->clazz, moveTaskToBack, false);
-    EXCEPTION_CHECK(false)
+    // The Locale.getDefaultLocale() return value is not updated live. Instead, use
+    // getResources().getConfiguration().locale.toString()
 
-    return handled;
+    Engine *engine = engineGlobal;
+    JNIEnv *jni = engine->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return lang;
+    }
+
+    jobject res = callJavaMethod(jni, engine->app->activity->clazz, "getResources",
+                                 "()Landroid/content/res/Resources;", Object);
+    if (!res || EXCEPTION_THROWN()) {
+        return lang;
+    }
+
+    jobject configuration = callJavaMethod(jni, res, "getConfiguration",
+                                           "()Landroid/content/res/Configuration;", Object);
+    if (!configuration || EXCEPTION_THROWN()) {
+        return lang;
+    }
+
+    jobject locale = getJavaField(jni, configuration, "locale", "Ljava/util/Locale;", Object);
+    if (!locale || EXCEPTION_THROWN()) {
+        return lang;
+    }
+
+    jstring valueString = callJavaMethod(jni, locale, "toString", "()Ljava/lang/String;", Object);
+    if (!valueString || EXCEPTION_THROWN()) {
+        return lang;
+    }
+
+    if (lang) {
+        free(lang);
+        lang = NULL;
+    }
+    const char *nativeString = (*jni)->GetStringUTFChars(jni, valueString, 0);
+    lang = strdup(nativeString);
+    (*jni)->ReleaseStringUTFChars(jni, valueString, nativeString);
+
+    return lang;
 }
 
 // MARK: EGL
@@ -974,77 +1017,7 @@ bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
 }
 
 const char *glfmGetLanguageInternal() {
-    char *lang = NULL;
-
-    // The Locale.getDefaultLocale() return value is not updated live. Instead, use
-    // getResources().getConfiguration().locale.toString()
-
-    Engine *engine = engineGlobal;
-    JNIEnv *jni = engine->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
-        return lang;
-    }
-
-    jclass activityClass = (*jni)->GetObjectClass(jni, engine->app->activity->clazz);
-    EXCEPTION_CHECK_FAIL()
-
-    jmethodID getResources = (*jni)->GetMethodID(jni, activityClass, "getResources",
-                                                 "()Landroid/content/res/Resources;");
-    EXCEPTION_CHECK_FAIL()
-
-    jobject res = (*jni)->CallObjectMethod(jni, engine->app->activity->clazz, getResources);
-    EXCEPTION_CHECK_FAIL()
-
-    if (res) {
-        jclass resClass = (*jni)->GetObjectClass(jni, res);
-        EXCEPTION_CHECK_FAIL()
-
-        jmethodID getConfiguration = (*jni)->GetMethodID(jni, resClass, "getConfiguration",
-                                                         "()Landroid/content/res/Configuration;");
-        EXCEPTION_CHECK_FAIL()
-
-        jobject configuration = (*jni)->CallObjectMethod(jni, res, getConfiguration);
-        EXCEPTION_CHECK_FAIL()
-
-        if (configuration) {
-            jclass configurationClass = (*jni)->GetObjectClass(jni, configuration);
-            EXCEPTION_CHECK_FAIL()
-
-            jfieldID localeField = (*jni)->GetFieldID(jni, configurationClass, "locale",
-                                                      "Ljava/util/Locale;");
-            EXCEPTION_CHECK_FAIL()
-
-            jobject locale = (*jni)->GetObjectField(jni, configuration, localeField);
-            EXCEPTION_CHECK_FAIL()
-
-            if (locale) {
-                jclass localeClass = (*jni)->GetObjectClass(jni, locale);
-                EXCEPTION_CHECK_FAIL()
-
-                jmethodID toString = (*jni)->GetMethodID(jni, localeClass, "toString",
-                                                         "()Ljava/lang/String;");
-                EXCEPTION_CHECK_FAIL()
-
-                jstring valueString = (*jni)->CallObjectMethod(jni, locale, toString);
-                EXCEPTION_CHECK_FAIL()
-
-                if (valueString) {
-                    static char *prevValue = NULL;
-
-                    if (prevValue) {
-                        free(prevValue);
-                        prevValue = NULL;
-                    }
-                    const char *nativeString = (*jni)->GetStringUTFChars(jni, valueString, 0);
-                    lang = prevValue = strdup(nativeString);
-                    (*jni)->ReleaseStringUTFChars(jni, valueString, nativeString);
-                }
-            }
-        }
-    }
-
-jnifail:
-    return lang;
+    return getLocale();
 }
 
 GLFMProc glfmGetProcAddress(const char *functionName) {
