@@ -217,6 +217,9 @@ typedef bool (*GLFMTouchFunc)(GLFMDisplay *display, int touch, GLFMTouchPhase ph
 typedef bool (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action,
                             int modifiers);
 
+typedef void (*GLFMKeyboardVisibilityChangedFunc)(GLFMDisplay *display, bool visible,
+                                                  double x, double y, double width, double height);
+
 /// Callback when the surface could not be created.
 typedef void (*GLFMSurfaceErrorFunc)(GLFMDisplay *display, const char *message);
 
@@ -330,6 +333,17 @@ void glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMem
 void glfmSetAppPausingFunc(GLFMDisplay *display, GLFMAppPausingFunc pausingFunc);
 
 void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFunc);
+
+/// Requests to show or hide the onscreen virtual keyboard. On Emscripten, this function does
+/// nothing.
+void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible);
+
+// Retuens true if the virtual keyboard is currently visible.
+bool glfmIsKeyboardVisible(GLFMDisplay *display);
+
+/// Sets the function to call when the virtual keyboard changes visibility or changes bounds.
+void glfmSetKeyboardVisibilityChangedFunc(GLFMDisplay *display,
+                                          GLFMKeyboardVisibilityChangedFunc visibilityChangedFunc);
 
 /// Gets the preferred user language. The return value is a static variable and should not be freed.
 /// The return value is a RFC-4646 language code. Valid examples are "en", "en-US", "zh-Hans",

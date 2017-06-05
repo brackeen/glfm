@@ -159,6 +159,17 @@ const char *glfmGetLanguageInternal() {
     return emscripten_run_script_string(script);
 }
 
+void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
+    (void)display;
+    (void)visible;
+    // Do nothing
+}
+
+bool glfmIsKeyboardVisible(GLFMDisplay *display) {
+    (void)display;
+    return false;
+}
+
 GLFMProc glfmGetProcAddress(const char *functionName) {
     return eglGetProcAddress(functionName);
 }

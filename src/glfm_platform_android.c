@@ -33,6 +33,7 @@
 #include <android/window.h>
 #include <dlfcn.h>
 #include <errno.h>
+#include <unistd.h>
 
 #ifdef NDEBUG
 #define LOG_DEBUG(...) do { } while (0)
@@ -80,6 +81,10 @@ typedef struct {
 
     bool multitouchEnabled;
 
+    ARect keyboardFrame;
+    bool keyboardRequested;
+    bool keyboardVisible;
+
     struct timespec initTime;
     bool animating;
     bool hasInited;
@@ -106,7 +111,7 @@ static Engine *engineGlobal = NULL;
 #define EXCEPTION_THROWN() \
     ((*jni)->ExceptionCheck(jni) ? ((*jni)->ExceptionClear(jni), true) : false)
 
-#define EXCEPTION_CLEAR(ret)           \
+#define EXCEPTION_CLEAR()              \
     if ((*jni)->ExceptionCheck(jni)) { \
         (*jni)->ExceptionClear(jni);   \
     }
@@ -119,6 +124,7 @@ static jmethodID getJavaMethodID(JNIEnv *jni, jobject object, const char *name, 
     if (object) {
         jclass class = (*jni)->GetObjectClass(jni, object);
         jmethodID methodID = (*jni)->GetMethodID(jni, class, name, sig);
+        (*jni)->DeleteLocalRef(jni, class);
         return EXCEPTION_THROWN() ? NULL : methodID;
     } else {
         return NULL;
@@ -129,6 +135,17 @@ static jfieldID getJavaFieldID(JNIEnv *jni, jobject object, const char *name, co
     if (object) {
         jclass class = (*jni)->GetObjectClass(jni, object);
         jfieldID fieldID = (*jni)->GetFieldID(jni, class, name, sig);
+        (*jni)->DeleteLocalRef(jni, class);
+        return EXCEPTION_THROWN() ? NULL : fieldID;
+    } else {
+        return NULL;
+    }
+}
+
+static jfieldID getJavaStaticFieldID(JNIEnv *jni, jclass class, const char *name,
+                                     const char *sig) {
+    if (class) {
+        jfieldID fieldID = (*jni)->GetStaticFieldID(jni, class, name, sig);
         return EXCEPTION_THROWN() ? NULL : fieldID;
     } else {
         return NULL;
@@ -146,6 +163,10 @@ static jfieldID getJavaFieldID(JNIEnv *jni, jobject object, const char *name, co
 #define getJavaField(jni, object, fieldName, fieldSig, fieldType) \
     (*jni)->Get##fieldType##Field(jni, object, \
         getJavaFieldID(jni, object, fieldName, fieldSig))
+
+#define getJavaStaticField(jni, class, fieldName, fieldSig, fieldType) \
+    (*jni)->GetStatic##fieldType##Field(jni, class, \
+        getJavaStaticFieldID(jni, class, fieldName, fieldSig))
 
 static void setOrientation(struct android_app *app) {
     Engine *engine = (Engine *)app->userData;
@@ -166,6 +187,23 @@ static void setOrientation(struct android_app *app) {
     callJavaMethodWithArgs(jni, app->activity->clazz, "setRequestedOrientation", "(I)V", Void,
                            orientation);
     EXCEPTION_CLEAR()
+}
+
+static jobject getDecorView(struct android_app *app) {
+    Engine *engine = (Engine *)app->userData;
+    JNIEnv *jni = engine->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return NULL;
+    }
+    jobject window = callJavaMethod(jni, app->activity->clazz, "getWindow",
+                                    "()Landroid/view/Window;", Object);
+    if (!window || EXCEPTION_THROWN()) {
+        return NULL;
+    }
+    jobject decorView = callJavaMethod(jni, window, "getDecorView", "()Landroid/view/View;",
+                                       Object);
+    (*jni)->DeleteLocalRef(jni, window);
+    return EXCEPTION_THROWN() ? NULL : decorView;
 }
 
 static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome) {
@@ -200,14 +238,8 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
         return;
     }
 
-    jobject window = callJavaMethod(jni, app->activity->clazz, "getWindow",
-                                    "()Landroid/view/Window;", Object);
-    if (!window || EXCEPTION_THROWN()) {
-        return;
-    }
-    jobject decorView = callJavaMethod(jni, window, "getDecorView", "()Landroid/view/View;",
-                                           Object);
-    if (!decorView || EXCEPTION_THROWN()) {
+    jobject decorView = getDecorView(app);
+    if (!decorView) {
         return;
     }
     if (uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
@@ -233,6 +265,7 @@ static void setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChr
                                    0x00000200 | 0x00000400 | 0x00001000);
         }
     }
+    (*jni)->DeleteLocalRef(jni, decorView);
     EXCEPTION_CLEAR()
 }
 
@@ -291,7 +324,136 @@ static const char *getLocale() {
     lang = strdup(nativeString);
     (*jni)->ReleaseStringUTFChars(jni, valueString, nativeString);
 
+    (*jni)->DeleteLocalRef(jni, valueString);
+    (*jni)->DeleteLocalRef(jni, locale);
+    (*jni)->DeleteLocalRef(jni, configuration);
+    (*jni)->DeleteLocalRef(jni, res);
+
     return lang;
+}
+
+static bool setKeyboardVisible(Engine *engine, bool visible) {
+    /*
+    if (visible) {
+		ime.showSoftInput(decorView, InputMethodManager.SHOW_FORCED);
+	} else {
+		ime.hideSoftInputFromWindow(decorView.getWindowToken(), 0);
+	}
+    */
+
+    const int SHOW_FORCED = 2;
+
+    JNIEnv *jni = engine->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return false;
+    }
+
+    jobject decorView = getDecorView(engine->app);
+    if (!decorView) {
+        return false;
+    }
+
+    jclass contextClass = (*jni)->FindClass(jni, "android/content/Context");
+    if (EXCEPTION_THROWN()) {
+        return false;
+    }
+
+    jstring imString = getJavaStaticField(jni, contextClass, "INPUT_METHOD_SERVICE",
+                                          "Ljava/lang/String;", Object);
+    if (!imString || EXCEPTION_THROWN()) {
+        return false;
+    }
+    jobject inputMethodService = callJavaMethodWithArgs(jni, engine->app->activity->clazz,
+                                                        "getSystemService",
+                                                        "(Ljava/lang/String;)Ljava/lang/Object;",
+                                                        Object, imString);
+    if (!inputMethodService || EXCEPTION_THROWN()) {
+        return false;
+    }
+
+    if (visible) {
+        callJavaMethodWithArgs(jni, inputMethodService, "showSoftInput",
+                               "(Landroid/view/View;I)Z", Boolean, decorView, SHOW_FORCED);
+    } else {
+        jobject windowToken = callJavaMethod(jni, decorView, "getWindowToken",
+                                             "()Landroid/os/IBinder;", Object);
+        if (!windowToken || EXCEPTION_THROWN()) {
+            return false;
+        }
+        callJavaMethodWithArgs(jni, inputMethodService, "hideSoftInputFromWindow",
+                               "(Landroid/os/IBinder;I)Z", Boolean, windowToken, 0);
+        (*jni)->DeleteLocalRef(jni, windowToken);
+    }
+
+    (*jni)->DeleteLocalRef(jni, inputMethodService);
+    (*jni)->DeleteLocalRef(jni, imString);
+    (*jni)->DeleteLocalRef(jni, contextClass);
+    (*jni)->DeleteLocalRef(jni, decorView);
+
+    return !EXCEPTION_THROWN();
+}
+
+static void resetContentRect(Engine *engine) {
+    // Reset's NativeActivity's content rect so that onContentRectChanged acts as a
+    // OnGlobalLayoutListener. This is needed to detect changes to getWindowVisibleDisplayFrame()
+    // HACK: This uses undocumented fields.
+
+    JNIEnv *jni = engine->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return;
+    }
+
+    jfieldID field = getJavaFieldID(jni, engine->app->activity->clazz, "mLastContentWidth", "I");
+    if (!field || EXCEPTION_THROWN()) {
+        return;
+    }
+
+    (*jni)->SetIntField(jni, engine->app->activity->clazz, field, -1);
+    EXCEPTION_CLEAR()
+}
+
+static ARect getWindowVisibleDisplayFrame(Engine *engine, ARect defaultRect) {
+    JNIEnv *jni = engine->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return defaultRect;
+    }
+
+    jobject decorView = getDecorView(engine->app);
+    if (!decorView) {
+        return defaultRect;
+    }
+
+    jclass javaRectClass = (*jni)->FindClass(jni, "android/graphics/Rect");
+    if (EXCEPTION_THROWN()) {
+        return defaultRect;
+    }
+
+    jobject javaRect = (*jni)->AllocObject(jni, javaRectClass);
+    if (EXCEPTION_THROWN()) {
+        return defaultRect;
+    }
+
+    callJavaMethodWithArgs(jni, decorView, "getWindowVisibleDisplayFrame",
+                           "(Landroid/graphics/Rect;)V", Void, javaRect);
+    if (EXCEPTION_THROWN()) {
+        return defaultRect;
+    }
+
+    ARect rect;
+    rect.left = getJavaField(jni, javaRect, "left", "I", Int);
+    rect.right = getJavaField(jni, javaRect, "right", "I", Int);
+    rect.top = getJavaField(jni, javaRect, "top", "I", Int);
+    rect.bottom = getJavaField(jni, javaRect, "bottom", "I", Int);
+
+    (*jni)->DeleteLocalRef(jni, javaRect);
+    (*jni)->DeleteLocalRef(jni, javaRectClass);
+    (*jni)->DeleteLocalRef(jni, decorView);
+
+    if (EXCEPTION_THROWN()) {
+        return defaultRect;
+    } else {
+        return rect;
+    }
 }
 
 // MARK: EGL
@@ -620,6 +782,94 @@ static void engine_draw_frame(Engine *engine) {
     }
 }
 
+// MARK: Native app glue extension
+
+static bool ARectsEqual(ARect r1, ARect r2) {
+    return r1.left == r2.left && r1.top == r2.top && r1.right == r2.right && r1.bottom == r2.bottom;
+}
+
+static void android_app_write_cmd(struct android_app *android_app, int8_t cmd) {
+    write(android_app->msgwrite, &cmd, sizeof(cmd));
+}
+
+static void android_app_set_content_rect(struct android_app *android_app, ARect rect) {
+    pthread_mutex_lock(&android_app->mutex);
+    android_app->pendingContentRect = rect;
+    android_app_write_cmd(android_app, APP_CMD_CONTENT_RECT_CHANGED);
+    while (!ARectsEqual(android_app->contentRect, android_app->pendingContentRect)) {
+        pthread_cond_wait(&android_app->cond, &android_app->mutex);
+    }
+    pthread_mutex_unlock(&android_app->mutex);
+}
+
+static void onContentRectChanged(ANativeActivity *activity, const ARect *rect) {
+    android_app_set_content_rect((struct android_app *)activity->instance, *rect);
+}
+
+// MARK: Keyboard visibility
+
+static void updateKeyboardVisibility(Engine *engine) {
+    if (engine->display && engine->display->keyboardVisibilityChangedFunc) {
+        ARect windowRect = engine->app->contentRect;
+        ARect visibleRect = getWindowVisibleDisplayFrame(engine, windowRect);
+        ARect nonVisibleRect[4];
+
+        // Left
+        nonVisibleRect[0].left = windowRect.left;
+        nonVisibleRect[0].right = visibleRect.left;
+        nonVisibleRect[0].top = windowRect.top;
+        nonVisibleRect[0].bottom = windowRect.bottom;
+
+        // Right
+        nonVisibleRect[1].left = visibleRect.right;
+        nonVisibleRect[1].right = windowRect.right;
+        nonVisibleRect[1].top = windowRect.top;
+        nonVisibleRect[1].bottom = windowRect.bottom;
+
+        // Top
+        nonVisibleRect[2].left = windowRect.left;
+        nonVisibleRect[2].right = windowRect.right;
+        nonVisibleRect[2].top = windowRect.top;
+        nonVisibleRect[2].bottom = visibleRect.top;
+
+        // Bottom
+        nonVisibleRect[3].left = windowRect.left;
+        nonVisibleRect[3].right = windowRect.right;
+        nonVisibleRect[3].top = visibleRect.bottom;
+        nonVisibleRect[3].bottom = windowRect.bottom;
+
+        // Find largest with minimum keyboard size
+        const int minimumKeyboardSize = (int)(100 * engine->scale);
+        int largestIndex = 0;
+        int largestArea = -1;
+        for (int i = 0; i < 4; i++) {
+            int w = nonVisibleRect[i].right - nonVisibleRect[i].left;
+            int h = nonVisibleRect[i].bottom - nonVisibleRect[i].top;
+            int area = w * h;
+            if (w >= minimumKeyboardSize && h >= minimumKeyboardSize && area > largestArea) {
+                largestIndex = i;
+                largestArea = area;
+            }
+        }
+
+        bool keyboardVisible = largestArea > 0;
+        ARect keyboardFrame = keyboardVisible ? nonVisibleRect[largestIndex] : (ARect){0, 0, 0, 0};
+
+        // Send update notification
+        if (engine->keyboardVisible != keyboardVisible ||
+                !ARectsEqual(engine->keyboardFrame, keyboardFrame)) {
+            engine->keyboardVisible = keyboardVisible;
+            engine->keyboardFrame = keyboardFrame;
+            double x = keyboardFrame.left;
+            double y = keyboardFrame.top;
+            double w = keyboardFrame.right - keyboardFrame.left;
+            double h = keyboardFrame.bottom - keyboardFrame.top;
+            engine->display->keyboardVisibilityChangedFunc(engine->display, keyboardVisible,
+                                                           x, y, w, h);
+        }
+    }
+}
+
 // MARK: App command callback
 
 static void set_animating(Engine *engine, bool animating) {
@@ -683,6 +933,16 @@ static void app_cmd_callback(struct android_app *app, int32_t cmd) {
                 engine_draw_frame(engine);
                 set_animating(engine, false);
             }
+            break;
+        }
+        case APP_CMD_CONTENT_RECT_CHANGED: {
+            LOG_LIFECYCLE("APP_CMD_CONTENT_RECT_CHANGED");
+            pthread_mutex_lock(&app->mutex);
+            app->contentRect = app->pendingContentRect;
+            resetContentRect(engine);
+            pthread_cond_broadcast(&app->cond);
+            pthread_mutex_unlock(&app->mutex);
+            updateKeyboardVisibility(engine);
             break;
         }
         case APP_CMD_LOW_MEMORY: {
@@ -882,6 +1142,7 @@ void android_main(struct android_app *app) {
     app->userData = engine;
     app->onAppCmd = app_cmd_callback;
     app->onInputEvent = app_input_callback;
+    app->activity->callbacks->onContentRectChanged = onContentRectChanged;
     engine->app = app;
 
     // Init java env
@@ -889,8 +1150,10 @@ void android_main(struct android_app *app) {
     (*vm)->AttachCurrentThread(vm, &engine->jniEnv, NULL);
 
     // Get display scale
+    const int ACONFIGURATION_DENSITY_ANY = 0xfffe; // Added in API 21
     const int32_t density = AConfiguration_getDensity(app->config);
-    if (density == ACONFIGURATION_DENSITY_DEFAULT || density == ACONFIGURATION_DENSITY_NONE) {
+    if (density == ACONFIGURATION_DENSITY_DEFAULT || density == ACONFIGURATION_DENSITY_NONE ||
+            density == ACONFIGURATION_DENSITY_ANY || density <= 0) {
         engine->scale = 1.0;
     } else {
         engine->scale = density / 160.0;
@@ -1030,6 +1293,22 @@ GLFMProc glfmGetProcAddress(const char *functionName) {
         function = handle ? (GLFMProc)dlsym(handle, functionName) : NULL;
     }
     return function;
+}
+
+void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
+    Engine *engine = (Engine *)display->platformData;
+    if (setKeyboardVisible(engine, visible)) {
+        if (visible && display->uiChrome == GLFMUserInterfaceChromeFullscreen) {
+            // This seems to be required to reset to fullscreen when the keyboard is shown.
+            setFullScreen(engine->app, GLFMUserInterfaceChromeNavigationAndStatusBar);
+        }
+        engine->keyboardRequested = visible;
+    }
+}
+
+bool glfmIsKeyboardVisible(GLFMDisplay *display) {
+    Engine *engine = (Engine *)display->platformData;
+    return engine->keyboardVisible;
 }
 
 // MARK: GLFM Asset reading

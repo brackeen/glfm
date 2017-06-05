@@ -295,7 +295,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
 #pragma mark - GLFMViewController
 
-@interface GLFMViewController : UIViewController {
+@interface GLFMViewController : UIViewController<UIKeyInput, UITextInputTraits> {
     const void *activeTouches[MAX_SIMULTANEOUS_TOUCHES];
 }
 
@@ -304,6 +304,8 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
 @property(nonatomic, assign) CGSize drawableSize;
 @property(nonatomic, assign) BOOL multipleTouchEnabled;
+@property(nonatomic, assign) BOOL keyboardRequested;
+@property(nonatomic, assign) BOOL keyboardVisible;
 
 @end
 
@@ -444,6 +446,10 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         }
         self.animating = YES;
     }
+
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(keyboardFrameChanged:)
+                                               name:UIKeyboardWillChangeFrameNotification
+                                             object:view.window];
 }
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
@@ -570,13 +576,57 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     }
 }
 
-#pragma mark - Key commands
+#pragma mark - UIKeyInput
 
-// Key input only works when a key is pressed, and has no repeat events or release events.
-// Not ideal, but useful for prototyping.
+- (void)keyboardFrameChanged:(NSNotification *)notification {
+    id value = notification.userInfo[UIKeyboardFrameEndUserInfoKey];
+    if ([value isKindOfClass:[NSValue class]]) {
+        NSValue *nsValue = value;
+        CGRect keyboardFrame = [nsValue CGRectValue];
+
+        self.keyboardVisible = CGRectIntersectsRect(self.view.window.frame, keyboardFrame);
+
+        if (_glfmDisplay->keyboardVisibilityChangedFunc) {
+            // Convert to view coordinates
+            keyboardFrame = [self.view convertRect:keyboardFrame fromView:nil];
+
+            // Convert to pixels
+            keyboardFrame.origin.x *= self.view.contentScaleFactor;
+            keyboardFrame.origin.y *= self.view.contentScaleFactor;
+            keyboardFrame.size.width *= self.view.contentScaleFactor;
+            keyboardFrame.size.height *= self.view.contentScaleFactor;
+
+            _glfmDisplay->keyboardVisibilityChangedFunc(_glfmDisplay, self.keyboardVisible,
+                                                        keyboardFrame.origin.x,
+                                                        keyboardFrame.origin.y,
+                                                        keyboardFrame.size.width,
+                                                        keyboardFrame.size.height);
+        }
+    }
+}
+
+// UITextInputTraits - disable suggestion bar
+- (UITextAutocorrectionType)autocorrectionType {
+    return UITextAutocorrectionTypeNo;
+}
+
+- (BOOL)hasText {
+    return YES;
+}
+
+- (void)insertText:(NSString *)text {
+    // TODO: Send as character input
+}
+
+- (void)deleteBackward {
+    if (_glfmDisplay->keyFunc) {
+        _glfmDisplay->keyFunc(_glfmDisplay, GLFMKeyBackspace, GLFMKeyActionPressed, 0);
+        _glfmDisplay->keyFunc(_glfmDisplay, GLFMKeyBackspace, GLFMKeyActionReleased, 0);
+    }
+}
 
 - (BOOL)canBecomeFirstResponder {
-    return YES;
+    return self.keyboardRequested;
 }
 
 - (NSArray *)keyCommands {
@@ -595,18 +645,6 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
                                              modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)],
                          [UIKeyCommand keyCommandWithInput:UIKeyInputEscape
-                                             modifierFlags:(UIKeyModifierFlags)0
-                                                    action:@selector(keyPressed:)],
-                         [UIKeyCommand keyCommandWithInput:@" "
-                                             modifierFlags:(UIKeyModifierFlags)0
-                                                    action:@selector(keyPressed:)],
-                         [UIKeyCommand keyCommandWithInput:@"\r"
-                                             modifierFlags:(UIKeyModifierFlags)0
-                                                    action:@selector(keyPressed:)],
-                         [UIKeyCommand keyCommandWithInput:@"\t"
-                                             modifierFlags:(UIKeyModifierFlags)0
-                                                    action:@selector(keyPressed:)],
-                         [UIKeyCommand keyCommandWithInput:@"\b"
                                              modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)] ];
     };
@@ -628,18 +666,11 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
             keyCode = GLFMKeyRight;
         } else if (key == UIKeyInputEscape) {
             keyCode = GLFMKeyEscape;
-        } else if ([@" " isEqualToString:key]) {
-            keyCode = GLFMKeySpace;
-        } else if ([@"\t" isEqualToString:key]) {
-            keyCode = GLFMKeyTab;
-        } else if ([@"\b" isEqualToString:key]) {
-            keyCode = GLFMKeyBackspace;
-        } else if ([@"\r" isEqualToString:key]) {
-            keyCode = GLFMKeyEnter;
         }
 
         if (keyCode != 0) {
             _glfmDisplay->keyFunc(_glfmDisplay, keyCode, GLFMKeyActionPressed, 0);
+            _glfmDisplay->keyFunc(_glfmDisplay, keyCode, GLFMKeyActionReleased, 0);
         }
     }
 }
@@ -828,6 +859,27 @@ bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.multipleTouchEnabled;
+    } else {
+        return false;
+    }
+}
+
+void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
+    if (display) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        vc.keyboardRequested = visible;
+        if (visible) {
+            [vc becomeFirstResponder];
+        } else {
+            [vc resignFirstResponder];
+        }
+    }
+}
+
+bool glfmIsKeyboardVisible(GLFMDisplay *display) {
+    if (display) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        return vc.keyboardRequested;
     } else {
         return false;
     }

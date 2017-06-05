@@ -48,6 +48,7 @@ struct GLFMDisplay {
     GLFMSurfaceCreatedFunc surfaceCreatedFunc;
     GLFMSurfaceResizedFunc surfaceResizedFunc;
     GLFMSurfaceDestroyedFunc surfaceDestroyedFunc;
+    GLFMKeyboardVisibilityChangedFunc keyboardVisibilityChangedFunc;
     GLFMMemoryWarningFunc lowMemoryFunc;
     GLFMAppPausingFunc pausingFunc;
     GLFMAppResumingFunc resumingFunc;
@@ -118,6 +119,13 @@ void glfmSetSurfaceDestroyedFunc(GLFMDisplay *display,
                                  GLFMSurfaceDestroyedFunc surfaceDestroyedFunc) {
     if (display) {
         display->surfaceDestroyedFunc = surfaceDestroyedFunc;
+    }
+}
+
+void glfmSetKeyboardVisibilityChangedFunc(GLFMDisplay *display,
+                                          GLFMKeyboardVisibilityChangedFunc func) {
+    if (display) {
+        display->keyboardVisibilityChangedFunc = func;
     }
 }
 
