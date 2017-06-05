@@ -311,6 +311,8 @@ static const char *beforeUnloadCallback(int eventType, const void *reserved, voi
 
 static EM_BOOL keyCallback(int eventType, const EmscriptenKeyboardEvent *e, void *userData) {
     GLFMDisplay *display = userData;
+    // Prevent change of focus via tab key
+    EM_BOOL handled = e->keyCode == '\t';
     if (display->keyFunc) {
         GLFMKeyAction action;
         if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
@@ -339,9 +341,9 @@ static EM_BOOL keyCallback(int eventType, const EmscriptenKeyboardEvent *e, void
          GLFMKeyDown      = 0x28,
          */
 
-        return display->keyFunc(display, e->keyCode, action, 0);
+        return display->keyFunc(display, e->keyCode, action, 0) || handled;
     } else {
-        return 0;
+        return handled;
     }
 }
 
