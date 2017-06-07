@@ -82,7 +82,6 @@ typedef struct {
     bool multitouchEnabled;
 
     ARect keyboardFrame;
-    bool keyboardRequested;
     bool keyboardVisible;
 
     struct timespec initTime;
@@ -809,7 +808,7 @@ static void onContentRectChanged(ANativeActivity *activity, const ARect *rect) {
 // MARK: Keyboard visibility
 
 static void updateKeyboardVisibility(Engine *engine) {
-    if (engine->display && engine->display->keyboardVisibilityChangedFunc) {
+    if (engine->display) {
         ARect windowRect = engine->app->contentRect;
         ARect visibleRect = getWindowVisibleDisplayFrame(engine, windowRect);
         ARect nonVisibleRect[4];
@@ -860,12 +859,14 @@ static void updateKeyboardVisibility(Engine *engine) {
                 !ARectsEqual(engine->keyboardFrame, keyboardFrame)) {
             engine->keyboardVisible = keyboardVisible;
             engine->keyboardFrame = keyboardFrame;
-            double x = keyboardFrame.left;
-            double y = keyboardFrame.top;
-            double w = keyboardFrame.right - keyboardFrame.left;
-            double h = keyboardFrame.bottom - keyboardFrame.top;
-            engine->display->keyboardVisibilityChangedFunc(engine->display, keyboardVisible,
-                                                           x, y, w, h);
+            if (engine->display->keyboardVisibilityChangedFunc) {
+                double x = keyboardFrame.left;
+                double y = keyboardFrame.top;
+                double w = keyboardFrame.right - keyboardFrame.left;
+                double h = keyboardFrame.bottom - keyboardFrame.top;
+                engine->display->keyboardVisibilityChangedFunc(engine->display, keyboardVisible,
+                                                               x, y, w, h);
+            }
         }
     }
 }
@@ -1302,7 +1303,6 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
             // This seems to be required to reset to fullscreen when the keyboard is shown.
             setFullScreen(engine->app, GLFMUserInterfaceChromeNavigationAndStatusBar);
         }
-        engine->keyboardRequested = visible;
     }
 }
 
