@@ -217,6 +217,9 @@ typedef bool (*GLFMTouchFunc)(GLFMDisplay *display, int touch, GLFMTouchPhase ph
 typedef bool (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action,
                             int modifiers);
 
+/// Callback function for character input events.
+typedef void (*GLFMCharFunc)(GLFMDisplay *display, const char *utf8, int modifiers);
+
 typedef void (*GLFMKeyboardVisibilityChangedFunc)(GLFMDisplay *display, bool visible,
                                                   double x, double y, double width, double height);
 
@@ -313,6 +316,8 @@ void glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc);
 /// Note, on iOS, only pressed events are sent (no repeated or released events) and with no
 /// modifiers.
 void glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
+
+void glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
 
 /// Sets the function to call when the surface could not be created.
 /// For example, the browser does not support WebGL.

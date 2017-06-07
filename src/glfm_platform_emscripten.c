@@ -311,6 +311,12 @@ static const char *beforeUnloadCallback(int eventType, const void *reserved, voi
 
 static EM_BOOL keyCallback(int eventType, const EmscriptenKeyboardEvent *e, void *userData) {
     GLFMDisplay *display = userData;
+    if (eventType == EMSCRIPTEN_EVENT_KEYPRESS) {
+        if (display->charFunc && e->charCode >= ' ') {
+            display->charFunc(display, e->key, 0);
+        }
+        return 1;
+    }
     // Prevent change of focus via tab key
     EM_BOOL handled = e->keyCode == '\t';
     if (display->keyFunc) {
@@ -499,7 +505,7 @@ int main() {
     emscripten_set_mousemove_callback(0, glfmDisplay, 1, mouseCallback);
     //emscripten_set_click_callback(0, 0, 1, mouse_callback);
     //emscripten_set_dblclick_callback(0, 0, 1, mouse_callback);
-    //emscripten_set_keypress_callback(0, glfmDisplay, 1, keyCallback);
+    emscripten_set_keypress_callback(0, glfmDisplay, 1, keyCallback);
     emscripten_set_keydown_callback(0, glfmDisplay, 1, keyCallback);
     emscripten_set_keyup_callback(0, glfmDisplay, 1, keyCallback);
     emscripten_set_webglcontextlost_callback(0, glfmDisplay, 1, webglContextCallback);

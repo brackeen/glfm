@@ -615,7 +615,9 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 }
 
 - (void)insertText:(NSString *)text {
-    // TODO: Send as character input
+    if (_glfmDisplay->charFunc) {
+        _glfmDisplay->charFunc(_glfmDisplay, text.UTF8String, 0);
+    }
 }
 
 - (void)deleteBackward {

@@ -44,6 +44,7 @@ struct GLFMDisplay {
     GLFMMainLoopFunc mainLoopFunc;
     GLFMTouchFunc touchFunc;
     GLFMKeyFunc keyFunc;
+    GLFMCharFunc charFunc;
     GLFMSurfaceErrorFunc surfaceErrorFunc;
     GLFMSurfaceCreatedFunc surfaceCreatedFunc;
     GLFMSurfaceResizedFunc surfaceResizedFunc;
@@ -138,6 +139,12 @@ void glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc) {
 void glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc) {
     if (display) {
         display->keyFunc = keyFunc;
+    }
+}
+
+void glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc) {
+    if (display) {
+        display->charFunc = charFunc;
     }
 }
 

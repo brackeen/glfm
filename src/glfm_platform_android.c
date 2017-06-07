@@ -455,6 +455,41 @@ static ARect getWindowVisibleDisplayFrame(Engine *engine, ARect defaultRect) {
     }
 }
 
+static uint32_t getUnicodeChar(Engine *engine, AInputEvent *event) {
+    JNIEnv *jni = engine->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return 0;
+    }
+
+    jint keyCode = AKeyEvent_getKeyCode(event);
+    jint metaState = AKeyEvent_getMetaState(event);
+
+    jclass keyEventClass = (*jni)->FindClass(jni, "android/view/KeyEvent");
+    if (!keyEventClass || EXCEPTION_THROWN()) {
+        return 0;
+    }
+
+    jmethodID getUnicodeChar = (*jni)->GetMethodID(jni, keyEventClass, "getUnicodeChar", "(I)I");
+    jmethodID eventConstructor = (*jni)->GetMethodID(jni, keyEventClass, "<init>", "(II)V");
+
+    jobject eventObject = (*jni)->NewObject(jni, keyEventClass, eventConstructor,
+                                            AKEY_EVENT_ACTION_DOWN, keyCode);
+    if (!keyEventClass || EXCEPTION_THROWN()) {
+        return 0;
+    }
+
+    jint unicodeKey = (*jni)->CallIntMethod(jni, eventObject, getUnicodeChar, metaState);
+
+    (*jni)->DeleteLocalRef(jni, eventObject);
+    (*jni)->DeleteLocalRef(jni, keyEventClass);
+
+    if (EXCEPTION_THROWN()) {
+        return 0;
+    } else {
+        return (uint32_t)unicodeKey;
+    }
+}
+
 // MARK: EGL
 
 static bool egl_init_context(Engine *engine) {
@@ -984,10 +1019,37 @@ static void app_cmd_callback(struct android_app *app, int32_t cmd) {
 
 // MARK: Key and touch input callback
 
+static const char *unicodeToUTF8(uint32_t unicode) {
+    static char utf8[5];
+    if (unicode < 0x80) {
+        utf8[0] = (char)(unicode & 0x7f);
+        utf8[1] = 0;
+    } else if (unicode < 0x800) {
+        utf8[0] = (char)(0xc0 | (unicode >> 6));
+        utf8[1] = (char)(0x80 | (unicode & 0x3f));
+        utf8[2] = 0;
+    } else if (unicode < 0x10000) {
+        utf8[0] = (char)(0xe0 | (unicode >> 12));
+        utf8[1] = (char)(0x80 | ((unicode >> 6) & 0x3f));
+        utf8[2] = (char)(0x80 | (unicode & 0x3f));
+        utf8[3] = 0;
+    } else if (unicode < 0x110000) {
+        utf8[0] = (char)(0xf0 | (unicode >> 18));
+        utf8[1] = (char)(0x80 | ((unicode >> 12) & 0x3f));
+        utf8[2] = (char)(0x80 | ((unicode >> 6) & 0x3f));
+        utf8[3] = (char)(0x80 | (unicode & 0x3f));
+        utf8[4] = 0;
+    } else {
+        utf8[0] = 0;
+    }
+    return utf8;
+}
+
 static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
     Engine *engine = (Engine *)app->userData;
     const int32_t eventType = AInputEvent_getType(event);
     if (eventType == AINPUT_EVENT_TYPE_KEY) {
+        int handled = 0;
         if (engine->display && engine->display->keyFunc) {
             int32_t aKeyCode = AKeyEvent_getKeyCode(event);
             int32_t aAction = AKeyEvent_getAction(event);
@@ -1023,6 +1085,7 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                         key = GLFMKeyNavMenu;
                         break;
                     default:
+                        // TODO: Send all keycodes?
                         if (aKeyCode >= AKEYCODE_0 && aKeyCode <= AKEYCODE_9) {
                             key = (GLFMKey)(aKeyCode - AKEYCODE_0 + '0');
                         } else if (aKeyCode >= AKEYCODE_A && aKeyCode <= AKEYCODE_Z) {
@@ -1034,7 +1097,6 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                 }
 
                 if (key != 0) {
-                    int handled = 0;
                     if (aAction == AKEY_EVENT_ACTION_UP) {
                         handled = engine->display->keyFunc(engine->display, key,
                                                            GLFMKeyActionReleased, 0);
@@ -1058,11 +1120,27 @@ static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
                                                                 GLFMKeyActionReleased, 0);
                         }
                     }
-
-                    return handled;
                 }
             }
         }
+        if (engine->display && engine->display->charFunc) {
+            int32_t aAction = AKeyEvent_getAction(event);
+            if (aAction == AKEY_EVENT_ACTION_DOWN || aAction == AKEY_EVENT_ACTION_MULTIPLE) {
+                uint32_t unicode = getUnicodeChar(engine, event);
+                if (unicode >= ' ') {
+                    const char *str = unicodeToUTF8(unicode);
+                    if (aAction == AKEY_EVENT_ACTION_DOWN) {
+                        engine->display->charFunc(engine->display, str, 0);
+                    } else {
+                        int32_t i;
+                        for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
+                            engine->display->charFunc(engine->display, str, 0);
+                        }
+                    }
+                }
+            }
+        }
+        return handled;
     } else if (eventType == AINPUT_EVENT_TYPE_MOTION) {
         if (engine->display && engine->display->touchFunc) {
             const int maxTouches = engine->multitouchEnabled ? MAX_SIMULTANEOUS_TOUCHES : 1;
