@@ -18,6 +18,7 @@
  3. This notice may not be removed or altered from any source distribution.
  */
 
+#define _BSD_SOURCE // For funopen
 #include "glfm.h"
 
 #ifdef GLFM_PLATFORM_ANDROID
