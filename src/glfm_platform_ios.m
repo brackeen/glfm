@@ -348,6 +348,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 }
 
 - (CGSize)preferredDrawableSize {
+#if TARGET_OS_IOS
     // TODO: Remove deprecated interfaceOrientation, but wait until Split View is implemented.
     BOOL isPortrait = UIInterfaceOrientationIsPortrait(self.interfaceOrientation);
     // NOTE: [UIScreen mainScreen].nativeBounds is always in portrait orientation,
@@ -372,10 +373,13 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     } else {
         return CGSizeMake(size.height, size.width);
     }
+#else
+    return [UIScreen mainScreen].nativeBounds.size;
+#endif
 }
 
 - (void)loadView {
-    self.view = [[GLFMView alloc] initWithFrame:[[UIScreen mainScreen] applicationFrame]];
+    self.view = [[GLFMView alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.view.contentScaleFactor = [UIScreen mainScreen].nativeScale;
 }
@@ -396,10 +400,13 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     }
 
     GLFMView *view = (GLFMView *)self.view;
-    view.multipleTouchEnabled = self.multipleTouchEnabled;
     view.context = self.context;
 
+#if TARGET_OS_IOS
+    view.multipleTouchEnabled = self.multipleTouchEnabled;
+
     [self setNeedsStatusBarAppearanceUpdate];
+#endif
 
     switch (_glfmDisplay->colorFormat) {
         case GLFMColorFormatRGB565:
@@ -447,9 +454,11 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         self.animating = YES;
     }
 
+#if TARGET_OS_IOS
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(keyboardFrameChanged:)
                                                name:UIKeyboardWillChangeFrameNotification
                                              object:view.window];
+#endif
 }
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
@@ -578,6 +587,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
 #pragma mark - UIKeyInput
 
+#if TARGET_OS_IOS
 - (void)keyboardFrameChanged:(NSNotification *)notification {
     id value = notification.userInfo[UIKeyboardFrameEndUserInfoKey];
     if ([value isKindOfClass:[NSValue class]]) {
@@ -604,6 +614,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         }
     }
 }
+#endif
 
 // UITextInputTraits - disable suggestion bar
 - (UITextAutocorrectionType)autocorrectionType {
@@ -839,8 +850,11 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
 }
 
 bool glfmHasTouch(GLFMDisplay *display) {
-    // This will need to change, for say, TV apps
+#if TARGET_OS_IOS
     return true;
+#else
+    return false;
+#endif
 }
 
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
@@ -849,11 +863,13 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
 
 void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
     if (display) {
+#if TARGET_OS_IOS
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         vc.multipleTouchEnabled = (BOOL)multitouchEnabled;
         if (vc.isViewLoaded) {
             vc.view.multipleTouchEnabled = (BOOL)multitouchEnabled;
         }
+#endif
     }
 }
 
