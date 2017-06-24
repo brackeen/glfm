@@ -585,9 +585,78 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     }
 }
 
+#if TARGET_OS_TV
+
+- (BOOL)handlePress:(UIPress *)press withAction:(GLFMKeyAction)action {
+    if (_glfmDisplay->keyFunc) {
+        GLFMKey key = (GLFMKey)0;
+        switch (press.type) {
+            case UIPressTypeUpArrow:
+                key = GLFMKeyUp;
+                break;
+            case UIPressTypeDownArrow:
+                key = GLFMKeyDown;
+                break;
+            case UIPressTypeLeftArrow:
+                key = GLFMKeyLeft;
+                break;
+            case UIPressTypeRightArrow:
+                key = GLFMKeyRight;
+                break;
+            case UIPressTypeSelect:
+                key = GLFMKeyNavSelect;
+                break;
+            case UIPressTypeMenu:
+                key = GLFMKeyNavMenu;
+                break;
+            case UIPressTypePlayPause:
+                key = GLFMKeyPlayPause;
+                break;
+        }
+        if (key != 0) {
+            return _glfmDisplay->keyFunc(_glfmDisplay, key, action, 0);
+        } else {
+            return NO;
+        }
+    } else {
+        return NO;
+    }
+}
+
+- (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    BOOL handled = YES;
+    for (UIPress *press in presses) {
+        handled &= [self handlePress:press withAction:GLFMKeyActionPressed];
+    }
+    if (!handled) {
+        [super pressesBegan:presses withEvent:event];
+    }
+}
+
+- (void)pressesChanged:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    [super pressesChanged:presses withEvent:event];
+}
+
+- (void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    BOOL handled = YES;
+    for (UIPress *press in presses) {
+        handled &= [self handlePress:press withAction:GLFMKeyActionReleased];
+    }
+    if (!handled) {
+        [super pressesEnded:presses withEvent:event];
+    }
+}
+
+- (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    [super pressesCancelled:presses withEvent:event];
+}
+
+#endif
+
 #pragma mark - UIKeyInput
 
 #if TARGET_OS_IOS
+
 - (void)keyboardFrameChanged:(NSNotification *)notification {
     id value = notification.userInfo[UIKeyboardFrameEndUserInfoKey];
     if ([value isKindOfClass:[NSValue class]]) {
@@ -614,6 +683,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         }
     }
 }
+
 #endif
 
 // UITextInputTraits - disable suggestion bar
@@ -850,11 +920,7 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
 }
 
 bool glfmHasTouch(GLFMDisplay *display) {
-#if TARGET_OS_IOS
     return true;
-#else
-    return false;
-#endif
 }
 
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {

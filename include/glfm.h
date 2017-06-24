@@ -176,6 +176,8 @@ typedef enum {
     GLFMKeyDown = 0x28,
     GLFMKeyNavBack = 0x1000,
     GLFMKeyNavMenu = 0x1001,
+    GLFMKeyNavSelect = 0x1002,
+    GLFMKeyPlayPause = 0x2000,
 } GLFMKey;
 
 typedef enum {
