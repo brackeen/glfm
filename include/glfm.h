@@ -27,6 +27,7 @@
 
 // One of these will be defined:
 // GLFM_PLATFORM_IOS
+// GLFM_PLATFORM_TVOS
 // GLFM_PLATFORM_ANDROID
 // GLFM_PLATFORM_EMSCRIPTEN
 
@@ -36,8 +37,10 @@
   #define GLFM_PLATFORM_EMSCRIPTEN
 #elif defined(__APPLE__)
   #include <TargetConditionals.h>
-  #if TARGET_OS_IPHONE
+  #if TARGET_OS_IOS
     #define GLFM_PLATFORM_IOS
+  #elif TARGET_OS_TV
+    #define GLFM_PLATFORM_TVOS
   #else
     #error Unknown Apple platform
   #endif
@@ -48,8 +51,8 @@
 // OpenGL ES includes
 
 #if defined(GLFM_INCLUDE_ES32)
-  #if defined(GLFM_PLATFORM_IOS)
-    #error No OpenGL ES 3.2 support as of iOS 10
+  #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
+    #error No OpenGL ES 3.2 support in iOS
   #elif defined(GLFM_PLATFORM_EMSCRIPTEN)
     #error No OpenGL ES 3.2 support in WebGL
   #else
@@ -57,8 +60,8 @@
     #include <GLES3/gl3ext.h>
   #endif
 #elif defined(GLFM_INCLUDE_ES31)
-  #if defined(GLFM_PLATFORM_IOS)
-    #error No OpenGL ES 3.1 support as of iOS 10
+  #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
+    #error No OpenGL ES 3.1 support in iOS
   #elif defined(GLFM_PLATFORM_EMSCRIPTEN)
     #error No OpenGL ES 3.1 support in WebGL
   #else
@@ -66,7 +69,7 @@
     #include <GLES3/gl3ext.h>
   #endif
 #elif defined(GLFM_INCLUDE_ES3)
-  #if defined(GLFM_PLATFORM_IOS)
+  #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
     #include <OpenGLES/ES3/gl.h>
     #include <OpenGLES/ES3/glext.h>
   #elif defined(GLFM_PLATFORM_EMSCRIPTEN)
@@ -77,7 +80,7 @@
     #include <GLES3/gl3ext.h>
   #endif
 #elif !defined(GLFM_INCLUDE_NONE)
-  #if defined(GLFM_PLATFORM_IOS)
+  #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
     #include <OpenGLES/ES2/gl.h>
     #include <OpenGLES/ES2/glext.h>
   #else

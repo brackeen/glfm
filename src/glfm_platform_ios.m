@@ -20,7 +20,7 @@
 
 #include "glfm.h"
 
-#ifdef GLFM_PLATFORM_IOS
+#if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
 
 #import <UIKit/UIKit.h>
 
