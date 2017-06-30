@@ -3,7 +3,7 @@ Write OpenGL ES code in C/C++ without writing platform-specific code.
 
 GLFM is an OpenGL ES layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](http://www.glfw.org/).
 
-GLFM is written in C and runs on iOS 8, Android 2.3.3, and WebGL 1.0 (via [Emscripten](https://github.com/kripken/emscripten)).
+GLFM is written in C and runs on iOS 8, tvOS 9, Android 2.3.3 (API 10), and WebGL 1.0 (via [Emscripten](https://github.com/kripken/emscripten)).
 
 ## Features
 * OpenGL ES 2.0, 3.0, 3.1, and 3.2 display setup.
@@ -120,8 +120,8 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 See [glfm.h](include/glfm.h)
 
 ## Build requirements
-* iOS: Xcode 8.2
-* Android: Android Studio 2.2, SDK 25, NDK Bundle 13.1.3345770
+* iOS: Xcode 8.3
+* Android: Android Studio 2.3, SDK 25, NDK Bundle 13.1.3345770
 * WebGL: Emscripten 1.35.0
 
 ## Use GLFM in an existing project
@@ -133,7 +133,7 @@ See [glfm.h](include/glfm.h)
 ## Build the example GLFM projects
 Use the `CMakeLists.txt` file with the `-DGLFM_BUILD_EXAMPLE=ON` option to build the example projects.
 
-### Xcode 8.2
+### Xcode 8.3
 ```Shell
 mkdir -p build/ios
 cd build/ios
@@ -152,7 +152,7 @@ cmake --build .
 ```
 If you're opening files locally in Chrome, you may need to [enable local file access](http://stackoverflow.com/a/18587027). Instead, you could use Firefox, which doesn't have this restriction.
 
-### Android Studio 2.2
+### Android Studio 2.3
 There is no CMake generator for Android Studio projects, but you can include `CMakeLists.txt` in a new or existing project.
 
 The `AndroidManifest.xml`:
@@ -219,7 +219,8 @@ android {
 ## Caveats
 * OpenGL ES 3.1 and 3.2 support is only available in Android, and the GLFM implementation is currently untested.
 * GLFM is not thread-safe. All GLFM functions must be called on the main thread (that is, from `glfmMain` or from the callback functions).
-* Key input on iOS is not ideal. Using the keyboard (on an iOS device via Bluetooth keyboard or on the simulator via a Mac's keyboard), only a few keys are detected (arrows, enter, space, escape). Also, only key press events can be detected, but not key repeat or key release events.
+* On iOS, character input works great, but keyboard events are not ideal. Using the keyboard (on an iOS device via Bluetooth keyboard or on the simulator via a Mac's keyboard), only a few keys are detected (arrows keys and the escape key), and key release events are not reported.
+* On Android, keyboard events work great, but character events are not ideal. Some special characters, like emoji characters, will not work. This is due to an issue in the NDK.
 * Orientation lock probably doesn't work on HTML5.
 
 ## Questions
