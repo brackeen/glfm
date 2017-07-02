@@ -32,6 +32,13 @@
 #define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
 NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } while(0)
 
+@interface GLFMAppDelegate : NSObject <UIApplicationDelegate>
+
+@property(nonatomic, strong) UIWindow *window;
+@property(nonatomic, assign) BOOL active;
+
+@end
+
 #pragma mark - GLFMView
 
 @interface GLFMView : UIView {
@@ -102,7 +109,8 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     glBindFramebuffer(GL_FRAMEBUFFER, _defaultFramebuffer);
     glBindRenderbuffer(GL_RENDERBUFFER, _colorRenderbuffer);
 
-    // iPhone 6 Display Zoom hack
+    // iPhone 6 Display Zoom hack - use a modified bounds so that the renderbufferStorage method
+    // creates the correct size renderbuffer.
     CGRect oldBounds = eaglLayer.bounds;
     if (eaglLayer.contentsScale == 2.343750) {
         if (eaglLayer.bounds.size.width == 320.0 && eaglLayer.bounds.size.height == 568.0) {
@@ -273,10 +281,21 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 }
 
 - (void)layoutSubviews {
+    CGSize size = self.preferredDrawableSize;
+    NSUInteger newDrawableWidth = (NSUInteger)size.width;
+    NSUInteger newDrawableHeight = (NSUInteger)size.height;
+
+    if (self.drawableWidth != newDrawableWidth || self.drawableHeight != newDrawableHeight) {
+        [self deleteDrawable];
+        [self createDrawable];
+    }
+}
+
+- (CGSize)preferredDrawableSize {
     NSUInteger newDrawableWidth = (NSUInteger)(self.bounds.size.width * self.contentScaleFactor);
     NSUInteger newDrawableHeight = (NSUInteger)(self.bounds.size.height * self.contentScaleFactor);
 
-    // iPhone 6 Display Zoom hack
+    // On the iPhone 6 when "Display Zoom" is set, the size will be incorrect.
     if (self.contentScaleFactor == 2.343750) {
         if (newDrawableWidth == 750 && newDrawableHeight == 1331) {
             newDrawableHeight = 1334;
@@ -285,10 +304,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         }
     }
 
-    if (self.drawableWidth != newDrawableWidth || self.drawableHeight != newDrawableHeight) {
-        [self deleteDrawable];
-        [self createDrawable];
-    }
+    return CGSizeMake(newDrawableWidth, newDrawableHeight);
 }
 
 @end
@@ -316,12 +332,10 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         [self clearTouches];
         _glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         _glfmDisplay->platformData = (__bridge void *)self;
-        self.drawableSize = [self preferredDrawableSize];
         const char *path = glfmGetDirectoryPath(GLFMDirectoryApp);
         if (path) {
             chdir(path);
         }
-        glfmMain(_glfmDisplay);
     }
     return self;
 }
@@ -347,45 +361,20 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     return _glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
 }
 
-- (CGSize)preferredDrawableSize {
-#if TARGET_OS_IOS
-    // TODO: Remove deprecated interfaceOrientation, but wait until Split View is implemented.
-    BOOL isPortrait = UIInterfaceOrientationIsPortrait(self.interfaceOrientation);
-    // NOTE: [UIScreen mainScreen].nativeBounds is always in portrait orientation,
-    // and [UIScreen mainScreen].bounds is orientation-aware in iOS 8 and newer.
-    CGSize size = [UIScreen mainScreen].nativeBounds.size;
-
-    /*
-     iPhone 6 Display Zoom hack
-     Device (Mode)                scale   bounds    nativeScale         nativeBounds   drawable
-     iPhone 6 (Display Zoom)        2.0   320x568   2.34375             750x1331.25    750x1331
-     iPhone 6 (Standard)            2.0   375x667   2.0                 750x1334       750x1334
-     iPhone 6 Plus (Display Zoom)   3.0   375x667   2.88                1080x1920.96   1080x1920
-     iPhone 6 Plus (Standard)       3.0   414x736   2.608695652173913   1080x1920      1080x1920
-     */
-    if (size.width == 750.0 && size.height == 1331.25) {
-        size.height = 1334;
-    } else if (size.width == 1080.0 && size.height == 1920.96) {
-        size.height = 1920;
-    }
-    if (isPortrait) {
-        return CGSizeMake(size.width, size.height);
-    } else {
-        return CGSizeMake(size.height, size.width);
-    }
-#else
-    return [UIScreen mainScreen].nativeBounds.size;
-#endif
-}
-
 - (void)loadView {
-    self.view = [[GLFMView alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    GLFMAppDelegate *delegate = UIApplication.sharedApplication.delegate;
+    self.view = [[GLFMView alloc] initWithFrame:delegate.window.bounds];
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.view.contentScaleFactor = [UIScreen mainScreen].nativeScale;
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+
+    GLFMView *view = (GLFMView *)self.view;
+    self.drawableSize = [view preferredDrawableSize];
+
+    glfmMain(_glfmDisplay);
 
     if (_glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
         self.context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
@@ -399,7 +388,6 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         return;
     }
 
-    GLFMView *view = (GLFMView *)self.view;
     view.context = self.context;
 
 #if TARGET_OS_IOS
@@ -762,19 +750,18 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
 #pragma mark - Application Delegate
 
-@interface GLFMAppDelegate : NSObject <UIApplicationDelegate>
-
-@property(nonatomic, strong) UIWindow *window;
-@property(nonatomic, assign) BOOL active;
-
-@end
-
 @implementation GLFMAppDelegate
 
 - (BOOL)application:(UIApplication *)application
     didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     _active = YES;
-    self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    self.window = [[UIWindow alloc] init];
+    if (self.window.bounds.size.width <= 0.0 || self.window.bounds.size.height <= 0.0) {
+        // Set UIWindow frame for iOS 8.
+        // On iOS 9, the UIWindow frame may be different than the UIScreen bounds for iPad's
+        // Split View or Slide Over.
+        self.window.frame = [[UIScreen mainScreen] bounds];
+    }
     self.window.rootViewController = [[GLFMViewController alloc] init];
     [self.window makeKeyAndVisible];
     return YES;
