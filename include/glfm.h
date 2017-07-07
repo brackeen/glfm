@@ -207,6 +207,7 @@ typedef enum {
 
 typedef struct GLFMDisplay GLFMDisplay;
 
+/// Function pointer returned from glfmGetProcAddress
 typedef void (*GLFMProc)(void);
 
 /// Main loop callback function. The frame time is in seconds, and is not related to wall time.
@@ -225,6 +226,7 @@ typedef bool (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction
 /// Callback function for character input events.
 typedef void (*GLFMCharFunc)(GLFMDisplay *display, const char *utf8, int modifiers);
 
+/// Callback function for keyboard visibility, in pixels.
 typedef void (*GLFMKeyboardVisibilityChangedFunc)(GLFMDisplay *display, bool visible,
                                                   double x, double y, double width, double height);
 
@@ -322,12 +324,14 @@ void glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc);
 /// modifiers.
 void glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
 
+/// Sets the function to call when character input events occur.
 void glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
 
 /// Sets the function to call when the surface could not be created.
 /// For example, the browser does not support WebGL.
 void glfmSetSurfaceErrorFunc(GLFMDisplay *display, GLFMSurfaceErrorFunc surfaceErrorFunc);
 
+/// Sets the function to call when the surface was created.
 void glfmSetSurfaceCreatedFunc(GLFMDisplay *display, GLFMSurfaceCreatedFunc surfaceCreatedFunc);
 
 /// Sets the function to call when the surface was resized (or rotated).
@@ -348,7 +352,7 @@ void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFu
 /// nothing.
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible);
 
-// Retuens true if the virtual keyboard is currently visible.
+/// Retuens true if the virtual keyboard is currently visible.
 bool glfmIsKeyboardVisible(GLFMDisplay *display);
 
 /// Sets the function to call when the virtual keyboard changes visibility or changes bounds.
