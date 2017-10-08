@@ -866,21 +866,14 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
     }
 }
 
-int glfmGetDisplayWidth(GLFMDisplay *display) {
+void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return (int)vc.drawableSize.width;
+        *width = (int)vc.drawableSize.width;
+        *height = (int)vc.drawableSize.height;
     } else {
-        return 0;
-    }
-}
-
-int glfmGetDisplayHeight(GLFMDisplay *display) {
-    if (display && display->platformData) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return (int)vc.drawableSize.height;
-    } else {
-        return 0;
+        *width = 0;
+        *height = 0;
     }
 }
 

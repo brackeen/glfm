@@ -47,10 +47,10 @@ static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, doubl
     }
     ExampleApp *app = glfmGetUserData(display);
     if (phase != GLFMTouchPhaseBegan) {
-        const float w = glfmGetDisplayWidth(display);
-        const float h = glfmGetDisplayHeight(display);
-        app->offsetX += 2 * (x - app->lastTouchX) / w;
-        app->offsetY -= 2 * (y - app->lastTouchY) / h;
+        int width, height;
+        glfmGetDisplaySize(display, &width, &height);
+        app->offsetX += 2 * (x - app->lastTouchX) / width;
+        app->offsetY -= 2 * (y - app->lastTouchY) / height;
     }
     app->lastTouchX = x;
     app->lastTouchY = y;

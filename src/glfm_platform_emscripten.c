@@ -78,14 +78,10 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
     }
 }
 
-int glfmGetDisplayWidth(GLFMDisplay *display) {
+void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
     PlatformData *platformData = display->platformData;
-    return platformData->width;
-}
-
-int glfmGetDisplayHeight(GLFMDisplay *display) {
-    PlatformData *platformData = display->platformData;
-    return platformData->height;
+    *width = platformData->width;
+    *height = platformData->height;
 }
 
 double glfmGetDisplayScale(GLFMDisplay *display) {

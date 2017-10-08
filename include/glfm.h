@@ -285,13 +285,8 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled);
 /// Gets whether multitouch input is enabled. By default, multitouch is disabled.
 bool glfmGetMultitouchEnabled(GLFMDisplay *display);
 
-/// Gets the display width, in pixels. The result will only be valid after the surface is created,
-/// or in GLFMMainLoopFunc
-int glfmGetDisplayWidth(GLFMDisplay *display);
-
-/// Gets the display height, in pixels. The result will only be valid after the surface is created,
-/// or in GLFMMainLoopFunc
-int glfmGetDisplayHeight(GLFMDisplay *display);
+/// Gets the display size, in pixels.
+void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height);
 
 /// Gets the display scale. On Apple devices, the value will be 1.0 for non-retina displays and 2.0
 /// for retina.
@@ -352,7 +347,7 @@ void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFu
 /// nothing.
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible);
 
-/// Retuens true if the virtual keyboard is currently visible.
+/// Returns true if the virtual keyboard is currently visible.
 bool glfmIsKeyboardVisible(GLFMDisplay *display);
 
 /// Sets the function to call when the virtual keyboard changes visibility or changes bounds.
