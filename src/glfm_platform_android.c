@@ -1328,6 +1328,24 @@ double glfmGetDisplayScale(GLFMDisplay *display) {
     return engine->scale;
 }
 
+void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
+                                double *left) {
+    Engine *engine = (Engine *)display->platformData;
+    ARect windowRect = engine->app->contentRect;
+    ARect visibleRect = getWindowVisibleDisplayFrame(engine, windowRect);
+    if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0) {
+        *top = 0;
+        *right = 0;
+        *bottom = 0;
+        *left = 0;
+    } else {
+        *top = visibleRect.top;
+        *right = engine->width - visibleRect.right;
+        *bottom = engine->height - visibleRect.bottom;
+        *left = visibleRect.left;
+    }
+}
+
 GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
     Engine *engine = (Engine *)display->platformData;
     return engine->renderingAPI;

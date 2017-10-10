@@ -120,7 +120,7 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 See [glfm.h](include/glfm.h)
 
 ## Build requirements
-* iOS: Xcode 8.3
+* iOS: Xcode 9.0
 * Android: Android Studio 2.3, SDK 25, NDK Bundle 13.1.3345770
 * WebGL: Emscripten 1.35.0
 

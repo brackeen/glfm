@@ -292,6 +292,11 @@ void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height);
 /// for retina.
 double glfmGetDisplayScale(GLFMDisplay *display);
 
+/// Gets the chrome insets, in pixels (AKA "safe area insets" in iOS). This is the space taken
+/// on the outer edges of the display by status bars, navigation bars, and other UI elements.
+void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
+                                double *left);
+
 /// Gets the rendering API of the display. The return value is not valid until the surface is
 /// created. Defaults to GLFMRenderingAPIOpenGLES2.
 GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display);

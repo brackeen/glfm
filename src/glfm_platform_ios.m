@@ -322,6 +322,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 @property(nonatomic, assign) BOOL multipleTouchEnabled;
 @property(nonatomic, assign) BOOL keyboardRequested;
 @property(nonatomic, assign) BOOL keyboardVisible;
+@property(nonatomic, assign) BOOL surfaceCreatedNotified;
 
 @end
 
@@ -435,10 +436,6 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
     if (view.drawableWidth > 0 && view.drawableHeight > 0) {
         self.drawableSize = CGSizeMake(view.drawableWidth, view.drawableHeight);
-        if (_glfmDisplay->surfaceCreatedFunc) {
-            _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, (int)self.drawableSize.width,
-                                             (int)self.drawableSize.height);
-        }
         self.animating = YES;
     }
 
@@ -490,6 +487,15 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
 - (void)render:(CADisplayLink *)displayLink {
     GLFMView *view = (GLFMView *)self.view;
+
+    if (!self.surfaceCreatedNotified) {
+        self.surfaceCreatedNotified = YES;
+
+        if (_glfmDisplay->surfaceCreatedFunc) {
+            _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, (int)self.drawableSize.width,
+                                             (int)self.drawableSize.height);
+        }
+    }
 
     CGSize newDrawableSize = CGSizeMake(view.drawableWidth, view.drawableHeight);
     if (!CGSizeEqualToSize(self.drawableSize, newDrawableSize)) {
@@ -883,6 +889,35 @@ double glfmGetDisplayScale(GLFMDisplay *display) {
         return vc.view.contentScaleFactor;
     } else {
         return [UIScreen mainScreen].scale;
+    }
+}
+
+void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
+                                double *left) {
+    if (display && display->platformData) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        if (@available(iOS 11, *)) {
+            UIEdgeInsets insets = vc.view.safeAreaInsets;
+            *top = insets.top * vc.view.contentScaleFactor;
+            *right = insets.right * vc.view.contentScaleFactor;
+            *bottom = insets.bottom * vc.view.contentScaleFactor;
+            *left = insets.left * vc.view.contentScaleFactor;
+        } else {
+            if (![vc prefersStatusBarHidden]) {
+                *top = ([UIApplication sharedApplication].statusBarFrame.size.height *
+                        vc.view.contentScaleFactor);
+            } else {
+                *top = 0.0;
+            }
+            *right = 0.0;
+            *bottom = 0.0;
+            *left = 0.0;
+        }
+    } else {
+        *top = 0.0;
+        *right = 0.0;
+        *bottom = 0.0;
+        *left = 0.0;
     }
 }
 
