@@ -73,15 +73,13 @@ void glfmSetDisplayConfig(GLFMDisplay *display,
                           const GLFMColorFormat colorFormat,
                           const GLFMDepthFormat depthFormat,
                           const GLFMStencilFormat stencilFormat,
-                          const GLFMMultisample multisample,
-                          const GLFMUserInterfaceChrome uiChrome) {
+                          const GLFMMultisample multisample) {
     if (display) {
         display->preferredAPI = preferredAPI;
         display->colorFormat = colorFormat;
         display->depthFormat = depthFormat;
         display->stencilFormat = stencilFormat;
         display->multisample = multisample;
-        display->uiChrome = uiChrome;
     }
 }
 
@@ -97,6 +95,19 @@ void glfmSetUserData(GLFMDisplay *display, void *userData) {
 
 void *glfmGetUserData(GLFMDisplay *display) {
     return display ? display->userData : NULL;
+}
+
+void glfmDisplayChromeUpdated(GLFMDisplay *display);
+
+GLFMUserInterfaceChrome glfmGetDisplayChrome(GLFMDisplay *display) {
+    return display ? display->uiChrome : GLFMUserInterfaceChromeNavigation;
+}
+
+void glfmSetDisplayChrome(GLFMDisplay *display, GLFMUserInterfaceChrome uiChrome) {
+    if (display) {
+        display->uiChrome = uiChrome;
+        glfmDisplayChromeUpdated(display);
+    }
 }
 
 void glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc) {

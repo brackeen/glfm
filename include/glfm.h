@@ -127,21 +127,21 @@ typedef enum {
 
 /// GLFMUserInterfaceChrome defines whether system UI chrome (status bar, navigation bar) is shown.
 /// This value is ignored on Emscripten.
+/// GLFMUserInterfaceChromeNavigation (default)
+///  - Android: Show the navigation bar
+///  - iOS: Show the home indicator on iPhone X
+/// GLFMUserInterfaceChromeNavigationAndStatusBar:
+///  - Android: Show the navigation bar and status bar
+///  - iOS: Show status bar, and show the home indicator on iPhone X
 /// GLFMUserInterfaceChromeFullscreen
 ///  - Android 2.3: Fullscreen
 ///  - Android 4.0 - 4.3: Navigation bar dimmed
 ///  - Android 4.4: Fullscreen immersive mode
 ///  - iOS: Fullscreen
-/// GLFMUserInterfaceChromeNavigation
-///  - Android: Show the navigation bar
-///  - iOS: Fullscreen
-/// GLFMUserInterfaceChromeNavigationAndStatusBar:
-///  - Android: Show the navigation bar and status bar
-///  - iOS: Show status bar
 typedef enum {
-    GLFMUserInterfaceChromeFullscreen,
     GLFMUserInterfaceChromeNavigation,
     GLFMUserInterfaceChromeNavigationAndStatusBar,
+    GLFMUserInterfaceChromeFullscreen,
 } GLFMUserInterfaceChrome;
 
 typedef enum {
@@ -265,8 +265,7 @@ void glfmSetDisplayConfig(GLFMDisplay *display,
                           GLFMColorFormat colorFormat,
                           GLFMDepthFormat depthFormat,
                           GLFMStencilFormat stencilFormat,
-                          GLFMMultisample multisample,
-                          GLFMUserInterfaceChrome uiChrome);
+                          GLFMMultisample multisample);
 
 void glfmSetUserData(GLFMDisplay *display, void *userData);
 
@@ -296,6 +295,12 @@ double glfmGetDisplayScale(GLFMDisplay *display);
 /// on the outer edges of the display by status bars, navigation bars, and other UI elements.
 void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
                                 double *left);
+
+/// Gets the user interface chrome.
+GLFMUserInterfaceChrome glfmGetDisplayChrome(GLFMDisplay *display);
+
+/// Sets the user interface chrome.
+void glfmSetDisplayChrome(GLFMDisplay *display, GLFMUserInterfaceChrome uiChrome);
 
 /// Gets the rendering API of the display. The return value is not valid until the surface is
 /// created. Defaults to GLFMRenderingAPIOpenGLES2.

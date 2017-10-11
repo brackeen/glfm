@@ -1346,6 +1346,11 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
     }
 }
 
+void glfmDisplayChromeUpdated(GLFMDisplay *display) {
+    Engine *engine = (Engine *)display->platformData;
+    setFullScreen(engine->app, display->uiChrome);
+}
+
 GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
     Engine *engine = (Engine *)display->platformData;
     return engine->renderingAPI;

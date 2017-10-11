@@ -362,6 +362,10 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     return _glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
 }
 
+- (BOOL)prefersHomeIndicatorAutoHidden {
+    return _glfmDisplay->uiChrome == GLFMUserInterfaceChromeFullscreen;
+}
+
 - (void)loadView {
     GLFMAppDelegate *delegate = UIApplication.sharedApplication.delegate;
     self.view = [[GLFMView alloc] initWithFrame:delegate.window.bounds];
@@ -918,6 +922,16 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
         *right = 0.0;
         *bottom = 0.0;
         *left = 0.0;
+    }
+}
+
+void glfmDisplayChromeUpdated(GLFMDisplay *display) {
+    if (display && display->platformData) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        [vc setNeedsStatusBarAppearanceUpdate];
+        if (@available(iOS 11, *)) {
+            [vc setNeedsUpdateOfHomeIndicatorAutoHidden];
+        }
     }
 }
 

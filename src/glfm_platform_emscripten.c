@@ -99,6 +99,11 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
     *left = 0.0;
 }
 
+void glfmDisplayChromeUpdated(GLFMDisplay *display) {
+    (void)display;
+    // Do nothing
+}
+
 GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
     PlatformData *platformData = display->platformData;
     return platformData->renderingAPI;
