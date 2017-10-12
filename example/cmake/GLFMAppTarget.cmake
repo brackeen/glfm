@@ -16,10 +16,11 @@ if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     if (${HAS_STYLE} EQUAL -1)
         message(WARNING "<style> not found in shell_minimal.html, copying as-is")
     else()
-        string(CONCAT STYLE_REPLACEMENT "<meta name=\"viewport\" content=\"width=device-width,user-scalable=no\">\n"
+        string(CONCAT STYLE_REPLACEMENT "<meta name=\"viewport\" content=\"width=device-width,user-scalable=no,viewport-fit=cover\">\n"
+            "    <meta name=\"apple-mobile-web-app-capable\" content=\"yes\">\n"
             "    <style>\n"
             "      /* GLFM: Start changes */\n"
-            "      body, html {  border: 0px none; padding: 0px; margin: 0px; width: 100%; height: 100%; overflow: hidden; }\n"
+            "      body, html {  border: 0px none; padding: 0px; margin: 0px; width: 100%; height: 100%; overflow: hidden; position: fixed; }\n"
             "      canvas.emscripten { background: black; width: 100%; height: 100%; }\n"
             "      .emscripten_border { width: 100%; height: 100%; border: 0px none !important;}\n"
             "      hr { display: none; }\n"
