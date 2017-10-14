@@ -91,12 +91,20 @@ double glfmGetDisplayScale(GLFMDisplay *display) {
 
 void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
                                 double *left) {
-    // TODO: Check CSS properties on iOS 11?
-    (void)display;
-    *top = 0.0;
-    *right = 0.0;
-    *bottom = 0.0;
-    *left = 0.0;
+    PlatformData *platformData = display->platformData;
+
+    *top = platformData->scale * EM_ASM_DOUBLE_V( {
+        return parseInt(window.getComputedStyle(Module['canvas']).paddingTop);
+    } );
+    *right = platformData->scale * EM_ASM_DOUBLE_V( {
+        return parseInt(window.getComputedStyle(Module['canvas']).paddingRight);
+    } );
+    *bottom = platformData->scale * EM_ASM_DOUBLE_V( {
+        return parseInt(window.getComputedStyle(Module['canvas']).paddingBottom);
+    } );
+    *left = platformData->scale * EM_ASM_DOUBLE_V( {
+        return parseInt(window.getComputedStyle(Module['canvas']).paddingLeft);
+    } );
 }
 
 void glfmDisplayChromeUpdated(GLFMDisplay *display) {
