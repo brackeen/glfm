@@ -32,6 +32,13 @@
 
 #include "glfm_platform.h"
 
+#define MAX_ACTIVE_TOUCHES 10
+
+typedef struct {
+    long identifier;
+    bool active;
+} ActiveTouch;
+
 typedef struct {
     bool multitouchEnabled;
     int32_t width;
@@ -40,9 +47,12 @@ typedef struct {
     GLFMRenderingAPI renderingAPI;
 
     bool mouseDown;
+    ActiveTouch activeTouches[MAX_ACTIVE_TOUCHES];
 
     bool active;
 } PlatformData;
+
+static void clearActiveTouches(PlatformData *platformData);
 
 static bool fileSystemMounted = false;
 
@@ -246,6 +256,7 @@ static void setActive(GLFMDisplay *display, bool active) {
     PlatformData *platformData = display->platformData;
     if (platformData->active != active) {
         platformData->active = active;
+        clearActiveTouches(platformData);
         if (active && display->resumingFunc) {
             display->resumingFunc(display);
         } else if (!active && display->pausingFunc) {
@@ -402,10 +413,41 @@ static EM_BOOL mouseCallback(int eventType, const EmscriptenMouseEvent *e, void 
                 break;
         }
         return display->touchFunc(display, e->button, touchPhase,
-                                  (double)e->canvasX, (double)e->canvasY);
+                                  platformData->scale * (double)e->canvasX,
+                                  platformData->scale * (double)e->canvasY);
     } else {
         return 0;
     }
+}
+
+static void clearActiveTouches(PlatformData *platformData) {
+    for (int i = 0; i < MAX_ACTIVE_TOUCHES; i++) {
+        platformData->activeTouches[i].active = false;
+    }
+}
+
+static int touchIdentifier(PlatformData *platformData, const EmscriptenTouchPoint *t) {
+    int firstNullIndex = -1;
+    int index = -1;
+    for (int i = 0; i < MAX_ACTIVE_TOUCHES; i++) {
+        if (platformData->activeTouches[i].identifier == t->identifier &&
+            platformData->activeTouches[i].active) {
+            index = i;
+            break;
+        } else if (firstNullIndex == -1 && !platformData->activeTouches[i].active) {
+            firstNullIndex = i;
+        }
+    }
+    if (index == -1) {
+        if (firstNullIndex == -1) {
+            // Shouldn't happen
+            return -1;
+        }
+        index = firstNullIndex;
+        platformData->activeTouches[index].identifier = t->identifier;
+        platformData->activeTouches[index].active = true;
+    }
+    return index;
 }
 
 static EM_BOOL touchCallback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
@@ -435,9 +477,19 @@ static EM_BOOL touchCallback(int eventType, const EmscriptenTouchEvent *e, void 
         int handled = 0;
         for (int i = 0; i < e->numTouches; i++) {
             const EmscriptenTouchPoint *t = &e->touches[i];
-            if (t->isChanged && (platformData->multitouchEnabled || t->identifier == 0)) {
-                handled |= display->touchFunc(display, t->identifier, touchPhase,
-                                              t->canvasX, t->canvasY);
+            if (t->isChanged) {
+                int identifier = touchIdentifier(platformData, t);
+                if (identifier >= 0) {
+                    if ((platformData->multitouchEnabled || identifier == 0)) {
+                        handled |= display->touchFunc(display, identifier, touchPhase,
+                                                      platformData->scale * (double)t->canvasX,
+                                                      platformData->scale * (double)t->canvasY);
+                    }
+
+                    if (touchPhase == GLFMTouchPhaseEnded || touchPhase == GLFMTouchPhaseCancelled) {
+                        platformData->activeTouches[identifier].active = false;
+                    }
+                }
             }
         }
         return handled;
@@ -455,6 +507,7 @@ int main() {
     PlatformData *platformData = calloc(1, sizeof(PlatformData));
     glfmDisplay->platformData = platformData;
     platformData->active = true;
+    clearActiveTouches(platformData);
 
     // Main entry
     glfmMain(glfmDisplay);
