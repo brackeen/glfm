@@ -230,6 +230,3 @@ Otherwise, it wouldn't work on iOS. To initialize the Objective-C environment, t
 **Why is GLFM event-driven? Why does GLFM take over the main loop?**
 
 Otherwise, it wouldn't work on iOS (see above) or on HTML5, which is event-driven.
-
-## License
-[ZLIB](http://en.wikipedia.org/wiki/Zlib_License)
