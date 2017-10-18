@@ -493,7 +493,7 @@ static uint32_t getUnicodeChar(Engine *engine, AInputEvent *event) {
 
 // MARK: EGL
 
-static bool egl_init_context(Engine *engine) {
+static bool _eglContextInit(Engine *engine) {
     bool created = false;
     if (engine->eglContext == EGL_NO_CONTEXT) {
         // OpenGL ES 3.2
@@ -565,21 +565,21 @@ static bool egl_init_context(Engine *engine) {
     }
 }
 
-static void egl_disable_context(Engine *engine) {
+static void _eglContextDisable(Engine *engine) {
     if (engine->eglDisplay != EGL_NO_DISPLAY) {
         eglMakeCurrent(engine->eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     }
     engine->eglContextCurrent = false;
 }
 
-static void egl_init_surface(Engine *engine) {
+static void _eglSurfaceInit(Engine *engine) {
     if (engine->eglSurface == EGL_NO_SURFACE) {
         engine->eglSurface = eglCreateWindowSurface(engine->eglDisplay, engine->eglConfig,
                                                     engine->app->window, NULL);
     }
 }
 
-static void egl_log_config(Engine *engine, EGLConfig config) {
+static void _eglLogConfig(Engine *engine, EGLConfig config) {
     LOG_DEBUG("Config: %p", config);
     EGLint value;
     eglGetConfigAttrib(engine->eglDisplay, config, EGL_RENDERABLE_TYPE, &value);
@@ -604,10 +604,10 @@ static void egl_log_config(Engine *engine, EGLConfig config) {
     LOG_DEBUG("  EGL_SAMPLES         %i", value);
 }
 
-static bool egl_init(Engine *engine) {
+static bool _eglInit(Engine *engine) {
     if (engine->eglDisplay != EGL_NO_DISPLAY) {
-        egl_init_surface(engine);
-        return egl_init_context(engine);
+        _eglSurfaceInit(engine);
+        return _eglContextInit(engine);
     }
     int rBits, gBits, bBits, aBits;
     int depthBits, stencilBits, samples;
@@ -682,7 +682,7 @@ static bool egl_init(Engine *engine) {
         eglChooseConfig(engine->eglDisplay, attribs, &engine->eglConfig, 1, &numConfigs);
         if (numConfigs) {
             // Found!
-            //egl_log_config(engine, engine->eglConfig);
+            //_eglLogConfig(engine, engine->eglConfig);
             break;
         } else if (samples > 0) {
             // Try 2x multisampling or no multisampling
@@ -702,7 +702,7 @@ static bool egl_init(Engine *engine) {
                     LOG_DEBUG("Num available configs: %i", numTotalConfigs);
                     int i;
                     for (i = 0; i < numTotalConfigs; i++) {
-                        egl_log_config(engine, configs[i]);
+                        _eglLogConfig(engine, configs[i]);
                     }
                 } else {
                     LOG_DEBUG("Couldn't get any EGL configs");
@@ -716,7 +716,7 @@ static bool egl_init(Engine *engine) {
         }
     }
 
-    egl_init_surface(engine);
+    _eglSurfaceInit(engine);
 
     eglQuerySurface(engine->eglDisplay, engine->eglSurface, EGL_WIDTH, &engine->width);
     eglQuerySurface(engine->eglDisplay, engine->eglSurface, EGL_HEIGHT, &engine->height);
@@ -725,18 +725,18 @@ static bool egl_init(Engine *engine) {
 
     ANativeWindow_setBuffersGeometry(engine->app->window, 0, 0, format);
 
-    return egl_init_context(engine);
+    return _eglContextInit(engine);
 }
 
-static void egl_destroy_surface(Engine *engine) {
+static void _eglSurfaceDestroy(Engine *engine) {
     if (engine->eglSurface != EGL_NO_SURFACE) {
         eglDestroySurface(engine->eglDisplay, engine->eglSurface);
         engine->eglSurface = EGL_NO_SURFACE;
     }
-    egl_disable_context(engine);
+    _eglContextDisable(engine);
 }
 
-static void egl_destroy(Engine *engine) {
+static void _eglDestroy(Engine *engine) {
     if (engine->eglDisplay != EGL_NO_DISPLAY) {
         eglMakeCurrent(engine->eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         if (engine->eglContext != EGL_NO_CONTEXT) {
@@ -759,11 +759,11 @@ static void egl_destroy(Engine *engine) {
     engine->eglContextCurrent = false;
 }
 
-static void egl_check_error(Engine *engine) {
+static void _eglCheckError(Engine *engine) {
     EGLint err = eglGetError();
     if (err == EGL_BAD_SURFACE) {
-        egl_destroy_surface(engine);
-        egl_init_surface(engine);
+        _eglSurfaceDestroy(engine);
+        _eglSurfaceInit(engine);
     } else if (err == EGL_CONTEXT_LOST || err == EGL_BAD_CONTEXT) {
         if (engine->eglContext != EGL_NO_CONTEXT) {
             engine->eglContext = EGL_NO_CONTEXT;
@@ -775,14 +775,14 @@ static void egl_check_error(Engine *engine) {
                 }
             }
         }
-        egl_init_context(engine);
+        _eglContextInit(engine);
     } else {
-        egl_destroy(engine);
-        egl_init(engine);
+        _eglDestroy(engine);
+        _eglInit(engine);
     }
 }
 
-static void engine_draw_frame(Engine *engine) {
+static void engineDrawFrame(Engine *engine) {
     if (!engine->eglContextCurrent) {
         // Probably a bad config (Happens on Android 2.3 emulator)
         return;
@@ -813,7 +813,7 @@ static void engine_draw_frame(Engine *engine) {
 
     // Swap
     if (!eglSwapBuffers(engine->eglDisplay, engine->eglSurface)) {
-        egl_check_error(engine);
+        _eglCheckError(engine);
     }
 }
 
@@ -823,14 +823,14 @@ static bool ARectsEqual(ARect r1, ARect r2) {
     return r1.left == r2.left && r1.top == r2.top && r1.right == r2.right && r1.bottom == r2.bottom;
 }
 
-static void android_app_write_cmd(struct android_app *android_app, int8_t cmd) {
+static void appWriteCmd(struct android_app *android_app, int8_t cmd) {
     write(android_app->msgwrite, &cmd, sizeof(cmd));
 }
 
-static void android_app_set_content_rect(struct android_app *android_app, ARect rect) {
+static void appSetContentRect(struct android_app *android_app, ARect rect) {
     pthread_mutex_lock(&android_app->mutex);
     android_app->pendingContentRect = rect;
-    android_app_write_cmd(android_app, APP_CMD_CONTENT_RECT_CHANGED);
+    appWriteCmd(android_app, APP_CMD_CONTENT_RECT_CHANGED);
     while (!ARectsEqual(android_app->contentRect, android_app->pendingContentRect)) {
         pthread_cond_wait(&android_app->cond, &android_app->mutex);
     }
@@ -838,7 +838,7 @@ static void android_app_set_content_rect(struct android_app *android_app, ARect 
 }
 
 static void onContentRectChanged(ANativeActivity *activity, const ARect *rect) {
-    android_app_set_content_rect((struct android_app *)activity->instance, *rect);
+    appSetContentRect((struct android_app *)activity->instance, *rect);
 }
 
 // MARK: Keyboard visibility
@@ -909,7 +909,7 @@ static void updateKeyboardVisibility(Engine *engine) {
 
 // MARK: App command callback
 
-static void set_animating(Engine *engine, bool animating) {
+static void setAnimating(Engine *engine, bool animating) {
     if (engine->animating != animating) {
         bool sendAppEvent = true;
         if (!engine->hasInited && animating) {
@@ -928,7 +928,7 @@ static void set_animating(Engine *engine, bool animating) {
     }
 }
 
-static void app_cmd_callback(struct android_app *app, int32_t cmd) {
+static void onAppCmd(struct android_app *app, int32_t cmd) {
     Engine *engine = (Engine *)app->userData;
     switch (cmd) {
         case APP_CMD_SAVE_STATE: {
@@ -937,11 +937,11 @@ static void app_cmd_callback(struct android_app *app, int32_t cmd) {
         }
         case APP_CMD_INIT_WINDOW: {
             LOG_LIFECYCLE("APP_CMD_INIT_WINDOW");
-            const bool success = egl_init(engine);
+            const bool success = _eglInit(engine);
             if (!success) {
-                egl_check_error(engine);
+                _eglCheckError(engine);
             }
-            engine_draw_frame(engine);
+            engineDrawFrame(engine);
             break;
         }
         case APP_CMD_WINDOW_RESIZED: {
@@ -950,25 +950,25 @@ static void app_cmd_callback(struct android_app *app, int32_t cmd) {
         }
         case APP_CMD_TERM_WINDOW: {
             LOG_LIFECYCLE("APP_CMD_TERM_WINDOW");
-            egl_destroy_surface(engine);
-            set_animating(engine, false);
+            _eglSurfaceDestroy(engine);
+            setAnimating(engine, false);
             break;
         }
         case APP_CMD_WINDOW_REDRAW_NEEDED: {
             LOG_LIFECYCLE("APP_CMD_WINDOW_REDRAW_NEEDED");
-            engine_draw_frame(engine);
+            engineDrawFrame(engine);
             break;
         }
         case APP_CMD_GAINED_FOCUS: {
             LOG_LIFECYCLE("APP_CMD_GAINED_FOCUS");
-            set_animating(engine, true);
+            setAnimating(engine, true);
             break;
         }
         case APP_CMD_LOST_FOCUS: {
             LOG_LIFECYCLE("APP_CMD_LOST_FOCUS");
             if (engine->animating) {
-                engine_draw_frame(engine);
-                set_animating(engine, false);
+                engineDrawFrame(engine);
+                setAnimating(engine, false);
             }
             break;
         }
@@ -1008,7 +1008,7 @@ static void app_cmd_callback(struct android_app *app, int32_t cmd) {
         }
         case APP_CMD_DESTROY: {
             LOG_LIFECYCLE("APP_CMD_DESTROY");
-            egl_destroy(engine);
+            _eglDestroy(engine);
             break;
         }
         default: {
@@ -1046,7 +1046,7 @@ static const char *unicodeToUTF8(uint32_t unicode) {
     return utf8;
 }
 
-static int32_t app_input_callback(struct android_app *app, AInputEvent *event) {
+static int32_t onInputEvent(struct android_app *app, AInputEvent *event) {
     Engine *engine = (Engine *)app->userData;
     const int32_t eventType = AInputEvent_getType(event);
     if (eventType == AINPUT_EVENT_TYPE_KEY) {
@@ -1220,8 +1220,8 @@ void android_main(struct android_app *app) {
     engine = engineGlobal;
 
     app->userData = engine;
-    app->onAppCmd = app_cmd_callback;
-    app->onInputEvent = app_input_callback;
+    app->onAppCmd = onAppCmd;
+    app->onInputEvent = onInputEvent;
     app->activity->callbacks->onContentRectChanged = onContentRectChanged;
     engine->app = app;
 
@@ -1291,8 +1291,8 @@ void android_main(struct android_app *app) {
 
             if (app->destroyRequested != 0) {
                 LOG_LIFECYCLE("Destroying thread");
-                egl_destroy(engine);
-                set_animating(engine, false);
+                _eglDestroy(engine);
+                setAnimating(engine, false);
                 (*vm)->DetachCurrentThread(vm);
                 engine->app = NULL;
                 // App is destroyed, but android_main() can be called again in the same process.
@@ -1301,7 +1301,7 @@ void android_main(struct android_app *app) {
         }
 
         if (engine->animating && engine->display) {
-            engine_draw_frame(engine);
+            engineDrawFrame(engine);
         }
     }
 }
