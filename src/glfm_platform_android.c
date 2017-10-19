@@ -1423,11 +1423,11 @@ const char *glfmGetDirectoryPath(GLFMDirectory directory) {
     }
 }
 
-static int glfm_android_read(void *cookie, char *buf, int size) {
+static int glfmAndroidRead(void *cookie, char *buf, int size) {
     return AAsset_read((AAsset *)cookie, buf, (size_t)size);
 }
 
-static int glfm_android_write(void *cookie, const char *buf, int size) {
+static int glfmAndroidWrite(void *cookie, const char *buf, int size) {
     (void)cookie;
     (void)buf;
     (void)size;
@@ -1435,16 +1435,16 @@ static int glfm_android_write(void *cookie, const char *buf, int size) {
     return -1;
 }
 
-static fpos_t glfm_android_seek(void *cookie, fpos_t offset, int whence) {
+static fpos_t glfmAndroidSeek(void *cookie, fpos_t offset, int whence) {
     return AAsset_seek((AAsset *)cookie, offset, whence);
 }
 
-static int glfm_android_close(void *cookie) {
+static int glfmAndroidClose(void *cookie) {
     AAsset_close((AAsset *)cookie);
     return 0;
 }
 
-FILE *glfm_android_fopen(const char *filename, const char *mode) {
+FILE *glfmAndroidOpenFile(const char *filename, const char *mode) {
     AAssetManager *assetManager = NULL;
     if (engineGlobal && engineGlobal->app && engineGlobal->app->activity) {
         assetManager = engineGlobal->app->activity->assetManager;
@@ -1454,8 +1454,7 @@ FILE *glfm_android_fopen(const char *filename, const char *mode) {
         asset = AAssetManager_open(assetManager, filename, AASSET_MODE_UNKNOWN);
     }
     if (asset) {
-        return funopen(asset, glfm_android_read, glfm_android_write, glfm_android_seek,
-                       glfm_android_close);
+        return funopen(asset, glfmAndroidRead, glfmAndroidWrite, glfmAndroidSeek, glfmAndroidClose);
     } else {
         return fopen(filename, mode);
     }
@@ -1463,7 +1462,7 @@ FILE *glfm_android_fopen(const char *filename, const char *mode) {
 
 // MARK: stdout helpers
 
-int glfm_android_printf(const char *format, ...) {
+int glfmAndroidPrint(const char *format, ...) {
     va_list args;
     va_start(args, format);
     int result = __android_log_vprint(ANDROID_LOG_INFO, "GLFM", format, args);

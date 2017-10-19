@@ -385,13 +385,13 @@ const char *glfmGetDirectoryPath(GLFMDirectory directory);
 /// `AAssetManager`. For write mode, or if opening the file via `AAssetManager` fails, the normal
 /// `fopen` function is used. For writing, use `glfmGetDirectoryPath(GLFMDirectoryDocuments)` as
 /// the base path.
-FILE *glfm_android_fopen(const char *filename, const char *mode);
+FILE *glfmAndroidOpenFile(const char *filename, const char *mode);
 
 /// A printf-like function that outputs to Android's logger.
-int glfm_android_printf(const char *format, ...) __attribute__((__format__(__printf__, 1, 2)));
+int glfmAndroidPrint(const char *format, ...) __attribute__((__format__(__printf__, 1, 2)));
 
-#define fopen glfm_android_fopen
-#define printf glfm_android_printf
+#define fopen glfmAndroidOpenFile
+#define printf glfmAndroidPrint
 
 #endif // GLFM_PLATFORM_ANDROID
 
