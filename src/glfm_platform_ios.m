@@ -389,7 +389,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     }
 
     if (!self.context) {
-        reportSurfaceError(_glfmDisplay, "Failed to create ES context");
+        _glfmReportSurfaceError(_glfmDisplay, "Failed to create ES context");
         return;
     }
 
@@ -998,7 +998,7 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
     }
 }
 
-const char *glfmGetLanguageInternal() {
+const char *_glfmGetLanguageInternal() {
     return [[[NSLocale autoupdatingCurrentLocale] localeIdentifier] UTF8String];
 }
 

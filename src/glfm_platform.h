@@ -178,7 +178,7 @@ void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFu
     }
 }
 
-extern const char *glfmGetLanguageInternal(void);
+extern const char *_glfmGetLanguageInternal(void);
 
 const char *glfmGetLanguage() {
     static char *language = NULL;
@@ -190,7 +190,7 @@ const char *glfmGetLanguage() {
         language = NULL;
     }
 
-    const char *langInternal = glfmGetLanguageInternal();
+    const char *langInternal = _glfmGetLanguageInternal();
     if (langInternal == NULL) {
         return "en";
     }
@@ -208,7 +208,7 @@ const char *glfmGetLanguage() {
 
 // MARK: Helper functions
 
-static void reportSurfaceError(GLFMDisplay *display, const char *errorMessage) {
+static void _glfmReportSurfaceError(GLFMDisplay *display, const char *errorMessage) {
     if (display->surfaceErrorFunc && errorMessage) {
         display->surfaceErrorFunc(display, errorMessage);
     }

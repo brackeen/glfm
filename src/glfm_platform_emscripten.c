@@ -37,7 +37,7 @@
 typedef struct {
     long identifier;
     bool active;
-} ActiveTouch;
+} GLFMActiveTouch;
 
 typedef struct {
     bool multitouchEnabled;
@@ -47,20 +47,20 @@ typedef struct {
     GLFMRenderingAPI renderingAPI;
 
     bool mouseDown;
-    ActiveTouch activeTouches[MAX_ACTIVE_TOUCHES];
+    GLFMActiveTouch activeTouches[MAX_ACTIVE_TOUCHES];
 
     bool active;
-} PlatformData;
+} GLFMPlatformData;
 
-static void clearActiveTouches(PlatformData *platformData);
+static void _glfmClearActiveTouches(GLFMPlatformData *platformData);
 
-static bool fileSystemMounted = false;
+static bool _glfmFileSystemMounted = false;
 
 // MARK: GLFM implementation
 
 const char *glfmGetDirectoryPath(GLFMDirectory directory) {
     if (directory == GLFMDirectoryDocuments) {
-        return fileSystemMounted ? "/.local/share" : NULL;
+        return _glfmFileSystemMounted ? "/.local/share" : NULL;
     } else {
         return "/";
     }
@@ -89,19 +89,19 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
 }
 
 void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
-    PlatformData *platformData = display->platformData;
+    GLFMPlatformData *platformData = display->platformData;
     *width = platformData->width;
     *height = platformData->height;
 }
 
 double glfmGetDisplayScale(GLFMDisplay *display) {
-    PlatformData *platformData = display->platformData;
+    GLFMPlatformData *platformData = display->platformData;
     return platformData->scale;
 }
 
 void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
                                 double *left) {
-    PlatformData *platformData = display->platformData;
+    GLFMPlatformData *platformData = display->platformData;
 
     *top = platformData->scale * EM_ASM_DOUBLE_V( {
         return parseInt(window.getComputedStyle(Module['canvas']).paddingTop);
@@ -123,7 +123,7 @@ void glfmDisplayChromeUpdated(GLFMDisplay *display) {
 }
 
 GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
-    PlatformData *platformData = display->platformData;
+    GLFMPlatformData *platformData = display->platformData;
     return platformData->renderingAPI;
 }
 
@@ -166,16 +166,16 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
 }
 
 void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
-    PlatformData *platformData = display->platformData;
+    GLFMPlatformData *platformData = display->platformData;
     platformData->multitouchEnabled = multitouchEnabled;
 }
 
 bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
-    PlatformData *platformData = display->platformData;
+    GLFMPlatformData *platformData = display->platformData;
     return platformData->multitouchEnabled;
 }
 
-const char *glfmGetLanguageInternal() {
+const char *_glfmGetLanguageInternal() {
     // Probably overly paranoid with the try/catch, type checks, and null checks. Oh well.
     // navigator.userLanguage and navigator.browserLanguage are for older versions of IE.
     static const char *script =
@@ -205,36 +205,36 @@ GLFMProc glfmGetProcAddress(const char *functionName) {
 
 // MARK: Filesystem
 
-static void initFS() {
-    fileSystemMounted = false;
+static void _glfmInitFS() {
+    _glfmFileSystemMounted = false;
     EM_ASM(
         FS.mkdir("/.glfm_documents");
         FS.mount(IDBFS, {}, "/.glfm_documents");
         FS.syncfs(true, function (err) {
-            ccall('syncFSComplete', 'v');
+            ccall('_glfmSyncFSComplete', 'v');
         });
     );
 }
 
-static void syncFS() {
-    if (fileSystemMounted) {
-        fileSystemMounted = false;
+static void _glfmSyncFS() {
+    if (_glfmFileSystemMounted) {
+        _glfmFileSystemMounted = false;
         EM_ASM(
             FS.syncfs(function (err) {
-                ccall('syncFSComplete', 'v');
+                ccall('_glfmSyncFSComplete', 'v');
             });
         );
     }
 }
 
 EMSCRIPTEN_KEEPALIVE
-static void syncFSComplete() {
-    fileSystemMounted = true;
+static void _glfmSyncFSComplete() {
+    _glfmFileSystemMounted = true;
 }
 
 // MARK: Emscripten glue
 
-static int getDisplayWidth(GLFMDisplay *display) {
+static int _glfmGetDisplayWidth(GLFMDisplay *display) {
     (void)display;
     const double width = EM_ASM_DOUBLE_V({
         var canvas = Module['canvas'];
@@ -243,7 +243,7 @@ static int getDisplayWidth(GLFMDisplay *display) {
     return (int)(round(width));
 }
 
-static int getDisplayHeight(GLFMDisplay *display) {
+static int _glfmGetDisplayHeight(GLFMDisplay *display) {
     (void)display;
     const double height = EM_ASM_DOUBLE_V({
         var canvas = Module['canvas'];
@@ -252,11 +252,11 @@ static int getDisplayHeight(GLFMDisplay *display) {
     return (int)(round(height));
 }
 
-static void setActive(GLFMDisplay *display, bool active) {
-    PlatformData *platformData = display->platformData;
+static void _glfmSetActive(GLFMDisplay *display, bool active) {
+    GLFMPlatformData *platformData = display->platformData;
     if (platformData->active != active) {
         platformData->active = active;
-        clearActiveTouches(platformData);
+        _glfmClearActiveTouches(platformData);
         if (active && display->resumingFunc) {
             display->resumingFunc(display);
         } else if (!active && display->pausingFunc) {
@@ -265,7 +265,7 @@ static void setActive(GLFMDisplay *display, bool active) {
     }
 }
 
-static void mainLoopFunc(void *userData) {
+static void _glfmMainLoopFunc(void *userData) {
     GLFMDisplay *display = userData;
     if (display) {
         // Check if canvas size has changed
@@ -283,9 +283,9 @@ static void mainLoopFunc(void *userData) {
             }
         });
         if (displayChanged) {
-            PlatformData *platformData = display->platformData;
-            platformData->width = getDisplayWidth(display);
-            platformData->height = getDisplayHeight(display);
+            GLFMPlatformData *platformData = display->platformData;
+            platformData->width = _glfmGetDisplayWidth(display);
+            platformData->height = _glfmGetDisplayHeight(display);
             platformData->scale = emscripten_get_device_pixel_ratio();
             if (display->surfaceResizedFunc) {
                 display->surfaceResizedFunc(display, platformData->width, platformData->height);
@@ -301,7 +301,7 @@ static void mainLoopFunc(void *userData) {
     }
 }
 
-static EM_BOOL webglContextCallback(int eventType, const void *reserved, void *userData) {
+static EM_BOOL _glfmWebGLContextCallback(int eventType, const void *reserved, void *userData) {
     (void)reserved;
     GLFMDisplay *display = userData;
     if (eventType == EMSCRIPTEN_EVENT_WEBGLCONTEXTLOST) {
@@ -310,7 +310,7 @@ static EM_BOOL webglContextCallback(int eventType, const void *reserved, void *u
         }
         return 1;
     } else if (eventType == EMSCRIPTEN_EVENT_WEBGLCONTEXTRESTORED) {
-        PlatformData *platformData = display->platformData;
+        GLFMPlatformData *platformData = display->platformData;
         if (display->surfaceCreatedFunc) {
             display->surfaceCreatedFunc(display, platformData->width, platformData->height);
         }
@@ -320,26 +320,27 @@ static EM_BOOL webglContextCallback(int eventType, const void *reserved, void *u
     }
 }
 
-static EM_BOOL visibilityChangeCallback(int eventType, const EmscriptenVisibilityChangeEvent *e,
-                                        void *userData) {
+static EM_BOOL _glfmVisibilityChangeCallback(int eventType,
+                                             const EmscriptenVisibilityChangeEvent *e,
+                                             void *userData) {
     (void)eventType;
     GLFMDisplay *display = userData;
-    setActive(display, !e->hidden);
+    _glfmSetActive(display, !e->hidden);
     if (e->hidden) {
-        syncFS();
+        _glfmSyncFS();
     }
     return 1;
 }
 
-static const char *beforeUnloadCallback(int eventType, const void *reserved, void *userData) {
+static const char *_glfmBeforeUnloadCallback(int eventType, const void *reserved, void *userData) {
     (void)eventType;
     (void)reserved;
     (void)userData;
-    syncFS();
+    _glfmSyncFS();
     return "";
 }
 
-static EM_BOOL keyCallback(int eventType, const EmscriptenKeyboardEvent *e, void *userData) {
+static EM_BOOL _glfmKeyCallback(int eventType, const EmscriptenKeyboardEvent *e, void *userData) {
     GLFMDisplay *display = userData;
     if (eventType == EMSCRIPTEN_EVENT_KEYPRESS) {
         if (display->charFunc && e->charCode >= ' ') {
@@ -383,10 +384,10 @@ static EM_BOOL keyCallback(int eventType, const EmscriptenKeyboardEvent *e, void
     }
 }
 
-static EM_BOOL mouseCallback(int eventType, const EmscriptenMouseEvent *e, void *userData) {
+static EM_BOOL _glfmMouseCallback(int eventType, const EmscriptenMouseEvent *e, void *userData) {
     GLFMDisplay *display = userData;
     if (display->touchFunc) {
-        PlatformData *platformData = display->platformData;
+        GLFMPlatformData *platformData = display->platformData;
         GLFMTouchPhase touchPhase;
         switch (eventType) {
             case EMSCRIPTEN_EVENT_MOUSEDOWN:
@@ -420,13 +421,13 @@ static EM_BOOL mouseCallback(int eventType, const EmscriptenMouseEvent *e, void 
     }
 }
 
-static void clearActiveTouches(PlatformData *platformData) {
+static void _glfmClearActiveTouches(GLFMPlatformData *platformData) {
     for (int i = 0; i < MAX_ACTIVE_TOUCHES; i++) {
         platformData->activeTouches[i].active = false;
     }
 }
 
-static int touchIdentifier(PlatformData *platformData, const EmscriptenTouchPoint *t) {
+static int _glfmGetTouchIdentifier(GLFMPlatformData *platformData, const EmscriptenTouchPoint *t) {
     int firstNullIndex = -1;
     int index = -1;
     for (int i = 0; i < MAX_ACTIVE_TOUCHES; i++) {
@@ -450,10 +451,10 @@ static int touchIdentifier(PlatformData *platformData, const EmscriptenTouchPoin
     return index;
 }
 
-static EM_BOOL touchCallback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
+static EM_BOOL _glfmTouchCallback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
     GLFMDisplay *display = userData;
     if (display->touchFunc) {
-        PlatformData *platformData = display->platformData;
+        GLFMPlatformData *platformData = display->platformData;
         GLFMTouchPhase touchPhase;
         switch (eventType) {
             case EMSCRIPTEN_EVENT_TOUCHSTART:
@@ -478,7 +479,7 @@ static EM_BOOL touchCallback(int eventType, const EmscriptenTouchEvent *e, void 
         for (int i = 0; i < e->numTouches; i++) {
             const EmscriptenTouchPoint *t = &e->touches[i];
             if (t->isChanged) {
-                int identifier = touchIdentifier(platformData, t);
+                int identifier = _glfmGetTouchIdentifier(platformData, t);
                 if (identifier >= 0) {
                     if ((platformData->multitouchEnabled || identifier == 0)) {
                         handled |= display->touchFunc(display, identifier, touchPhase,
@@ -501,13 +502,13 @@ static EM_BOOL touchCallback(int eventType, const EmscriptenTouchEvent *e, void 
 // MARK: main
 
 int main() {
-    initFS();
+    _glfmInitFS();
 
     GLFMDisplay *glfmDisplay = calloc(1, sizeof(GLFMDisplay));
-    PlatformData *platformData = calloc(1, sizeof(PlatformData));
+    GLFMPlatformData *platformData = calloc(1, sizeof(GLFMPlatformData));
     glfmDisplay->platformData = platformData;
     platformData->active = true;
-    clearActiveTouches(platformData);
+    _glfmClearActiveTouches(platformData);
 
     // Main entry
     glfmMain(glfmDisplay);
@@ -519,8 +520,8 @@ int main() {
         canvas.width = canvas.clientWidth * devicePixelRatio;
         canvas.height = canvas.clientHeight * devicePixelRatio;
     });
-    platformData->width = getDisplayWidth(glfmDisplay);
-    platformData->height = getDisplayHeight(glfmDisplay);
+    platformData->width = _glfmGetDisplayWidth(glfmDisplay);
+    platformData->height = _glfmGetDisplayHeight(glfmDisplay);
     platformData->scale = emscripten_get_device_pixel_ratio();
 
     // Create WebGL context
@@ -556,7 +557,7 @@ int main() {
         }
     }
     if (!contextHandle) {
-        reportSurfaceError(glfmDisplay, "Couldn't create GL context");
+        _glfmReportSurfaceError(glfmDisplay, "Couldn't create GL context");
         return 0;
     }
 
@@ -567,23 +568,23 @@ int main() {
     }
 
     // Setup callbacks
-    emscripten_set_main_loop_arg(mainLoopFunc, glfmDisplay, 0, 0);
-    emscripten_set_touchstart_callback(0, glfmDisplay, 1, touchCallback);
-    emscripten_set_touchend_callback(0, glfmDisplay, 1, touchCallback);
-    emscripten_set_touchmove_callback(0, glfmDisplay, 1, touchCallback);
-    emscripten_set_touchcancel_callback(0, glfmDisplay, 1, touchCallback);
-    emscripten_set_mousedown_callback(0, glfmDisplay, 1, mouseCallback);
-    emscripten_set_mouseup_callback(0, glfmDisplay, 1, mouseCallback);
-    emscripten_set_mousemove_callback(0, glfmDisplay, 1, mouseCallback);
+    emscripten_set_main_loop_arg(_glfmMainLoopFunc, glfmDisplay, 0, 0);
+    emscripten_set_touchstart_callback(0, glfmDisplay, 1, _glfmTouchCallback);
+    emscripten_set_touchend_callback(0, glfmDisplay, 1, _glfmTouchCallback);
+    emscripten_set_touchmove_callback(0, glfmDisplay, 1, _glfmTouchCallback);
+    emscripten_set_touchcancel_callback(0, glfmDisplay, 1, _glfmTouchCallback);
+    emscripten_set_mousedown_callback(0, glfmDisplay, 1, _glfmMouseCallback);
+    emscripten_set_mouseup_callback(0, glfmDisplay, 1, _glfmMouseCallback);
+    emscripten_set_mousemove_callback(0, glfmDisplay, 1, _glfmMouseCallback);
     //emscripten_set_click_callback(0, 0, 1, mouse_callback);
     //emscripten_set_dblclick_callback(0, 0, 1, mouse_callback);
-    emscripten_set_keypress_callback(0, glfmDisplay, 1, keyCallback);
-    emscripten_set_keydown_callback(0, glfmDisplay, 1, keyCallback);
-    emscripten_set_keyup_callback(0, glfmDisplay, 1, keyCallback);
-    emscripten_set_webglcontextlost_callback(0, glfmDisplay, 1, webglContextCallback);
-    emscripten_set_webglcontextrestored_callback(0, glfmDisplay, 1, webglContextCallback);
-    emscripten_set_visibilitychange_callback(glfmDisplay, 1, visibilityChangeCallback);
-    emscripten_set_beforeunload_callback(glfmDisplay, beforeUnloadCallback);
+    emscripten_set_keypress_callback(0, glfmDisplay, 1, _glfmKeyCallback);
+    emscripten_set_keydown_callback(0, glfmDisplay, 1, _glfmKeyCallback);
+    emscripten_set_keyup_callback(0, glfmDisplay, 1, _glfmKeyCallback);
+    emscripten_set_webglcontextlost_callback(0, glfmDisplay, 1, _glfmWebGLContextCallback);
+    emscripten_set_webglcontextrestored_callback(0, glfmDisplay, 1, _glfmWebGLContextCallback);
+    emscripten_set_visibilitychange_callback(glfmDisplay, 1, _glfmVisibilityChangeCallback);
+    emscripten_set_beforeunload_callback(glfmDisplay, _glfmBeforeUnloadCallback);
     return 0;
 }
 
