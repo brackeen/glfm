@@ -45,10 +45,6 @@
 //#define LOG_LIFECYCLE(...) __android_log_print(ANDROID_LOG_INFO, "GLFM", __VA_ARGS__)
 #define LOG_LIFECYCLE(...) do { } while (0)
 
-// Available in eglext.h in API 18
-#define EGL_CONTEXT_MAJOR_VERSION_KHR 0x3098
-#define EGL_CONTEXT_MINOR_VERSION_KHR 0x30FB
-
 // MARK: Time utils
 
 static struct timespec _glfmTimeNow() {
@@ -104,21 +100,18 @@ typedef struct {
 
     JNIEnv *jniEnv;
 } GLFMPlatformData;
+
 static GLFMPlatformData *platformDataGlobal = NULL;
 
 // MARK: JNI code
 
-#define EXCEPTION_THROWN() \
+#define _glfmWasJavaExceptionThrown() \
     ((*jni)->ExceptionCheck(jni) ? ((*jni)->ExceptionClear(jni), true) : false)
 
-#define EXCEPTION_CLEAR()              \
+#define _glfmClearJavaException() \
     if ((*jni)->ExceptionCheck(jni)) { \
-        (*jni)->ExceptionClear(jni);   \
+        (*jni)->ExceptionClear(jni); \
     }
-
-#define ActivityInfo_SCREEN_ORIENTATION_SENSOR 0x00000004
-#define ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE 0x00000006
-#define ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT 0x00000007
 
 static jmethodID _glfmGetJavaMethodID(JNIEnv *jni, jobject object, const char *name,
                                       const char *sig) {
@@ -126,7 +119,7 @@ static jmethodID _glfmGetJavaMethodID(JNIEnv *jni, jobject object, const char *n
         jclass class = (*jni)->GetObjectClass(jni, object);
         jmethodID methodID = (*jni)->GetMethodID(jni, class, name, sig);
         (*jni)->DeleteLocalRef(jni, class);
-        return EXCEPTION_THROWN() ? NULL : methodID;
+        return _glfmWasJavaExceptionThrown() ? NULL : methodID;
     } else {
         return NULL;
     }
@@ -137,7 +130,7 @@ static jfieldID _glfmGetJavaFieldID(JNIEnv *jni, jobject object, const char *nam
         jclass class = (*jni)->GetObjectClass(jni, object);
         jfieldID fieldID = (*jni)->GetFieldID(jni, class, name, sig);
         (*jni)->DeleteLocalRef(jni, class);
-        return EXCEPTION_THROWN() ? NULL : fieldID;
+        return _glfmWasJavaExceptionThrown() ? NULL : fieldID;
     } else {
         return NULL;
     }
@@ -147,7 +140,7 @@ static jfieldID _glfmGetJavaStaticFieldID(JNIEnv *jni, jclass class, const char 
                                           const char *sig) {
     if (class) {
         jfieldID fieldID = (*jni)->GetStaticFieldID(jni, class, name, sig);
-        return EXCEPTION_THROWN() ? NULL : fieldID;
+        return _glfmWasJavaExceptionThrown() ? NULL : fieldID;
     } else {
         return NULL;
     }
@@ -170,14 +163,22 @@ static jfieldID _glfmGetJavaStaticFieldID(JNIEnv *jni, jclass class, const char 
         _glfmGetJavaStaticFieldID(jni, class, fieldName, fieldSig))
 
 static void _glfmSetOrientation(struct android_app *app) {
+    static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR = 0x00000004;
+    static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE = 0x00000006;
+    static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT = 0x00000007;
+
     GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
     int orientation;
-    if (platformData->display->allowedOrientations == GLFMUserInterfaceOrientationPortrait) {
-        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT;
-    } else if (platformData->display->allowedOrientations == GLFMUserInterfaceOrientationLandscape) {
-        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
-    } else {
-        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
+    switch (platformData->display->allowedOrientations) {
+        case GLFMUserInterfaceOrientationPortrait:
+            orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT;
+            break;
+        case GLFMUserInterfaceOrientationLandscape:
+            orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
+            break;
+        default:
+            orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
+            break;
     }
 
     JNIEnv *jni = platformData->jniEnv;
@@ -187,7 +188,7 @@ static void _glfmSetOrientation(struct android_app *app) {
 
     _glfmCallJavaMethodWithArgs(jni, app->activity->clazz, "setRequestedOrientation", "(I)V", Void,
                                 orientation);
-    EXCEPTION_CLEAR()
+    _glfmClearJavaException()
 }
 
 static jobject _glfmGetDecorView(struct android_app *app) {
@@ -198,41 +199,30 @@ static jobject _glfmGetDecorView(struct android_app *app) {
     }
     jobject window = _glfmCallJavaMethod(jni, app->activity->clazz, "getWindow",
                                          "()Landroid/view/Window;", Object);
-    if (!window || EXCEPTION_THROWN()) {
+    if (!window || _glfmWasJavaExceptionThrown()) {
         return NULL;
     }
     jobject decorView = _glfmCallJavaMethod(jni, window, "getDecorView", "()Landroid/view/View;",
                                             Object);
     (*jni)->DeleteLocalRef(jni, window);
-    return EXCEPTION_THROWN() ? NULL : decorView;
+    return _glfmWasJavaExceptionThrown() ? NULL : decorView;
 }
 
 static void _glfmSetFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome) {
+    static const int View_STATUS_BAR_HIDDEN = 0x00000001;
+    static const int View_SYSTEM_UI_FLAG_LOW_PROFILE = 0x00000001;
+    static const int View_SYSTEM_UI_FLAG_HIDE_NAVIGATION = 0x00000002;
+    static const int View_SYSTEM_UI_FLAG_FULLSCREEN = 0x00000004;
+    static const int View_SYSTEM_UI_FLAG_LAYOUT_STABLE = 0x00000100;
+    static const int View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION = 0x00000200;
+    static const int View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN = 0x00000400;
+    static const int View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x00001000;
+
     const int SDK_INT = app->activity->sdkVersion;
     if (SDK_INT < 11) {
         return;
     }
-    /*
-     // Equivalent to this Java code:
-     // Note, View.STATUS_BAR_HIDDEN and View.SYSTEM_UI_FLAG_LOW_PROFILE are identical
-     int SDK_INT = android.os.Build.VERSION.SDK_INT;
-     if (SDK_INT >= 11 && SDK_INT < 14) {
-     getWindow().getDecorView().setSystemUiVisibility(View.STATUS_BAR_HIDDEN);
-     }
-     else if (SDK_INT >= 14 && SDK_INT < 19) {
-     getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN |
-     View.SYSTEM_UI_FLAG_LOW_PROFILE);
-     }
-     else if(SDK_INT >= 19) {
-     getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
-     | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-     | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-     | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-     | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-     }
-     
-     */
+
     GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
     JNIEnv *jni = platformData->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
@@ -247,27 +237,32 @@ static void _glfmSetFullScreen(struct android_app *app, GLFMUserInterfaceChrome 
         _glfmCallJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void, 0);
     } else if (SDK_INT >= 11 && SDK_INT < 14) {
         _glfmCallJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                    0x00000001);
+                                    View_STATUS_BAR_HIDDEN);
     } else if (SDK_INT >= 14 && SDK_INT < 19) {
         if (uiChrome == GLFMUserInterfaceChromeNavigation) {
             _glfmCallJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                        0x00000004);
+                                        View_SYSTEM_UI_FLAG_FULLSCREEN);
         } else {
             _glfmCallJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                        0x00000001 | 0x00000004);
+                                        View_SYSTEM_UI_FLAG_LOW_PROFILE |
+                                        View_SYSTEM_UI_FLAG_FULLSCREEN);
         }
     } else if (SDK_INT >= 19) {
         if (uiChrome == GLFMUserInterfaceChromeNavigation) {
             _glfmCallJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                        0x00000004);
+                                        View_SYSTEM_UI_FLAG_FULLSCREEN);
         } else {
             _glfmCallJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                        0x00000002 | 0x00000004 | 0x00000100 |
-                                        0x00000200 | 0x00000400 | 0x00001000);
+                                        View_SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                                        View_SYSTEM_UI_FLAG_FULLSCREEN |
+                                        View_SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                                        View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                                        View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                                        View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
     }
     (*jni)->DeleteLocalRef(jni, decorView);
-    EXCEPTION_CLEAR()
+    _glfmClearJavaException()
 }
 
 // Move task to the back if it is root task (same as pressing home button).
@@ -280,7 +275,7 @@ static bool _glfmHandleBackButton(struct android_app *app) {
 
     jboolean handled = _glfmCallJavaMethodWithArgs(jni, app->activity->clazz, "moveTaskToBack",
                                                    "(Z)Z", Boolean, false);
-    return !EXCEPTION_THROWN() && handled;
+    return !_glfmWasJavaExceptionThrown() && handled;
 }
 
 static const char *_glfmGetLocale() {
@@ -297,24 +292,24 @@ static const char *_glfmGetLocale() {
 
     jobject res = _glfmCallJavaMethod(jni, platformData->app->activity->clazz, "getResources",
                                       "()Landroid/content/res/Resources;", Object);
-    if (!res || EXCEPTION_THROWN()) {
+    if (!res || _glfmWasJavaExceptionThrown()) {
         return lang;
     }
 
     jobject configuration = _glfmCallJavaMethod(jni, res, "getConfiguration",
                                                 "()Landroid/content/res/Configuration;", Object);
-    if (!configuration || EXCEPTION_THROWN()) {
+    if (!configuration || _glfmWasJavaExceptionThrown()) {
         return lang;
     }
 
     jobject locale = _glfmGetJavaField(jni, configuration, "locale", "Ljava/util/Locale;", Object);
-    if (!locale || EXCEPTION_THROWN()) {
+    if (!locale || _glfmWasJavaExceptionThrown()) {
         return lang;
     }
 
     jstring valueString = _glfmCallJavaMethod(jni, locale, "toString", "()Ljava/lang/String;",
                                               Object);
-    if (!valueString || EXCEPTION_THROWN()) {
+    if (!valueString || _glfmWasJavaExceptionThrown()) {
         return lang;
     }
 
@@ -335,15 +330,7 @@ static const char *_glfmGetLocale() {
 }
 
 static bool _glfmSetKeyboardVisible(GLFMPlatformData *platformData, bool visible) {
-    /*
-    if (visible) {
-		ime.showSoftInput(decorView, InputMethodManager.SHOW_FORCED);
-	} else {
-		ime.hideSoftInputFromWindow(decorView.getWindowToken(), 0);
-	}
-    */
-
-    const int SHOW_FORCED = 2;
+    static const int InputMethodManager_SHOW_FORCED = 2;
 
     JNIEnv *jni = platformData->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
@@ -356,43 +343,43 @@ static bool _glfmSetKeyboardVisible(GLFMPlatformData *platformData, bool visible
     }
 
     jclass contextClass = (*jni)->FindClass(jni, "android/content/Context");
-    if (EXCEPTION_THROWN()) {
+    if (_glfmWasJavaExceptionThrown()) {
         return false;
     }
 
     jstring imString = _glfmGetJavaStaticField(jni, contextClass, "INPUT_METHOD_SERVICE",
                                                "Ljava/lang/String;", Object);
-    if (!imString || EXCEPTION_THROWN()) {
+    if (!imString || _glfmWasJavaExceptionThrown()) {
         return false;
     }
-    jobject inputMethodService = _glfmCallJavaMethodWithArgs(jni, platformData->app->activity->clazz,
-                                                             "getSystemService",
-                                                             "(Ljava/lang/String;)Ljava/lang/Object;",
-                                                             Object, imString);
-    if (!inputMethodService || EXCEPTION_THROWN()) {
+    jobject ime = _glfmCallJavaMethodWithArgs(jni, platformData->app->activity->clazz,
+                                              "getSystemService",
+                                              "(Ljava/lang/String;)Ljava/lang/Object;",
+                                              Object, imString);
+    if (!ime || _glfmWasJavaExceptionThrown()) {
         return false;
     }
 
     if (visible) {
-        _glfmCallJavaMethodWithArgs(jni, inputMethodService, "showSoftInput",
-                                    "(Landroid/view/View;I)Z", Boolean, decorView, SHOW_FORCED);
+        _glfmCallJavaMethodWithArgs(jni, ime, "showSoftInput", "(Landroid/view/View;I)Z", Boolean,
+                                    decorView, InputMethodManager_SHOW_FORCED);
     } else {
         jobject windowToken = _glfmCallJavaMethod(jni, decorView, "getWindowToken",
                                                   "()Landroid/os/IBinder;", Object);
-        if (!windowToken || EXCEPTION_THROWN()) {
+        if (!windowToken || _glfmWasJavaExceptionThrown()) {
             return false;
         }
-        _glfmCallJavaMethodWithArgs(jni, inputMethodService, "hideSoftInputFromWindow",
+        _glfmCallJavaMethodWithArgs(jni, ime, "hideSoftInputFromWindow",
                                     "(Landroid/os/IBinder;I)Z", Boolean, windowToken, 0);
         (*jni)->DeleteLocalRef(jni, windowToken);
     }
 
-    (*jni)->DeleteLocalRef(jni, inputMethodService);
+    (*jni)->DeleteLocalRef(jni, ime);
     (*jni)->DeleteLocalRef(jni, imString);
     (*jni)->DeleteLocalRef(jni, contextClass);
     (*jni)->DeleteLocalRef(jni, decorView);
 
-    return !EXCEPTION_THROWN();
+    return !_glfmWasJavaExceptionThrown();
 }
 
 static void _glfmResetContentRect(GLFMPlatformData *platformData) {
@@ -407,12 +394,12 @@ static void _glfmResetContentRect(GLFMPlatformData *platformData) {
 
     jfieldID field = _glfmGetJavaFieldID(jni, platformData->app->activity->clazz,
                                          "mLastContentWidth", "I");
-    if (!field || EXCEPTION_THROWN()) {
+    if (!field || _glfmWasJavaExceptionThrown()) {
         return;
     }
 
     (*jni)->SetIntField(jni, platformData->app->activity->clazz, field, -1);
-    EXCEPTION_CLEAR()
+    _glfmClearJavaException()
 }
 
 static ARect _glfmGetWindowVisibleDisplayFrame(GLFMPlatformData *platformData, ARect defaultRect) {
@@ -427,18 +414,18 @@ static ARect _glfmGetWindowVisibleDisplayFrame(GLFMPlatformData *platformData, A
     }
 
     jclass javaRectClass = (*jni)->FindClass(jni, "android/graphics/Rect");
-    if (EXCEPTION_THROWN()) {
+    if (_glfmWasJavaExceptionThrown()) {
         return defaultRect;
     }
 
     jobject javaRect = (*jni)->AllocObject(jni, javaRectClass);
-    if (EXCEPTION_THROWN()) {
+    if (_glfmWasJavaExceptionThrown()) {
         return defaultRect;
     }
 
     _glfmCallJavaMethodWithArgs(jni, decorView, "getWindowVisibleDisplayFrame",
                                 "(Landroid/graphics/Rect;)V", Void, javaRect);
-    if (EXCEPTION_THROWN()) {
+    if (_glfmWasJavaExceptionThrown()) {
         return defaultRect;
     }
 
@@ -452,7 +439,7 @@ static ARect _glfmGetWindowVisibleDisplayFrame(GLFMPlatformData *platformData, A
     (*jni)->DeleteLocalRef(jni, javaRectClass);
     (*jni)->DeleteLocalRef(jni, decorView);
 
-    if (EXCEPTION_THROWN()) {
+    if (_glfmWasJavaExceptionThrown()) {
         return defaultRect;
     } else {
         return rect;
@@ -469,7 +456,7 @@ static uint32_t _glfmGetUnicodeChar(GLFMPlatformData *platformData, AInputEvent 
     jint metaState = AKeyEvent_getMetaState(event);
 
     jclass keyEventClass = (*jni)->FindClass(jni, "android/view/KeyEvent");
-    if (!keyEventClass || EXCEPTION_THROWN()) {
+    if (!keyEventClass || _glfmWasJavaExceptionThrown()) {
         return 0;
     }
 
@@ -478,7 +465,7 @@ static uint32_t _glfmGetUnicodeChar(GLFMPlatformData *platformData, AInputEvent 
 
     jobject eventObject = (*jni)->NewObject(jni, keyEventClass, eventConstructor,
                                             AKEY_EVENT_ACTION_DOWN, keyCode);
-    if (!keyEventClass || EXCEPTION_THROWN()) {
+    if (!keyEventClass || _glfmWasJavaExceptionThrown()) {
         return 0;
     }
 
@@ -487,7 +474,7 @@ static uint32_t _glfmGetUnicodeChar(GLFMPlatformData *platformData, AInputEvent 
     (*jni)->DeleteLocalRef(jni, eventObject);
     (*jni)->DeleteLocalRef(jni, keyEventClass);
 
-    if (EXCEPTION_THROWN()) {
+    if (_glfmWasJavaExceptionThrown()) {
         return 0;
     } else {
         return (uint32_t)unicodeKey;
@@ -497,6 +484,11 @@ static uint32_t _glfmGetUnicodeChar(GLFMPlatformData *platformData, AInputEvent 
 // MARK: EGL
 
 static bool _glfmEGLContextInit(GLFMPlatformData *platformData) {
+
+    // Available in eglext.h in API 18
+    static const int EGL_CONTEXT_MAJOR_VERSION_KHR = 0x3098;
+    static const int EGL_CONTEXT_MINOR_VERSION_KHR = 0x30FB;
+
     bool created = false;
     if (platformData->eglContext == EGL_NO_CONTEXT) {
         // OpenGL ES 3.2
