@@ -97,7 +97,7 @@ void *glfmGetUserData(GLFMDisplay *display) {
     return display ? display->userData : NULL;
 }
 
-void glfmDisplayChromeUpdated(GLFMDisplay *display);
+void _glfmDisplayChromeUpdated(GLFMDisplay *display);
 
 GLFMUserInterfaceChrome glfmGetDisplayChrome(GLFMDisplay *display) {
     return display ? display->uiChrome : GLFMUserInterfaceChromeNavigation;
@@ -106,7 +106,7 @@ GLFMUserInterfaceChrome glfmGetDisplayChrome(GLFMDisplay *display) {
 void glfmSetDisplayChrome(GLFMDisplay *display, GLFMUserInterfaceChrome uiChrome) {
     if (display) {
         display->uiChrome = uiChrome;
-        glfmDisplayChromeUpdated(display);
+        _glfmDisplayChromeUpdated(display);
     }
 }
 

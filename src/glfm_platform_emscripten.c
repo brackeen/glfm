@@ -117,7 +117,7 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
     } );
 }
 
-void glfmDisplayChromeUpdated(GLFMDisplay *display) {
+void _glfmDisplayChromeUpdated(GLFMDisplay *display) {
     (void)display;
     // Do nothing
 }

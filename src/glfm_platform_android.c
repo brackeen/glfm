@@ -1355,7 +1355,7 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
     }
 }
 
-void glfmDisplayChromeUpdated(GLFMDisplay *display) {
+void _glfmDisplayChromeUpdated(GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     _glfmSetFullScreen(platformData->app, display->uiChrome);
 }

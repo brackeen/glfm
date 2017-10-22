@@ -925,7 +925,7 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
     }
 }
 
-void glfmDisplayChromeUpdated(GLFMDisplay *display) {
+void _glfmDisplayChromeUpdated(GLFMDisplay *display) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         [vc setNeedsStatusBarAppearanceUpdate];
