@@ -24,7 +24,7 @@ GLFM is limited in scope, and isn't designed to provide everything needed for an
 Instead, GLFM can be used with other cross-platform libraries that provide what an app needs.
 
 ## Example
-This example initializes the display in <code>glfmMain()</code> and draws a triangle in <code>onFrame()</code>. A more detailed example is available [here](example/src/main.c).
+This example initializes the display in `glfmMain()` and draws a triangle in `onFrame()`. A more detailed example is available [here](example/src/main.c).
 
 ```C
 #include "glfm.h"
@@ -125,14 +125,14 @@ See [glfm.h](include/glfm.h)
 
 ## Use GLFM in an existing project
 
-1. Remove the project's existing <code>void main()</code> function, if any.
+1. Remove the project's existing `void main()` function, if any.
 2. Add the GLFM source files (in `include` and `src`).
-3. Include a <code>void glfmMain(GLFMDisplay *display)</code> function in a C/C++ file.
+3. Include a `void glfmMain(GLFMDisplay *display)` function in a C/C++ file.
 
 ## Build the example GLFM projects
 Use the `CMakeLists.txt` file with the `-DGLFM_BUILD_EXAMPLE=ON` option to build the example projects.
 
-### Xcode 8.3
+### Xcode 9.0
 ```Shell
 mkdir -p build/ios
 cd build/ios
@@ -223,9 +223,9 @@ android {
 * Orientation lock probably doesn't work on HTML5.
 
 ## Questions
-**Why is the entry point <code>glfmMain()</code> and not <code>main()</code>?**
+**Why is the entry point `glfmMain()` and not `main()`?**
 
-Otherwise, it wouldn't work on iOS. To initialize the Objective-C environment, the <code>main()</code> function must create an autorelease pool and call the <code>UIApplicationMain()</code> function, which *never returns*. On iOS, GLFM doesn't call <code>glfmMain()</code> until after the <code>UIApplicationDelegate</code> and <code>UIViewController</code> are initialized.
+Otherwise, it wouldn't work on iOS. To initialize the Objective-C environment, the `main()` function must create an autorelease pool and call the `UIApplicationMain()` function, which *never returns*. On iOS, GLFM doesn't call `glfmMain()` until after the `UIApplicationDelegate` and `UIViewController` are initialized.
 
 **Why is GLFM event-driven? Why does GLFM take over the main loop?**
 
