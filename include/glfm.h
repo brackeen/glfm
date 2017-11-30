@@ -377,7 +377,13 @@ const char *glfmGetLanguage(void);
 /// hasn't been mounted yet.
 const char *glfmGetDirectoryPath(GLFMDirectory directory);
 
-#if defined(GLFM_PLATFORM_ANDROID) && !defined(GLFM_NO_STDIO_HELPERS)
+#if defined(GLFM_PLATFORM_ANDROID)
+
+#include <android/native_activity.h>
+
+ANativeActivity *glfmAndroidGetActivity();
+
+#if !defined(GLFM_NO_STDIO_HELPERS)
 
 #include <stdio.h>
 
@@ -392,6 +398,8 @@ int glfmAndroidPrint(const char *format, ...) __attribute__((__format__(__printf
 
 #define fopen glfmAndroidOpenFile
 #define printf glfmAndroidPrint
+
+#endif // GLFM_NO_STDIO_HELPERS
 
 #endif // GLFM_PLATFORM_ANDROID
 

@@ -1418,6 +1418,16 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
     return platformData->keyboardVisible;
 }
 
+// MARK: Android-specific public functions
+
+ANativeActivity *glfmAndroidGetActivity() {
+    if (platformDataGlobal && platformDataGlobal->app) {
+        return platformDataGlobal->app->activity;
+    } else {
+        return NULL;
+    }
+}
+
 // MARK: GLFM Asset reading
 
 const char *glfmGetDirectoryPath(GLFMDirectory directory) {
