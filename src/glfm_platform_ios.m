@@ -873,19 +873,23 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
                                 double *left) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        if (@available(iOS 11, *)) {
+        if (@available(iOS 11, tvOS 11, *)) {
             UIEdgeInsets insets = vc.view.safeAreaInsets;
             *top = insets.top * vc.view.contentScaleFactor;
             *right = insets.right * vc.view.contentScaleFactor;
             *bottom = insets.bottom * vc.view.contentScaleFactor;
             *left = insets.left * vc.view.contentScaleFactor;
         } else {
+#if TARGET_OS_IOS
             if (![vc prefersStatusBarHidden]) {
                 *top = ([UIApplication sharedApplication].statusBarFrame.size.height *
                         vc.view.contentScaleFactor);
             } else {
                 *top = 0.0;
             }
+#else
+            *top = 0.0;
+#endif
             *right = 0.0;
             *bottom = 0.0;
             *left = 0.0;
@@ -900,11 +904,13 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
 
 void _glfmDisplayChromeUpdated(GLFMDisplay *display) {
     if (display && display->platformData) {
+#if TARGET_OS_IOS
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         [vc setNeedsStatusBarAppearanceUpdate];
         if (@available(iOS 11, *)) {
             [vc setNeedsUpdateOfHomeIndicatorAutoHidden];
         }
+#endif
     }
 }
 
