@@ -287,18 +287,7 @@ static EM_BOOL _glfmVisibilityChangeCallback(int eventType,
     (void)eventType;
     GLFMDisplay *display = userData;
     _glfmSetActive(display, !e->hidden);
-    if (e->hidden) {
-        _glfmSyncFS();
-    }
     return 1;
-}
-
-static const char *_glfmBeforeUnloadCallback(int eventType, const void *reserved, void *userData) {
-    (void)eventType;
-    (void)reserved;
-    (void)userData;
-    _glfmSyncFS();
-    return "";
 }
 
 static EM_BOOL _glfmKeyCallback(int eventType, const EmscriptenKeyboardEvent *e, void *userData) {
@@ -463,8 +452,6 @@ static EM_BOOL _glfmTouchCallback(int eventType, const EmscriptenTouchEvent *e, 
 // MARK: main
 
 int main() {
-    _glfmInitFS();
-
     GLFMDisplay *glfmDisplay = calloc(1, sizeof(GLFMDisplay));
     GLFMPlatformData *platformData = calloc(1, sizeof(GLFMPlatformData));
     glfmDisplay->platformData = platformData;
@@ -545,7 +532,6 @@ int main() {
     emscripten_set_webglcontextlost_callback(0, glfmDisplay, 1, _glfmWebGLContextCallback);
     emscripten_set_webglcontextrestored_callback(0, glfmDisplay, 1, _glfmWebGLContextCallback);
     emscripten_set_visibilitychange_callback(glfmDisplay, 1, _glfmVisibilityChangeCallback);
-    emscripten_set_beforeunload_callback(glfmDisplay, _glfmBeforeUnloadCallback);
     return 0;
 }
 
