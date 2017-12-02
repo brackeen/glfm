@@ -22,8 +22,8 @@
 #define GLFM_H
 
 #define GLFM_VERSION_MAJOR 0
-#define GLFM_VERSION_MINOR 8
-#define GLFM_VERSION_REVISION 1
+#define GLFM_VERSION_MINOR 9
+#define GLFM_VERSION_REVISION 0
 
 // One of these will be defined:
 // GLFM_PLATFORM_IOS
