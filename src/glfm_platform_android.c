@@ -18,7 +18,6 @@
  3. This notice may not be removed or altered from any source distribution.
  */
 
-#define _BSD_SOURCE // For funopen
 #include "glfm.h"
 
 #ifdef GLFM_PLATFORM_ANDROID
@@ -1438,54 +1437,6 @@ const char *glfmGetDirectoryPath(GLFMDirectory directory) {
     } else {
         return "";
     }
-}
-
-static int _glfmAndroidRead(void *cookie, char *buf, int size) {
-    return AAsset_read((AAsset *)cookie, buf, (size_t)size);
-}
-
-static int _glfmAndroidWrite(void *cookie, const char *buf, int size) {
-    (void)cookie;
-    (void)buf;
-    (void)size;
-    errno = EACCES;
-    return -1;
-}
-
-static fpos_t _glfmAndroidSeek(void *cookie, fpos_t offset, int whence) {
-    return AAsset_seek((AAsset *)cookie, offset, whence);
-}
-
-static int _glfmAndroidClose(void *cookie) {
-    AAsset_close((AAsset *)cookie);
-    return 0;
-}
-
-FILE *glfmAndroidOpenFile(const char *filename, const char *mode) {
-    AAssetManager *assetManager = NULL;
-    if (platformDataGlobal && platformDataGlobal->app && platformDataGlobal->app->activity) {
-        assetManager = platformDataGlobal->app->activity->assetManager;
-    }
-    AAsset *asset = NULL;
-    if (assetManager && mode && mode[0] == 'r') {
-        asset = AAssetManager_open(assetManager, filename, AASSET_MODE_UNKNOWN);
-    }
-    if (asset) {
-        return funopen(asset, _glfmAndroidRead, _glfmAndroidWrite, _glfmAndroidSeek,
-                       _glfmAndroidClose);
-    } else {
-        return fopen(filename, mode);
-    }
-}
-
-// MARK: stdout helpers
-
-int glfmAndroidPrint(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    int result = __android_log_vprint(ANDROID_LOG_INFO, "GLFM", format, args);
-    va_end(args);
-    return result;
 }
 
 #endif

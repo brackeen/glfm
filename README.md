@@ -10,7 +10,6 @@ GLFM is written in C and runs on iOS 8, tvOS 9, Android 2.3.3 (API 10), and WebG
 * Retina / high-DPI support.
 * Touch and keyboard events.
 * Events for application state and context loss.
-* Convenience helper functions for `printf` and `fopen` on Android.
 
 ## Non-goals
 GLFM is limited in scope, and isn't designed to provide everything needed for an app. For example, GLFM doesn't provide (and will never provide) the following:

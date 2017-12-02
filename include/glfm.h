@@ -383,24 +383,6 @@ const char *glfmGetDirectoryPath(GLFMDirectory directory);
 
 ANativeActivity *glfmAndroidGetActivity(void);
 
-#if !defined(GLFM_NO_STDIO_HELPERS)
-
-#include <stdio.h>
-
-/// Opens a file. For read mode, this function first tries to read the file via Android's native
-/// `AAssetManager`. For write mode, or if opening the file via `AAssetManager` fails, the normal
-/// `fopen` function is used. For writing, use `glfmGetDirectoryPath(GLFMDirectoryDocuments)` as
-/// the base path.
-FILE *glfmAndroidOpenFile(const char *filename, const char *mode);
-
-/// A printf-like function that outputs to Android's logger.
-int glfmAndroidPrint(const char *format, ...) __attribute__((__format__(__printf__, 1, 2)));
-
-#define fopen glfmAndroidOpenFile
-#define printf glfmAndroidPrint
-
-#endif // GLFM_NO_STDIO_HELPERS
-
 #endif // GLFM_PLATFORM_ANDROID
 
 #ifdef __cplusplus
