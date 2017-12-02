@@ -22,17 +22,12 @@
 
 #ifdef GLFM_PLATFORM_ANDROID
 
-// Undefine convenience macros
-#undef fopen
-#undef printf
-
 #include "android_native_app_glue.h"
 #include "glfm_platform.h"
 #include <EGL/egl.h>
 #include <android/log.h>
 #include <android/window.h>
 #include <dlfcn.h>
-#include <errno.h>
 #include <unistd.h>
 
 #ifdef NDEBUG
