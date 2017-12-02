@@ -41,6 +41,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Android")
     find_library(GLESv2-lib GLESv2)
     target_link_libraries(glfm ${log-lib} ${android-lib} ${EGL-lib} ${GLESv2-lib})
     target_include_directories(glfm PRIVATE ${ANDROID_NDK}/sources/android/native_app_glue/)
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 elseif (IOS)
     target_link_libraries(glfm "-framework Foundation -framework CoreGraphics -framework UIKit -framework OpenGLES -framework QuartzCore")
     set_target_properties(glfm PROPERTIES

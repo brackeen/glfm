@@ -176,6 +176,7 @@ static void _glfmSetOrientation(struct android_app *app) {
         case GLFMUserInterfaceOrientationLandscape:
             orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
             break;
+        case GLFMUserInterfaceOrientationAny:
         default:
             orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
             break;
@@ -1216,9 +1217,6 @@ static int32_t _glfmOnInputEvent(struct android_app *app, AInputEvent *event) {
 // MARK: Main entry point
 
 void android_main(struct android_app *app) {
-    // Make sure glue isn't stripped
-    app_dummy();
-
     LOG_LIFECYCLE("android_main");
 
     // Init platform data

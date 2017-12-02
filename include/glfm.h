@@ -381,7 +381,7 @@ const char *glfmGetDirectoryPath(GLFMDirectory directory);
 
 #include <android/native_activity.h>
 
-ANativeActivity *glfmAndroidGetActivity();
+ANativeActivity *glfmAndroidGetActivity(void);
 
 #if !defined(GLFM_NO_STDIO_HELPERS)
 
