@@ -1425,18 +1425,4 @@ ANativeActivity *glfmAndroidGetActivity() {
     }
 }
 
-// MARK: GLFM Asset reading
-
-const char *glfmGetDirectoryPath(GLFMDirectory directory) {
-    if (directory == GLFMDirectoryDocuments) {
-        if (platformDataGlobal && platformDataGlobal->app && platformDataGlobal->app->activity) {
-            return platformDataGlobal->app->activity->internalDataPath;
-        } else {
-            return NULL;
-        }
-    } else {
-        return "";
-    }
-}
-
 #endif

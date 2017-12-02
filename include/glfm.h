@@ -196,13 +196,6 @@ typedef enum {
     GLFMKeyActionReleased,
 } GLFMKeyAction;
 
-typedef enum {
-    /// Directory where the executable and assets are located. Read-only.
-    GLFMDirectoryApp,
-    /// Directory where application documents can be saved. Read/write, and backed up.
-    GLFMDirectoryDocuments,
-} GLFMDirectory;
-
 // MARK: Structs and function pointers
 
 typedef struct GLFMDisplay GLFMDisplay;
@@ -370,12 +363,6 @@ void glfmSetKeyboardVisibilityChangedFunc(GLFMDisplay *display,
 /// instead of "en-US").
 /// This function never returns NULL. If the language cannot be determined, returns "en".
 const char *glfmGetLanguage(void);
-
-/// Gets a specified directory path. At app start, the current working directory is
-/// `GLFMDirectoryApp`, where assets are located. For `GLFMDirectoryDocuments` on Emscripten,
-/// which uses IndexedDB to store files, this function may return `NULL` if the virtual filesystem
-/// hasn't been mounted yet.
-const char *glfmGetDirectoryPath(GLFMDirectory directory);
 
 #if defined(GLFM_PLATFORM_ANDROID)
 

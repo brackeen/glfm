@@ -54,17 +54,7 @@ typedef struct {
 
 static void _glfmClearActiveTouches(GLFMPlatformData *platformData);
 
-static bool _glfmFileSystemMounted = false;
-
 // MARK: GLFM implementation
-
-const char *glfmGetDirectoryPath(GLFMDirectory directory) {
-    if (directory == GLFMDirectoryDocuments) {
-        return _glfmFileSystemMounted ? "/.local/share" : NULL;
-    } else {
-        return "/";
-    }
-}
 
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
                                      GLFMUserInterfaceOrientation allowedOrientations) {
@@ -201,35 +191,6 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
 
 GLFMProc glfmGetProcAddress(const char *functionName) {
     return eglGetProcAddress(functionName);
-}
-
-// MARK: Filesystem
-
-static void _glfmInitFS() {
-    _glfmFileSystemMounted = false;
-    EM_ASM(
-        FS.mkdir("/.glfm_documents");
-        FS.mount(IDBFS, {}, "/.glfm_documents");
-        FS.syncfs(true, function (err) {
-            ccall('_glfmSyncFSComplete', 'v');
-        });
-    );
-}
-
-static void _glfmSyncFS() {
-    if (_glfmFileSystemMounted) {
-        _glfmFileSystemMounted = false;
-        EM_ASM(
-            FS.syncfs(function (err) {
-                ccall('_glfmSyncFSComplete', 'v');
-            });
-        );
-    }
-}
-
-EMSCRIPTEN_KEEPALIVE
-static void _glfmSyncFSComplete() {
-    _glfmFileSystemMounted = true;
 }
 
 // MARK: Emscripten glue

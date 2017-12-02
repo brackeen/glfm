@@ -333,10 +333,6 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         [self clearTouches];
         _glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         _glfmDisplay->platformData = (__bridge void *)self;
-        const char *path = glfmGetDirectoryPath(GLFMDirectoryApp);
-        if (path) {
-            chdir(path);
-        }
     }
     return self;
 }
@@ -825,29 +821,6 @@ int main(int argc, char *argv[]) {
 }
 
 #pragma mark - GLFM implementation
-
-const char *glfmGetDirectoryPath(GLFMDirectory directory) {
-    static char *appPath = NULL;
-    static char *docPath = NULL;
-
-    switch (directory) {
-        case GLFMDirectoryApp: default:
-            if (!appPath) {
-                appPath = strdup([NSBundle mainBundle].bundlePath.fileSystemRepresentation);
-            }
-            return appPath;
-        case GLFMDirectoryDocuments:
-            if (!docPath) {
-                NSArray<NSString *> *path = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,
-                                                                                NSUserDomainMask,
-                                                                                YES);
-                if (path.count > 0) {
-                    docPath = strdup(path[0].fileSystemRepresentation);
-                }
-            }
-            return docPath;
-    }
-}
 
 GLFMProc glfmGetProcAddress(const char *functionName) {
     static void *handle = NULL;
