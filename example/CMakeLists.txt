@@ -11,10 +11,10 @@ set(GLFM_APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 
 # Main example
 set(GLFM_APP_TARGET_NAME glfm_example)
-set(GLFM_APP_SRC src/main.c)
+set(GLFM_APP_SRC src/main.c src/file_compat.h)
 include(GLFMAppTarget)
 
 # Test pattern
 set(GLFM_APP_TARGET_NAME glfm_test_pattern)
-set(GLFM_APP_SRC src/test_pattern.c)
+set(GLFM_APP_SRC src/test_pattern.c src/file_compat.h)
 include(GLFMAppTarget)

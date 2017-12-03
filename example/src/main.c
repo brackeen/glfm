@@ -1,8 +1,10 @@
 // Example app that draws a triangle. The triangle can be moved via touch or keyboard arrow keys.
-
-#include "glfm.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "glfm.h"
+#define FILE_COMPAT_ANDROID_ACTIVITY glfmAndroidGetActivity()
+#include "file_compat.h"
 
 typedef struct {
     GLuint program;
@@ -102,9 +104,13 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
 }
 
 static GLuint compileShader(GLenum type, const char *shaderName) {
+    char fullPath[PATH_MAX];
+    fc_resdir(fullPath, sizeof(fullPath));
+    strncat(fullPath, shaderName, sizeof(fullPath) - strlen(fullPath) - 1);
+
     // Get shader string
     char *shaderString = NULL;
-    FILE *shaderFile = fopen(shaderName, "rb");
+    FILE *shaderFile = fopen(fullPath, "rb");
     if (shaderFile) {
         fseek(shaderFile, 0, SEEK_END);
         long length = ftell(shaderFile);
@@ -118,7 +124,7 @@ static GLuint compileShader(GLenum type, const char *shaderName) {
         fclose(shaderFile);
     }
     if (!shaderString) {
-        printf("Couldn't read file: %s\n", shaderName);
+        printf("Couldn't read file: %s\n", fullPath);
         return 0;
     }
 
