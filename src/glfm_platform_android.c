@@ -1211,6 +1211,12 @@ static int32_t _glfmOnInputEvent(struct android_app *app, AInputEvent *event) {
 // MARK: Main entry point
 
 void android_main(struct android_app *app) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    // Don't strip glue code. Although this is deprecated, it's easier with complex CMake files.
+    app_dummy();
+#pragma clang diagnostic pop
+
     LOG_LIFECYCLE("android_main");
 
     // Init platform data
