@@ -260,7 +260,16 @@ static void _glfmSetFullScreen(struct android_app *app, GLFMUserInterfaceChrome 
     _glfmClearJavaException()
 }
 
-// Move task to the back if it is root task (same as pressing home button).
+/*
+ * Move task to the back if it is root task. This make the back button have the same behavior
+ * as the home button.
+ *
+ * Without this, when the user presses the back button, the loop in android_main() is exited, the
+ * OpenGL context is destroyed, and the main thread is destroyed. The android_main() function
+ * would be called again in the same process if the user returns to the app.
+ *
+ * When this, when the app is in the background, the app will pause in the ALooper_pollAll() call.
+ */
 static bool _glfmHandleBackButton(struct android_app *app) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
     JNIEnv *jni = platformData->jniEnv;
