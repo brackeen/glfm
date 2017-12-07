@@ -977,8 +977,4 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
     }
 }
 
-const char *_glfmGetLanguageInternal() {
-    return [[[NSLocale autoupdatingCurrentLocale] localeIdentifier] UTF8String];
-}
-
 #endif

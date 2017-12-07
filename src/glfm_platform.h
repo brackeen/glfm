@@ -178,34 +178,6 @@ void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFu
     }
 }
 
-extern const char *_glfmGetLanguageInternal(void);
-
-const char *glfmGetLanguage() {
-    static char *language = NULL;
-
-    // Check the language every time, in case the user changed the preferences while the app is
-    // running.
-    if (language) {
-        free(language);
-        language = NULL;
-    }
-
-    const char *langInternal = _glfmGetLanguageInternal();
-    if (langInternal == NULL) {
-        return "en";
-    }
-
-    char *lang = strdup(langInternal);
-
-    // Some systems (Apple iOS) use an underscore instead of a dash. (Convert "en_US" to "en-US")
-    char *ch = lang;
-    while ((ch = strchr(ch, '_')) != NULL) {
-        *ch = '-';
-    }
-    language = lang;
-    return lang;
-}
-
 // MARK: Helper functions
 
 static void _glfmReportSurfaceError(GLFMDisplay *display, const char *errorMessage) {

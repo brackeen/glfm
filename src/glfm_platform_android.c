@@ -282,57 +282,6 @@ static bool _glfmHandleBackButton(struct android_app *app) {
     return !_glfmWasJavaExceptionThrown() && handled;
 }
 
-static const char *_glfmGetLocale() {
-    static char *lang = NULL;
-
-    // The Locale.getDefaultLocale() return value is not updated live. Instead, use
-    // getResources().getConfiguration().locale.toString()
-
-    GLFMPlatformData *platformData = platformDataGlobal;
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
-        return lang;
-    }
-
-    jobject res = _glfmCallJavaMethod(jni, platformData->app->activity->clazz, "getResources",
-                                      "()Landroid/content/res/Resources;", Object);
-    if (!res || _glfmWasJavaExceptionThrown()) {
-        return lang;
-    }
-
-    jobject configuration = _glfmCallJavaMethod(jni, res, "getConfiguration",
-                                                "()Landroid/content/res/Configuration;", Object);
-    if (!configuration || _glfmWasJavaExceptionThrown()) {
-        return lang;
-    }
-
-    jobject locale = _glfmGetJavaField(jni, configuration, "locale", "Ljava/util/Locale;", Object);
-    if (!locale || _glfmWasJavaExceptionThrown()) {
-        return lang;
-    }
-
-    jstring valueString = _glfmCallJavaMethod(jni, locale, "toString", "()Ljava/lang/String;",
-                                              Object);
-    if (!valueString || _glfmWasJavaExceptionThrown()) {
-        return lang;
-    }
-
-    if (lang) {
-        free(lang);
-        lang = NULL;
-    }
-    const char *nativeString = (*jni)->GetStringUTFChars(jni, valueString, 0);
-    lang = strdup(nativeString);
-    (*jni)->ReleaseStringUTFChars(jni, valueString, nativeString);
-
-    (*jni)->DeleteLocalRef(jni, valueString);
-    (*jni)->DeleteLocalRef(jni, locale);
-    (*jni)->DeleteLocalRef(jni, configuration);
-    (*jni)->DeleteLocalRef(jni, res);
-
-    return lang;
-}
-
 static bool _glfmSetKeyboardVisible(GLFMPlatformData *platformData, bool visible) {
     static const int InputMethodManager_SHOW_FORCED = 2;
 
@@ -1392,10 +1341,6 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
 bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     return platformData->multitouchEnabled;
-}
-
-const char *_glfmGetLanguageInternal() {
-    return _glfmGetLocale();
 }
 
 GLFMProc glfmGetProcAddress(const char *functionName) {

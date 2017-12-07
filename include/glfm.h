@@ -357,13 +357,6 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display);
 void glfmSetKeyboardVisibilityChangedFunc(GLFMDisplay *display,
                                           GLFMKeyboardVisibilityChangedFunc visibilityChangedFunc);
 
-/// Gets the preferred user language. The return value is a static variable and should not be freed.
-/// The return value is a RFC-4646 language code. Valid examples are "en", "en-US", "zh-Hans",
-/// "zh-Hans-HK". Some systems (Safari browser) may return values in all lowercase ("en-us"
-/// instead of "en-US").
-/// This function never returns NULL. If the language cannot be determined, returns "en".
-const char *glfmGetLanguage(void);
-
 #if defined(GLFM_PLATFORM_ANDROID)
 
 #include <android/native_activity.h>
