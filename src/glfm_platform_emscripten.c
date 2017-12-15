@@ -50,6 +50,7 @@ typedef struct {
     GLFMActiveTouch activeTouches[MAX_ACTIVE_TOUCHES];
 
     bool active;
+    bool isFullscreen;
 } GLFMPlatformData;
 
 static void _glfmClearActiveTouches(GLFMPlatformData *platformData);
@@ -116,8 +117,20 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
 }
 
 void _glfmDisplayChromeUpdated(GLFMDisplay *display) {
-    (void)display;
-    // Do nothing
+    GLFMPlatformData *platformData = display->platformData;
+
+    if (display->uiChrome == GLFMUserInterfaceChromeFullscreen) {
+        if (!platformData->isFullscreen) {
+            EMSCRIPTEN_RESULT result = emscripten_request_fullscreen(NULL, EM_FALSE);
+            platformData->isFullscreen = (result == EMSCRIPTEN_RESULT_SUCCESS);
+            if (!platformData->isFullscreen) {
+                display->uiChrome = GLFMUserInterfaceChromeNavigation;
+           }
+        }
+    } else if (platformData->isFullscreen) {
+        platformData->isFullscreen = false;
+        emscripten_exit_fullscreen();
+    }
 }
 
 GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {

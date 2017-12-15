@@ -293,6 +293,7 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
 GLFMUserInterfaceChrome glfmGetDisplayChrome(GLFMDisplay *display);
 
 /// Sets the user interface chrome.
+/// On Emscripten, to switch to fullscreen, this function must be called from an user-generated event handler.
 void glfmSetDisplayChrome(GLFMDisplay *display, GLFMUserInterfaceChrome uiChrome);
 
 /// Gets the rendering API of the display. The return value is not valid until the surface is
