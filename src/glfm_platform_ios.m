@@ -780,12 +780,8 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         GLFMViewController *vc = (GLFMViewController *)[self.window rootViewController];
         [vc clearTouches];
         vc.animating = active;
-        if (vc.glfmDisplay) {
-            if (_active && vc.glfmDisplay->resumingFunc) {
-                vc.glfmDisplay->resumingFunc(vc.glfmDisplay);
-            } else if (!_active && vc.glfmDisplay->pausingFunc) {
-                vc.glfmDisplay->pausingFunc(vc.glfmDisplay);
-            }
+        if (vc.glfmDisplay && vc.glfmDisplay->focusFunc) {
+            vc.glfmDisplay->focusFunc(vc.glfmDisplay, _active);
         }
     }
 }

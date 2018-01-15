@@ -226,10 +226,8 @@ static void _glfmSetActive(GLFMDisplay *display, bool active) {
     if (platformData->active != active) {
         platformData->active = active;
         _glfmClearActiveTouches(platformData);
-        if (active && display->resumingFunc) {
-            display->resumingFunc(display);
-        } else if (!active && display->pausingFunc) {
-            display->pausingFunc(display);
+        if (display->focusFunc) {
+            display->focusFunc(display, active);
         }
     }
 }

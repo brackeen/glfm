@@ -52,8 +52,7 @@ struct GLFMDisplay {
     GLFMSurfaceDestroyedFunc surfaceDestroyedFunc;
     GLFMKeyboardVisibilityChangedFunc keyboardVisibilityChangedFunc;
     GLFMMemoryWarningFunc lowMemoryFunc;
-    GLFMAppPausingFunc pausingFunc;
-    GLFMAppResumingFunc resumingFunc;
+    GLFMAppFocusFunc focusFunc;
 
     // External data
     void *userData;
@@ -166,15 +165,9 @@ void glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMem
     }
 }
 
-void glfmSetAppPausingFunc(GLFMDisplay *display, GLFMAppPausingFunc pausingFunc) {
+void glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focusFunc) {
     if (display) {
-        display->pausingFunc = pausingFunc;
-    }
-}
-
-void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFunc) {
-    if (display) {
-        display->resumingFunc = resumingFunc;
+        display->focusFunc = focusFunc;
     }
 }
 

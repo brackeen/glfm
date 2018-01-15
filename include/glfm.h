@@ -238,9 +238,7 @@ typedef void (*GLFMSurfaceDestroyedFunc)(GLFMDisplay *display);
 /// Callback function when the system recieves a low memory warning.
 typedef void (*GLFMMemoryWarningFunc)(GLFMDisplay *display);
 
-typedef void (*GLFMAppPausingFunc)(GLFMDisplay *display);
-
-typedef void (*GLFMAppResumingFunc)(GLFMDisplay *display);
+typedef void (*GLFMAppFocusFunc)(GLFMDisplay *display, bool focused);
 
 // MARK: Functions
 
@@ -343,9 +341,7 @@ void glfmSetSurfaceDestroyedFunc(GLFMDisplay *display,
 
 void glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMemoryFunc);
 
-void glfmSetAppPausingFunc(GLFMDisplay *display, GLFMAppPausingFunc pausingFunc);
-
-void glfmSetAppResumingFunc(GLFMDisplay *display, GLFMAppResumingFunc resumingFunc);
+void glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focusFunc);
 
 /// Requests to show or hide the onscreen virtual keyboard. On Emscripten, this function does
 /// nothing.

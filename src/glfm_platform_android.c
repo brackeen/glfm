@@ -877,12 +877,8 @@ static void _glfmSetAnimating(GLFMPlatformData *platformData, bool animating) {
             sendAppEvent = false;
         }
         platformData->animating = animating;
-        if (sendAppEvent && platformData->display) {
-            if (animating && platformData->display->resumingFunc) {
-                platformData->display->resumingFunc(platformData->display);
-            } else if (!animating && platformData->display->pausingFunc) {
-                platformData->display->pausingFunc(platformData->display);
-            }
+        if (sendAppEvent && platformData->display && platformData->display->focusFunc) {
+            platformData->display->focusFunc(platformData->display, animating);
         }
     }
 }
