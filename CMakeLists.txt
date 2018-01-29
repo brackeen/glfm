@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.7)
+cmake_minimum_required(VERSION 3.1.0)
 
 project(GLFM C)
 
@@ -41,6 +41,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "Android")
     find_library(GLESv2-lib GLESv2)
     target_link_libraries(glfm ${log-lib} ${android-lib} ${EGL-lib} ${GLESv2-lib})
     target_include_directories(glfm PRIVATE ${ANDROID_NDK}/sources/android/native_app_glue/)
+    set_target_properties(glfm PROPERTIES
+        C_STANDARD 99)
 elseif (IOS)
     target_link_libraries(glfm "-framework Foundation -framework CoreGraphics -framework UIKit -framework OpenGLES -framework QuartzCore")
     set_target_properties(glfm PROPERTIES
