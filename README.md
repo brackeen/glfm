@@ -1,7 +1,7 @@
 # GLFM
 Write OpenGL ES code in C/C++ without writing platform-specific code.
 
-GLFM is an OpenGL ES layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](http://www.glfw.org/).
+GLFM is an OpenGL ES layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](https://github.com/glfw/glfw).
 
 GLFM is written in C and runs on iOS 8, tvOS 9, Android 2.3.3 (API 10), and WebGL 1.0 (via [Emscripten](https://github.com/kripken/emscripten)).
 
@@ -119,7 +119,7 @@ See [glfm.h](include/glfm.h)
 
 ## Build requirements
 * iOS: Xcode 9.0
-* Android: Android Studio 2.3, SDK 25, NDK Bundle 13.1.3345770
+* Android: Android Studio 3.0, SDK 26, NDK Bundle 16.
 * WebGL: Emscripten 1.35.0
 
 ## Use GLFM in an existing project
@@ -150,7 +150,7 @@ cmake --build .
 ```
 If you're opening files locally in Chrome, you may need to [enable local file access](http://stackoverflow.com/a/18587027). Instead, you could use Firefox, which doesn't have this restriction.
 
-### Android Studio 2.3
+### Android Studio 3.0
 There is no CMake generator for Android Studio projects, but you can include `CMakeLists.txt` in a new or existing project.
 
 The `AndroidManifest.xml`:
@@ -185,12 +185,11 @@ And the `app/build.gradle`:
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 26
     defaultConfig {
         applicationId "com.brackeen.glfmexample"
         minSdkVersion 10
-        targetSdkVersion 25
+        targetSdkVersion 26
         versionCode 1
         versionName "1.0"
         externalNativeBuild {
@@ -222,6 +221,13 @@ android {
 * Orientation lock probably doesn't work on HTML5.
 
 ## Questions
+**What IDE should I use? Why is there no desktop implementation?**
+Use Xcode or Android Studio. For desktop, use [GLFW](https://github.com/glfw/glfw) with the IDE of your choice.
+
+If you prefer not using the mobile simulators for everyday development, a good solution is to use GLFW instead, and then later port your app to GLFM. Not all OpenGL calls will port to OpenGL ES perfectly, but for maximum OpenGL portability, use OpenGL 3.2 Core Profile on desktop and OpenGL ES 2.0 on mobile.
+
+Moving forward, GLFM APIs will look more like GLFW's, so porting will get easier as GLFM development continues.
+
 **Why is the entry point `glfmMain()` and not `main()`?**
 
 Otherwise, it wouldn't work on iOS. To initialize the Objective-C environment, the `main()` function must create an autorelease pool and call the `UIApplicationMain()` function, which *never returns*. On iOS, GLFM doesn't call `glfmMain()` until after the `UIApplicationDelegate` and `UIViewController` are initialized.
