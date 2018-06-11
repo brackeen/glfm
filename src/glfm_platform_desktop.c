@@ -28,6 +28,14 @@ static void on_size_change(GLFWwindow* window, int width, int height) {
     }
 }
 
+void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
+    glfwGetFramebufferSize((GLFWwindow*)display->userData, width, height);
+}
+
+GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
+    return GLFMRenderingAPIOpenGLES2;
+}
+
 int main(int argc, char** argv) {
     if (!glfwInit())
         exit(EXIT_FAILURE);
@@ -46,6 +54,7 @@ int main(int argc, char** argv) {
         _platform_data->display->platformData = _platform_data;
         glfmMain(_platform_data->display);
     }
+    _platform_data->display->userData = _platform_data->window;
 
     glfwSetWindowUserPointer(_platform_data->window, _platform_data->display);
     glfwSetFramebufferSizeCallback(_platform_data->window, on_size_change);

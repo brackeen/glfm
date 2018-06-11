@@ -42,7 +42,7 @@
     #define GLFM_PLATFORM_IOS
   #elif TARGET_OS_TV
     #define GLFM_PLATFORM_TVOS
-  #elif TARGET_IOS_MAC
+  #elif TARGET_OS_MAC
     #define GLFM_PLATFORM_DESKTOP
   #else
     #error Unknown Apple platform
