@@ -30,6 +30,7 @@
 // GLFM_PLATFORM_TVOS
 // GLFM_PLATFORM_ANDROID
 // GLFM_PLATFORM_EMSCRIPTEN
+// GLFM_PLATFORM_DESKTOP
 
 #if defined(__ANDROID__)
   #define GLFM_PLATFORM_ANDROID
@@ -41,6 +42,8 @@
     #define GLFM_PLATFORM_IOS
   #elif TARGET_OS_TV
     #define GLFM_PLATFORM_TVOS
+  #elif TARGET_IOS_MAC
+    #define GLFM_PLATFORM_DESKTOP
   #else
     #error Unknown Apple platform
   #endif
@@ -83,6 +86,8 @@
   #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
     #include <OpenGLES/ES2/gl.h>
     #include <OpenGLES/ES2/glext.h>
+  #elif defined(GLFM_PLATFORM_DESKTOP)
+    #include "GLFW/glfw3.h"
   #else
     #include <GLES2/gl2.h>
     #include <GLES2/gl2ext.h>
