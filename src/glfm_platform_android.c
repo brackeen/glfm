@@ -455,7 +455,7 @@ static bool _glfmEGLContextInit(GLFMPlatformData *platformData) {
             created = platformData->eglContext != EGL_NO_CONTEXT;
         }
         // OpenGL ES 3.1
-        if (platformData->display->preferredAPI >= GLFMRenderingAPIOpenGLES31) {
+        if (!created && platformData->display->preferredAPI >= GLFMRenderingAPIOpenGLES31) {
             // TODO: Untested, need an OpenGL ES 3.1 device for testing
             const EGLint contextAttribs[] = {EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
                                              EGL_CONTEXT_MINOR_VERSION_KHR, 1, EGL_NONE};
