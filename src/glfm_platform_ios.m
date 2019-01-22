@@ -652,9 +652,9 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 #if TARGET_OS_IOS
 
 - (void)keyboardFrameChanged:(NSNotification *)notification {
-    id value = notification.userInfo[UIKeyboardFrameEndUserInfoKey];
+    NSObject *value = notification.userInfo[UIKeyboardFrameEndUserInfoKey];
     if ([value isKindOfClass:[NSValue class]]) {
-        NSValue *nsValue = value;
+        NSValue *nsValue = (NSValue *)value;
         CGRect keyboardFrame = [nsValue CGRectValue];
 
         self.keyboardVisible = CGRectIntersectsRect(self.view.window.frame, keyboardFrame);
@@ -812,7 +812,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
 int main(int argc, char *argv[]) {
     @autoreleasepool {
-        return UIApplicationMain(0, NULL, nil, NSStringFromClass([GLFMAppDelegate class]));
+        return UIApplicationMain(argc, argv, nil, NSStringFromClass([GLFMAppDelegate class]));
     }
 }
 
