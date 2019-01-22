@@ -14,8 +14,11 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Android")
     set_source_files_properties(${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c PROPERTIES COMPILE_FLAGS "-DNDEBUG")
 else() # Assume iOS
     set(IOS TRUE)
+    if (${CMAKE_OSX_SYSROOT} MATCHES "(MacOS)+")
+        set(CMAKE_OSX_SYSROOT "iphoneos")
+    endif()
+    
     set(GLFM_SRC src/glfm_platform.h src/glfm_platform_ios.m)
-    set(CMAKE_OSX_SYSROOT "iphoneos")
     set(GLFM_COMPILE_FLAGS "-Wno-objc-interface-ivars -Wno-objc-missing-property-synthesis -Wno-direct-ivar-access")
 endif()
 
