@@ -52,7 +52,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 }
 
 @property(nonatomic, strong) EAGLContext *context;
-@property(nonatomic, assign) NSString *colorFormat;
+@property(nonatomic, strong) NSString *colorFormat;
 @property(nonatomic, assign) BOOL preserveBackbuffer;
 @property(nonatomic, assign) NSUInteger depthBits;
 @property(nonatomic, assign) NSUInteger stencilBits;
@@ -724,7 +724,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
                          [UIKeyCommand keyCommandWithInput:UIKeyInputEscape
                                              modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)] ];
-    };
+    }
 
     return keyCommands;
 }
