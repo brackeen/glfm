@@ -1,7 +1,7 @@
 /*
  GLFM
  https://github.com/brackeen/glfm
- Copyright (c) 2014-2017 David Brackeen
+ Copyright (c) 2014-2019 David Brackeen
  
  This software is provided 'as-is', without any express or implied warranty.
  In no event will the authors be held liable for any damages arising from the
@@ -31,6 +31,12 @@
 
 #define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
 NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } while(0)
+
+#if __has_feature(objc_arc)
+#define GLFM_AUTORELEASE(value) value
+#else
+#define GLFM_AUTORELEASE(value) [value autorelease]
+#endif
 
 @interface GLFMAppDelegate : NSObject <UIApplicationDelegate>
 
@@ -77,6 +83,11 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
 - (void)dealloc {
     [self deleteDrawable];
+#if !__has_feature(objc_arc)
+    self.context = nil;
+    self.colorFormat = nil;
+    [super dealloc];
+#endif
 }
 
 - (NSUInteger)drawableWidth {
@@ -364,7 +375,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
 - (void)loadView {
     GLFMAppDelegate *delegate = UIApplication.sharedApplication.delegate;
-    self.view = [[GLFMView alloc] initWithFrame:delegate.window.bounds];
+    self.view = GLFM_AUTORELEASE([[GLFMView alloc] initWithFrame:delegate.window.bounds]);
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.view.contentScaleFactor = [UIScreen mainScreen].nativeScale;
 }
@@ -378,10 +389,10 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     glfmMain(_glfmDisplay);
 
     if (_glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
-        self.context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
+        self.context = GLFM_AUTORELEASE([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3]);
     }
     if (!self.context) {
-        self.context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+        self.context = GLFM_AUTORELEASE([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2]);
     }
 
     if (!self.context) {
@@ -483,6 +494,10 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
         _glfmDisplay->surfaceDestroyedFunc(_glfmDisplay);
     }
     free(_glfmDisplay);
+#if !__has_feature(objc_arc)
+    self.context = nil;
+    [super dealloc];
+#endif
 }
 
 - (void)render:(CADisplayLink *)displayLink {
@@ -706,8 +721,8 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     return self.keyboardRequested;
 }
 
-- (NSArray *)keyCommands {
-    static NSArray *keyCommands = NULL;
+- (NSArray<UIKeyCommand *> *)keyCommands {
+    static NSArray<UIKeyCommand *> *keyCommands = NULL;
     if (!keyCommands) {
         keyCommands = @[ [UIKeyCommand keyCommandWithInput:UIKeyInputUpArrow
                                              modifierFlags:(UIKeyModifierFlags)0
@@ -724,6 +739,9 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
                          [UIKeyCommand keyCommandWithInput:UIKeyInputEscape
                                              modifierFlags:(UIKeyModifierFlags)0
                                                     action:@selector(keyPressed:)] ];
+#if !__has_feature(objc_arc)
+        [keyCommands retain];
+#endif
     }
 
     return keyCommands;
@@ -759,16 +777,16 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 @implementation GLFMAppDelegate
 
 - (BOOL)application:(UIApplication *)application
-    didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    didFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey, id> *)launchOptions {
     _active = YES;
-    self.window = [[UIWindow alloc] init];
+    self.window = GLFM_AUTORELEASE([[UIWindow alloc] init]);
     if (self.window.bounds.size.width <= 0.0 || self.window.bounds.size.height <= 0.0) {
         // Set UIWindow frame for iOS 8.
         // On iOS 9, the UIWindow frame may be different than the UIScreen bounds for iPad's
         // Split View or Slide Over.
         self.window.frame = [[UIScreen mainScreen] bounds];
     }
-    self.window.rootViewController = [[GLFMViewController alloc] init];
+    self.window.rootViewController = GLFM_AUTORELEASE([[GLFMViewController alloc] init]);
     [self.window makeKeyAndVisible];
     return YES;
 }
@@ -806,6 +824,13 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     self.active = NO;
 }
 
+- (void)dealloc {
+#if !__has_feature(objc_arc)
+    self.window = nil;
+    [super dealloc];
+#endif
+}
+
 @end
 
 #pragma mark - Main
@@ -835,10 +860,10 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
             // HACK: Notify that the value of supportedInterfaceOrientations has changed
             GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
             if (vc.view.window) {
-                UIViewController *dummyVC = [[UIViewController alloc] init];
-                dummyVC.view = [[UIView alloc] init];
+                UIViewController *dummyVC = GLFM_AUTORELEASE([[UIViewController alloc] init]);
+                dummyVC.view = GLFM_AUTORELEASE([[UIView alloc] init]);
                 [vc presentViewController:dummyVC animated:NO completion:^{
-                  [vc dismissViewControllerAnimated:NO completion:NULL];
+                    [vc dismissViewControllerAnimated:NO completion:NULL];
                 }];
             }
         }
