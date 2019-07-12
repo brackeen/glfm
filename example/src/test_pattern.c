@@ -12,23 +12,44 @@ typedef struct {
     GLuint textureVertexBuffer;
 } TestPatternApp;
 
-static GLuint createTestPatternTexture(uint32_t width, uint32_t height) {
+static GLuint createTestPatternTexture(GLFMDisplay *display, uint32_t width, uint32_t height) {
+    double top, right, bottom, left;
+    glfmGetDisplayChromeInsets(display, &top, &right, &bottom, &left);
+
+    static const uint32_t borderColor = 0xff0000ff;
+    static const uint32_t insetColor = 0xff00ffff;
+
     GLuint textureId = 0;
     uint32_t *data = malloc(width * height * sizeof(uint32_t));
     if (data) {
         uint32_t *out = data;
         for (uint32_t y = 0; y < height; y++) {
-            *out++ = 0xff0000ff;
+            *out++ = borderColor;
             if (y == 0 || y == height - 1) {
                 for (uint32_t x = 1; x < width - 1; x++) {
-                    *out++ = 0xff0000ff;
+                    *out++ = borderColor;
+                }
+            } else if (y < bottom || y >= height - top) {
+                for (uint32_t x = 1; x < width - 1; x++) {
+                    *out++ = insetColor;
                 }
             } else {
-                for (uint32_t x = 1; x < width - 1; x++) {
-                    *out++ = ((x & 1) == (y & 1)) ? 0xff000000 : 0xffffffff;
+                uint32_t x = 1;
+                while (x < left) {
+                    *out++ = insetColor;
+                    x++;
+                }
+                while (x < width - right - 1) {
+                    *out++ = ((x & 1U) == (y & 1U)) ? 0xff000000 : 0xffffffff;
+                    x++;
+                }
+
+                while (x < width - 1) {
+                    *out++ = insetColor;
+                    x++;
                 }
             }
-            *out++ = 0xff0000ff;
+            *out++ = borderColor;
         }
 
         glGenTextures(1, &textureId);
@@ -42,6 +63,10 @@ static GLuint createTestPatternTexture(uint32_t width, uint32_t height) {
 
         free(data);
     }
+    if (textureId != 0) {
+        printf("Created test pattern %ix%i with insets %i, %i, %i, %i\n", width, height,
+               (int)top, (int)right, (int)bottom, (int)left);
+    }
     return textureId;
 }
 
@@ -52,10 +77,7 @@ static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
     if (app->textureId != 0) {
         glDeleteTextures(1, &app->textureId);
     }
-    app->textureId = createTestPatternTexture(width, height);
-    if (app->textureId != 0) {
-        printf("Created test pattern %ix%i\n", width, height);
-    }
+    app->textureId = createTestPatternTexture(display, width, height);
 }
 
 static void onSurfaceDestroyed(GLFMDisplay *display) {
@@ -76,7 +98,7 @@ static GLuint compileShader(GLenum type, const char *shaderName) {
     FILE *shaderFile = fopen(fullPath, "rb");
     if (shaderFile) {
         fseek(shaderFile, 0, SEEK_END);
-        long length = ftell(shaderFile);
+        size_t length = (size_t)ftell(shaderFile);
         fseek(shaderFile, 0, SEEK_SET);
 
         shaderString = malloc(length + 1);
@@ -106,7 +128,7 @@ static GLuint compileShader(GLenum type, const char *shaderName) {
         GLint logLength;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
         if (logLength > 0) {
-            GLchar *log = malloc(logLength);
+            GLchar *log = malloc((size_t)logLength);
             glGetShaderInfoLog(shader, logLength, &logLength, log);
             if (log[0] != 0) {
                 printf("Shader log: %s\n", log);
@@ -183,6 +205,9 @@ void glfmMain(GLFMDisplay *display) {
                          GLFMDepthFormatNone,
                          GLFMStencilFormatNone,
                          GLFMMultisampleNone);
+
+    //glfmSetDisplayChrome(display, GLFMUserInterfaceChromeFullscreen);
+
     glfmSetUserData(display, app);
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
     glfmSetSurfaceResizedFunc(display, onSurfaceCreated);
