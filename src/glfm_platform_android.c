@@ -1,7 +1,7 @@
 /*
  GLFM
  https://github.com/brackeen/glfm
- Copyright (c) 2014-2017 David Brackeen
+ Copyright (c) 2014-2019 David Brackeen
  
  This software is provided 'as-is', without any express or implied warranty.
  In no event will the authors be held liable for any damages arising from the
@@ -1226,19 +1226,47 @@ void android_main(struct android_app *app) {
                                    AWINDOW_FLAG_FULLSCREEN);
     _glfmSetFullScreen(app, platformData->display->uiChrome);
 
+    static bool windowAttributesSet = false;
+    if (!windowAttributesSet) {
+        windowAttributesSet = true;
+
+        const int SDK_INT = app->activity->sdkVersion;
+        JNIEnv *jni = platformData->jniEnv;
+
+        if (SDK_INT >= 28) {
+            static const int LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES = 0x00000001;
+
+            jobject window = _glfmCallJavaMethod(jni, app->activity->clazz, "getWindow",
+                                                 "()Landroid/view/Window;", Object);
+            jobject attributes = _glfmCallJavaMethod(jni, window, "getAttributes",
+                                                     "()Landroid/view/WindowManager$LayoutParams;",
+                                                     Object);
+            jclass clazz = (*jni)->GetObjectClass(jni, attributes);
+            jfieldID layoutInDisplayCutoutMode = (*jni)->GetFieldID(jni, clazz,
+                    "layoutInDisplayCutoutMode", "I");
+
+            (*jni)->SetIntField(jni, attributes, layoutInDisplayCutoutMode,
+                    LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
+            (*jni)->DeleteLocalRef(jni, clazz);
+            (*jni)->DeleteLocalRef(jni, attributes);
+            (*jni)->DeleteLocalRef(jni, window);
+        }
+    }
+
     // Run the main loop
     while (1) {
-        int ident;
+        int eventIdentifier;
         int events;
         struct android_poll_source *source;
 
-        while ((ident = ALooper_pollAll(platformData->animating ? 0 : -1, NULL, &events,
-                                        (void **)&source)) >= 0) {
+        while ((eventIdentifier = ALooper_pollAll(platformData->animating ? 0 : -1, NULL, &events,
+                (void **)&source)) >= 0) {
             if (source) {
                 source->process(app, source);
             }
 
-//          if (ident == LOOPER_ID_USER) {
+            (void)eventIdentifier;
+//          if (eventIdentifier == LOOPER_ID_USER) {
 //              if (platformData->accelerometerSensor != NULL) {
 //                  ASensorEvent event;
 //                  while (ASensorEventQueue_getEvents(platformData->sensorEventQueue,
@@ -1289,21 +1317,97 @@ double glfmGetDisplayScale(GLFMDisplay *display) {
     return platformData->scale;
 }
 
+static bool _glfmGetSafeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
+                               double *left) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *) display->platformData;
+    const int SDK_INT = platformData->app->activity->sdkVersion;
+    if (SDK_INT < 28) {
+        return false;
+    }
+
+    JNIEnv *jni = platformData->jniEnv;
+    jobject decorView = _glfmGetDecorView(platformData->app);
+    if (!decorView) {
+        return false;
+    }
+
+    jobject insets = _glfmCallJavaMethod(jni, decorView, "getRootWindowInsets",
+                                         "()Landroid/view/WindowInsets;", Object);
+    (*jni)->DeleteLocalRef(jni, decorView);
+    if (!insets) {
+        return false;
+    }
+
+    jobject cutouts = _glfmCallJavaMethod(jni, insets, "getDisplayCutout",
+                                          "()Landroid/view/DisplayCutout;", Object);
+    (*jni)->DeleteLocalRef(jni, insets);
+    if (!cutouts) {
+        return false;
+    }
+
+    *top = _glfmCallJavaMethod(jni, cutouts, "getSafeInsetTop", "()I", Int);
+    *right = _glfmCallJavaMethod(jni, cutouts, "getSafeInsetRight", "()I", Int);
+    *bottom = _glfmCallJavaMethod(jni, cutouts, "getSafeInsetBottom", "()I", Int);
+    *left = _glfmCallJavaMethod(jni, cutouts, "getSafeInsetLeft", "()I", Int);
+
+    (*jni)->DeleteLocalRef(jni, cutouts);
+    return true;
+}
+
+static bool _glfmGetSystemWindowInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
+                               double *left) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *) display->platformData;
+    const int SDK_INT = platformData->app->activity->sdkVersion;
+    if (SDK_INT < 20) {
+        return false;
+    }
+
+    JNIEnv *jni = platformData->jniEnv;
+    jobject decorView = _glfmGetDecorView(platformData->app);
+    if (!decorView) {
+        return false;
+    }
+
+    jobject insets = _glfmCallJavaMethod(jni, decorView, "getRootWindowInsets",
+                                         "()Landroid/view/WindowInsets;", Object);
+    (*jni)->DeleteLocalRef(jni, decorView);
+    if (!insets) {
+        return false;
+    }
+
+    *top = _glfmCallJavaMethod(jni, insets, "getSystemWindowInsetTop", "()I", Int);
+    *right = _glfmCallJavaMethod(jni, insets, "getSystemWindowInsetRight", "()I", Int);
+    *bottom = _glfmCallJavaMethod(jni, insets, "getSystemWindowInsetBottom", "()I", Int);
+    *left = _glfmCallJavaMethod(jni, insets, "getSystemWindowInsetLeft", "()I", Int);
+
+    (*jni)->DeleteLocalRef(jni, insets);
+    return true;
+}
+
 void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
                                 double *left) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    ARect windowRect = platformData->app->contentRect;
-    ARect visibleRect = _glfmGetWindowVisibleDisplayFrame(platformData, windowRect);
-    if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0) {
-        *top = 0;
-        *right = 0;
-        *bottom = 0;
-        *left = 0;
+
+    bool success;
+    if (glfmGetDisplayChrome(display) == GLFMUserInterfaceChromeFullscreen) {
+        success = _glfmGetSafeInsets(display, top, right, bottom, left);
     } else {
-        *top = visibleRect.top;
-        *right = platformData->width - visibleRect.right;
-        *bottom = platformData->height - visibleRect.bottom;
-        *left = visibleRect.left;
+        success = _glfmGetSystemWindowInsets(display, top, right, bottom, left);
+    }
+    if (!success) {
+        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+        ARect windowRect = platformData->app->contentRect;
+        ARect visibleRect = _glfmGetWindowVisibleDisplayFrame(platformData, windowRect);
+        if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0) {
+            *top = 0;
+            *right = 0;
+            *bottom = 0;
+            *left = 0;
+        } else {
+            *top = visibleRect.top;
+            *right = platformData->width - visibleRect.right;
+            *bottom = platformData->height - visibleRect.bottom;
+            *left = visibleRect.left;
+        }
     }
 }
 
