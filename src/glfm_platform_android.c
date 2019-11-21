@@ -490,7 +490,9 @@ static bool _glfmEGLContextInit(GLFMPlatformData *platformData) {
                 eglQueryContext(platformData->eglDisplay, platformData->eglContext,
                                 EGL_CONTEXT_MINOR_VERSION_KHR, &minorVersion);
             }
-            if (majorVersion == 3 && minorVersion == 1) {
+            if (majorVersion == 3 && minorVersion == 2) {
+                platformData->renderingAPI = GLFMRenderingAPIOpenGLES32;
+            } else if (majorVersion == 3 && minorVersion == 1) {
                 platformData->renderingAPI = GLFMRenderingAPIOpenGLES31;
             } else if (majorVersion == 3) {
                 platformData->renderingAPI = GLFMRenderingAPIOpenGLES3;
