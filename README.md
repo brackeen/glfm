@@ -118,8 +118,8 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 See [glfm.h](include/glfm.h)
 
 ## Build requirements
-* iOS: Xcode 9.0
-* Android: Android Studio 3.0, SDK 26, NDK Bundle 16.
+* iOS: Xcode 9.0 or newer.
+* Android: Android Studio 3.0 or newer, NDK Bundle 16 or newer.
 * WebGL: Emscripten 1.35.0
 
 ## Use GLFM in an existing project
@@ -131,7 +131,7 @@ See [glfm.h](include/glfm.h)
 ## Build the example GLFM projects
 Use the `CMakeLists.txt` file with the `-DGLFM_BUILD_EXAMPLE=ON` option to build the example projects.
 
-### Xcode 9.0
+### Xcode
 ```Shell
 mkdir -p build/ios
 cd build/ios
@@ -150,10 +150,12 @@ cmake --build .
 ```
 If you're opening files locally in Chrome, you may need to [enable local file access](http://stackoverflow.com/a/18587027). Instead, you could use Firefox, which doesn't have this restriction.
 
-### Android Studio 3.0
+### Android Studio
 There is no CMake generator for Android Studio projects, but you can include `CMakeLists.txt` in a new or existing project.
 
-The `AndroidManifest.xml`:
+For a new project, create a "No Activity" project.
+
+In `AndroidManifest.xml`, add the main `<activity>` like so:
 ```XML
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -166,11 +168,13 @@ The `AndroidManifest.xml`:
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true">
+
+        <!-- Add this activity to your AndroidManifest.xml -->
         <activity android:name="android.app.NativeActivity"
                   android:configChanges="orientation|screenLayout|screenSize|keyboardHidden|keyboard">
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="glfm_example" />
+                android:value="glfm_example" />  <!-- or glfm_test_pattern -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -180,24 +184,31 @@ The `AndroidManifest.xml`:
 
 </manifest>
 ```
-And the `app/build.gradle`:
+
+In `app/build.gradle`, add the `externalNativeBuild` and `sourceSets.main` sections like so:
+
 ```Gradle
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 29
+    buildToolsVersion "29.0.2"
     defaultConfig {
         applicationId "com.brackeen.glfmexample"
-        minSdkVersion 10
-        targetSdkVersion 26
+        minSdkVersion 15
+        targetSdkVersion 29
         versionCode 1
         versionName "1.0"
+
+        // Add externalNativeBuild in defaultConfig (1/2)
         externalNativeBuild {
             cmake {
                 arguments "-DGLFM_BUILD_EXAMPLE=ON"
             }
         }
     }
+    
+    // Add sourceSets.main and externalNativeBuild (2/2)
     sourceSets.main {
         assets.srcDirs = ["../../../../example/assets"]
     }
@@ -214,7 +225,7 @@ android {
 * Gamepad / MFi controller input.
 
 ## Caveats
-* OpenGL ES 3.1 and 3.2 support is only available in Android, and the GLFM implementation is currently untested.
+* OpenGL ES 3.1 and 3.2 support is only available in Android.
 * GLFM is not thread-safe. All GLFM functions must be called on the main thread (that is, from `glfmMain` or from the callback functions).
 * On iOS, character input works great, but keyboard events are not ideal. Using the keyboard (on an iOS device via Bluetooth keyboard or on the simulator via a Mac's keyboard), only a few keys are detected (arrows keys and the escape key), and key release events are not reported.
 * On Android, keyboard events work great, but character events are not ideal. Some special characters, like emoji characters, will not work. This is due to an issue in the NDK.
