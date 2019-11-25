@@ -442,13 +442,16 @@ static bool _glfmEGLContextInit(GLFMPlatformData *platformData) {
     static const int EGL_CONTEXT_MAJOR_VERSION_KHR = 0x3098;
     static const int EGL_CONTEXT_MINOR_VERSION_KHR = 0x30FB;
 
+    EGLint majorVersion = 0;
+    EGLint minorVersion = 0;
     bool created = false;
     if (platformData->eglContext == EGL_NO_CONTEXT) {
         // OpenGL ES 3.2
         if (platformData->display->preferredAPI >= GLFMRenderingAPIOpenGLES32) {
-            // TODO: Untested, need an OpenGL ES 3.2 device for testing
-            const EGLint contextAttribs[] = {EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
-                                             EGL_CONTEXT_MINOR_VERSION_KHR, 2, EGL_NONE};
+            majorVersion = 3;
+            minorVersion = 2;
+            const EGLint contextAttribs[] = {EGL_CONTEXT_MAJOR_VERSION_KHR, majorVersion,
+                                             EGL_CONTEXT_MINOR_VERSION_KHR, minorVersion, EGL_NONE};
             platformData->eglContext = eglCreateContext(platformData->eglDisplay,
                                                         platformData->eglConfig,
                                                         EGL_NO_CONTEXT, contextAttribs);
@@ -456,9 +459,10 @@ static bool _glfmEGLContextInit(GLFMPlatformData *platformData) {
         }
         // OpenGL ES 3.1
         if (!created && platformData->display->preferredAPI >= GLFMRenderingAPIOpenGLES31) {
-            // TODO: Untested, need an OpenGL ES 3.1 device for testing
-            const EGLint contextAttribs[] = {EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
-                                             EGL_CONTEXT_MINOR_VERSION_KHR, 1, EGL_NONE};
+            majorVersion = 3;
+            minorVersion = 1;
+            const EGLint contextAttribs[] = {EGL_CONTEXT_MAJOR_VERSION_KHR, majorVersion,
+                                             EGL_CONTEXT_MINOR_VERSION_KHR, minorVersion, EGL_NONE};
             platformData->eglContext = eglCreateContext(platformData->eglDisplay,
                                                         platformData->eglConfig,
                                                         EGL_NO_CONTEXT, contextAttribs);
@@ -466,7 +470,10 @@ static bool _glfmEGLContextInit(GLFMPlatformData *platformData) {
         }
         // OpenGL ES 3.0
         if (!created && platformData->display->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
-            const EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE, EGL_NONE};
+            majorVersion = 3;
+            minorVersion = 0;
+            const EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, majorVersion,
+                                             EGL_NONE, EGL_NONE};
             platformData->eglContext = eglCreateContext(platformData->eglDisplay,
                                                         platformData->eglConfig,
                                                         EGL_NO_CONTEXT, contextAttribs);
@@ -474,7 +481,10 @@ static bool _glfmEGLContextInit(GLFMPlatformData *platformData) {
         }
         // OpenGL ES 2.0
         if (!created) {
-            const EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE, EGL_NONE};
+            majorVersion = 2;
+            minorVersion = 0;
+            const EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, majorVersion,
+                                             EGL_NONE, EGL_NONE};
             platformData->eglContext = eglCreateContext(platformData->eglDisplay,
                                                         platformData->eglConfig,
                                                         EGL_NO_CONTEXT, contextAttribs);
@@ -482,11 +492,11 @@ static bool _glfmEGLContextInit(GLFMPlatformData *platformData) {
         }
 
         if (created) {
-            EGLint majorVersion = 0;
-            EGLint minorVersion = 0;
             eglQueryContext(platformData->eglDisplay, platformData->eglContext,
                             EGL_CONTEXT_MAJOR_VERSION_KHR, &majorVersion);
             if (majorVersion >= 3) { 
+                // This call fails on many (all?) devices.
+                // When it fails, `minorVersion` is left unchanged.
                 eglQueryContext(platformData->eglDisplay, platformData->eglContext,
                                 EGL_CONTEXT_MINOR_VERSION_KHR, &minorVersion);
             }
