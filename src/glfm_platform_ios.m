@@ -1,7 +1,7 @@
 /*
  GLFM
  https://github.com/brackeen/glfm
- Copyright (c) 2014-2019 David Brackeen
+ Copyright (c) 2014-2020 David Brackeen
  
  This software is provided 'as-is', without any express or implied warranty.
  In no event will the authors be held liable for any damages arising from the
@@ -455,6 +455,14 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
                                                name:UIKeyboardWillChangeFrameNotification
                                              object:view.window];
 #endif
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    // First render as soon as safeAreaInsets are set
+    if (!self.surfaceCreatedNotified && self.displayLink) {
+        [self render:self.displayLink];
+    }
 }
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
