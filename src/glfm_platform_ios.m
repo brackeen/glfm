@@ -531,7 +531,12 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
     [view prepareRender];
     if (_glfmDisplay->mainLoopFunc) {
-        _glfmDisplay->mainLoopFunc(_glfmDisplay, displayLink.timestamp);
+        CFTimeInterval timestamp = displayLink.timestamp;
+        if (timestamp <= 0) {
+            // First render from viewDidLayoutSubviews
+            timestamp = CACurrentMediaTime();
+        }
+        _glfmDisplay->mainLoopFunc(_glfmDisplay, timestamp);
     }
     [view finishRender];
 }
