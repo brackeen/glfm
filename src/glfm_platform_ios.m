@@ -29,8 +29,12 @@
 
 #define MAX_SIMULTANEOUS_TOUCHES 10
 
+#if (defined(DEBUG) && DEBUG)
 #define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
 NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } while(0)
+#else
+#define CHECK_GL_ERROR() ((void)0)
+#endif
 
 #if __has_feature(objc_arc)
 #define GLFM_AUTORELEASE(value) value
@@ -46,6 +50,8 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 @end
 
 #pragma mark - GLFMView
+
+static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor);
 
 @interface GLFMView : UIView {
     GLint _drawableWidth;
@@ -303,19 +309,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 }
 
 - (CGSize)preferredDrawableSize {
-    NSUInteger newDrawableWidth = (NSUInteger)(self.bounds.size.width * self.contentScaleFactor);
-    NSUInteger newDrawableHeight = (NSUInteger)(self.bounds.size.height * self.contentScaleFactor);
-
-    // On the iPhone 6 when "Display Zoom" is set, the size will be incorrect.
-    if (self.contentScaleFactor == 2.343750) {
-        if (newDrawableWidth == 750 && newDrawableHeight == 1331) {
-            newDrawableHeight = 1334;
-        } else if (newDrawableWidth == 1331 && newDrawableHeight == 750) {
-            newDrawableWidth = 1334;
-        }
-    }
-
-    return CGSizeMake(newDrawableWidth, newDrawableHeight);
+    return _glfmPreferredDrawableSize(self.bounds, self.contentScaleFactor);
 }
 
 @end
@@ -329,6 +323,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 @property(nonatomic, strong) EAGLContext *context;
 @property(nonatomic, strong) CADisplayLink *displayLink;
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
+@property(nonatomic, assign) GLFMRenderingAPI renderingAPI;
 @property(nonatomic, assign) CGSize drawableSize;
 @property(nonatomic, assign) BOOL multipleTouchEnabled;
 @property(nonatomic, assign) BOOL keyboardRequested;
@@ -374,6 +369,8 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 }
 
 - (void)loadView {
+    glfmMain(_glfmDisplay);
+
     GLFMAppDelegate *delegate = UIApplication.sharedApplication.delegate;
     self.view = GLFM_AUTORELEASE([[GLFMView alloc] initWithFrame:delegate.window.bounds]);
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
@@ -386,13 +383,13 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
     GLFMView *view = (GLFMView *)self.view;
     self.drawableSize = [view preferredDrawableSize];
 
-    glfmMain(_glfmDisplay);
-
     if (_glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
         self.context = GLFM_AUTORELEASE([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3]);
+        self.renderingAPI = GLFMRenderingAPIOpenGLES3;
     }
     if (!self.context) {
         self.context = GLFM_AUTORELEASE([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2]);
+        self.renderingAPI = GLFMRenderingAPIOpenGLES2;
     }
 
     if (!self.context) {
@@ -872,7 +869,7 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
 
             // HACK: Notify that the value of supportedInterfaceOrientations has changed
             GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-            if (vc.view.window) {
+            if (vc.isViewLoaded && vc.view.window) {
                 UIViewController *dummyVC = GLFM_AUTORELEASE([[UIViewController alloc] init]);
                 dummyVC.view = GLFM_AUTORELEASE([[UIView alloc] init]);
                 [vc presentViewController:dummyVC animated:NO completion:^{
@@ -883,11 +880,34 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
     }
 }
 
+static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor) {
+    NSUInteger newDrawableWidth = (NSUInteger)(bounds.size.width * contentScaleFactor);
+    NSUInteger newDrawableHeight = (NSUInteger)(bounds.size.height * contentScaleFactor);
+
+    // On the iPhone 6 when "Display Zoom" is set, the size will be incorrect.
+    if (contentScaleFactor == 2.343750) {
+        if (newDrawableWidth == 750 && newDrawableHeight == 1331) {
+            newDrawableHeight = 1334;
+        } else if (newDrawableWidth == 1331 && newDrawableHeight == 750) {
+            newDrawableWidth = 1334;
+        }
+    }
+
+    return CGSizeMake(newDrawableWidth, newDrawableHeight);
+}
+
 void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        *width = (int)vc.drawableSize.width;
-        *height = (int)vc.drawableSize.height;
+        if (vc.drawableSize.width > 0 && vc.drawableSize.height > 0) {
+            *width = (int)vc.drawableSize.width;
+            *height = (int)vc.drawableSize.height;
+        } else {
+            CGSize size = _glfmPreferredDrawableSize(UIScreen.mainScreen.bounds,
+                                                     UIScreen.mainScreen.nativeScale);
+            *width = (int)size.width;
+            *height = (int)size.height;
+        }
     } else {
         *width = 0;
         *height = 0;
@@ -895,19 +915,19 @@ void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
 }
 
 double glfmGetDisplayScale(GLFMDisplay *display) {
-    if (display && display->platformData) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return vc.view.contentScaleFactor;
-    } else {
-        return [UIScreen mainScreen].scale;
-    }
+    return [UIScreen mainScreen].nativeScale;
 }
 
 void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
                                 double *left) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        if (@available(iOS 11, tvOS 11, *)) {
+        if (!vc.isViewLoaded) {
+            *top = 0.0;
+            *right = 0.0;
+            *bottom = 0.0;
+            *left = 0.0;
+        } else if (@available(iOS 11, tvOS 11, *)) {
             UIEdgeInsets insets = vc.view.safeAreaInsets;
             *top = insets.top * vc.view.contentScaleFactor;
             *right = insets.right * vc.view.contentScaleFactor;
@@ -951,11 +971,7 @@ void _glfmDisplayChromeUpdated(GLFMDisplay *display) {
 GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        if (vc.context.API == kEAGLRenderingAPIOpenGLES3) {
-            return GLFMRenderingAPIOpenGLES3;
-        } else {
-            return GLFMRenderingAPIOpenGLES2;
-        }
+        return vc.renderingAPI;
     } else {
         return GLFMRenderingAPIOpenGLES2;
     }
