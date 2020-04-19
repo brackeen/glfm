@@ -1,7 +1,7 @@
 /*
  GLFM
  https://github.com/brackeen/glfm
- Copyright (c) 2014-2019 David Brackeen
+ Copyright (c) 2014-2020 David Brackeen
  
  This software is provided 'as-is', without any express or implied warranty.
  In no event will the authors be held liable for any damages arising from the
@@ -1482,7 +1482,11 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
     return platformData->keyboardVisible;
 }
 
-// MARK: Android-specific public functions
+// MARK: Platform-specific functions
+
+bool glfmIsMetalSupported(GLFMDisplay *display) {
+    return false;
+}
 
 ANativeActivity *glfmAndroidGetActivity() {
     if (platformDataGlobal && platformDataGlobal->app) {

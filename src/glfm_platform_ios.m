@@ -23,6 +23,8 @@
 #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
 
 #import <UIKit/UIKit.h>
+#import <Metal/Metal.h>
+#import <MetalKit/MetalKit.h>
 
 #include <dlfcn.h>
 #include "glfm_platform.h"
@@ -321,6 +323,7 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
 }
 
 @property(nonatomic, strong) EAGLContext *context;
+@property(nonatomic, strong) id<MTLDevice> metalDevice;
 @property(nonatomic, strong) CADisplayLink *displayLink;
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
 @property(nonatomic, assign) GLFMRenderingAPI renderingAPI;
@@ -501,6 +504,7 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
     free(_glfmDisplay);
 #if !__has_feature(objc_arc)
     self.context = nil;
+    self.metalDevice = nil;
     [super dealloc];
 #endif
 }
@@ -1022,6 +1026,20 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.keyboardRequested;
+    } else {
+        return false;
+    }
+}
+
+// MARK: Platform-specific functions
+
+bool glfmIsMetalSupported(GLFMDisplay *display) {
+    if (display) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        if (!vc.metalDevice) {
+            vc.metalDevice = GLFM_AUTORELEASE(MTLCreateSystemDefaultDevice());
+        }
+        return (vc.metalDevice != nil);
     } else {
         return false;
     }

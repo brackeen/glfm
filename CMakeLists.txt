@@ -47,7 +47,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Android")
     set_target_properties(glfm PROPERTIES
         C_STANDARD 99)
 elseif (IOS)
-    target_link_libraries(glfm "-framework Foundation -framework CoreGraphics -framework UIKit -framework OpenGLES -framework QuartzCore")
+    target_link_libraries(glfm "-framework Foundation -framework CoreGraphics -framework UIKit -framework OpenGLES -framework QuartzCore -framework Metal -framework MetalKit")
     set_target_properties(glfm PROPERTIES
         ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/GLFM.build/lib # For Archiving
         XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos iphonesimulator appletvos appletvsimulator"
