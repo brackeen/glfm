@@ -40,8 +40,10 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
 #if __has_feature(objc_arc)
 #define GLFM_AUTORELEASE(value) value
+#define GLFM_RELEASE(value) ((void)0)
 #else
 #define GLFM_AUTORELEASE(value) [value autorelease]
+#define GLFM_RELEASE(value) [value release]
 #endif
 
 @interface GLFMAppDelegate : NSObject <UIApplicationDelegate>
@@ -53,9 +55,19 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
 #pragma mark - GLFMView
 
-static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor);
+static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor,
+                                       int *width, int *height);
 
-@interface GLFMView : UIView {
+@protocol GLFMView
+
+@property(nonatomic, readonly) GLFMRenderingAPI renderingAPI;
+@property(nonatomic, readonly) int drawableWidth;
+@property(nonatomic, readonly) int drawableHeight;
+@property(nonatomic, assign) BOOL animating;
+
+@end
+
+@interface GLFMOpenGLView : UIView <GLFMView> {
     GLint _drawableWidth;
     GLint _drawableHeight;
     GLuint _defaultFramebuffer;
@@ -65,14 +77,17 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
     GLuint _msaaRenderbuffer;
 }
 
+@property(nonatomic, assign) GLFMDisplay *glfmDisplay;
+@property(nonatomic, assign) GLFMRenderingAPI renderingAPI;
+@property(nonatomic, strong) CADisplayLink *displayLink;
 @property(nonatomic, strong) EAGLContext *context;
 @property(nonatomic, strong) NSString *colorFormat;
 @property(nonatomic, assign) BOOL preserveBackbuffer;
 @property(nonatomic, assign) NSUInteger depthBits;
 @property(nonatomic, assign) NSUInteger stencilBits;
 @property(nonatomic, assign) BOOL multisampling;
-@property(nonatomic, readonly) NSUInteger drawableWidth;
-@property(nonatomic, readonly) NSUInteger drawableHeight;
+@property(nonatomic, assign) BOOL surfaceCreatedNotified;
+@property(nonatomic, assign) BOOL surfaceSizeChanged;
 
 - (void)createDrawable;
 - (void)deleteDrawable;
@@ -81,16 +96,81 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
 
 @end
 
-@implementation GLFMView
+@implementation GLFMOpenGLView
 
-@dynamic drawableWidth, drawableHeight;
+@dynamic drawableWidth, drawableHeight, animating;
 
 + (Class)layerClass {
     return [CAEAGLLayer class];
 }
 
+- (instancetype)initWithFrame:(CGRect)frame contentScaleFactor:(CGFloat)contentScaleFactor glfmDisplay:(GLFMDisplay *)glfmDisplay {
+    if ((self = [super initWithFrame:frame])) {
+        
+        self.contentScaleFactor = contentScaleFactor;
+        self.glfmDisplay = glfmDisplay;
+        
+        if (glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
+            self.context = GLFM_AUTORELEASE([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3]);
+            self.renderingAPI = GLFMRenderingAPIOpenGLES3;
+        }
+        if (!self.context) {
+            self.context = GLFM_AUTORELEASE([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2]);
+            self.renderingAPI = GLFMRenderingAPIOpenGLES2;
+        }
+        
+        if (!self.context) {
+            _glfmReportSurfaceError(glfmDisplay, "Failed to create ES context");
+            GLFM_RELEASE(self);
+            return nil;
+        }
+        
+        switch (glfmDisplay->colorFormat) {
+            case GLFMColorFormatRGB565:
+                self.colorFormat = kEAGLColorFormatRGB565;
+                break;
+            case GLFMColorFormatRGBA8888:
+            default:
+                self.colorFormat = kEAGLColorFormatRGBA8;
+                break;
+        }
+        
+        switch (glfmDisplay->depthFormat) {
+            case GLFMDepthFormatNone:
+            default:
+                self.depthBits = 0;
+                break;
+            case GLFMDepthFormat16:
+                self.depthBits = 16;
+                break;
+            case GLFMDepthFormat24:
+                self.depthBits = 24;
+                break;
+        }
+        
+        switch (glfmDisplay->stencilFormat) {
+            case GLFMStencilFormatNone:
+            default:
+                self.stencilBits = 0;
+                break;
+            case GLFMStencilFormat8:
+                self.stencilBits = 8;
+                break;
+        }
+        
+        self.multisampling = glfmDisplay->multisample != GLFMMultisampleNone;
+        
+        [self createDrawable];
+    }
+    return self;
+}
+
 - (void)dealloc {
+    self.animating = NO;
     [self deleteDrawable];
+    if ([EAGLContext currentContext] == self.context) {
+        [EAGLContext setCurrentContext:nil];
+    }
 #if !__has_feature(objc_arc)
     self.context = nil;
     self.colorFormat = nil;
@@ -98,12 +178,29 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
 #endif
 }
 
-- (NSUInteger)drawableWidth {
-    return (NSUInteger)_drawableWidth;
+- (int)drawableWidth {
+    return (int)_drawableWidth;
 }
 
-- (NSUInteger)drawableHeight {
-    return (NSUInteger)_drawableHeight;
+- (int)drawableHeight {
+    return (int)_drawableHeight;
+}
+
+- (BOOL)animating {
+    return (self.displayLink != nil);
+}
+
+- (void)setAnimating:(BOOL)animating {
+    if (self.animating != animating) {
+        if (!animating) {
+            [self.displayLink invalidate];
+            self.displayLink = nil;
+        } else {
+            self.displayLink = [CADisplayLink displayLinkWithTarget:self
+                                                           selector:@selector(render:)];
+            [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+        }
+    }
 }
 
 - (void)createDrawable {
@@ -299,19 +396,51 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
     CHECK_GL_ERROR();
 }
 
+- (void)render:(CADisplayLink *)displayLink {
+    if (!self.surfaceCreatedNotified) {
+        self.surfaceCreatedNotified = YES;
+
+        if (_glfmDisplay->surfaceCreatedFunc) {
+            _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, self.drawableWidth, self.drawableHeight);
+        }
+    }
+    
+    if (self.surfaceSizeChanged) {
+        self.surfaceSizeChanged  = NO;
+        if (_glfmDisplay->surfaceResizedFunc) {
+            _glfmDisplay->surfaceResizedFunc(_glfmDisplay, self.drawableWidth, self.drawableHeight);
+        }
+    }
+    
+    [self prepareRender];
+    if (_glfmDisplay->mainLoopFunc) {
+        CFTimeInterval timestamp = displayLink.timestamp;
+        if (timestamp <= 0) {
+            // First render from layoutSubviews
+            timestamp = CACurrentMediaTime();
+        }
+        _glfmDisplay->mainLoopFunc(_glfmDisplay, timestamp);
+    }
+    [self finishRender];
+}
+
+
 - (void)layoutSubviews {
-    CGSize size = self.preferredDrawableSize;
-    NSUInteger newDrawableWidth = (NSUInteger)size.width;
-    NSUInteger newDrawableHeight = (NSUInteger)size.height;
+    int newDrawableWidth;
+    int newDrawableHeight;
+    _glfmPreferredDrawableSize(self.bounds, self.contentScaleFactor,
+                               &newDrawableWidth, &newDrawableHeight);
 
     if (self.drawableWidth != newDrawableWidth || self.drawableHeight != newDrawableHeight) {
         [self deleteDrawable];
         [self createDrawable];
+        self.surfaceSizeChanged = self.surfaceCreatedNotified;
     }
-}
-
-- (CGSize)preferredDrawableSize {
-    return _glfmPreferredDrawableSize(self.bounds, self.contentScaleFactor);
+    
+    // First render as soon as safeAreaInsets are set
+    if (!self.surfaceCreatedNotified && self.displayLink) {
+        [self render:self.displayLink];
+    }
 }
 
 @end
@@ -322,16 +451,11 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
     const void *activeTouches[MAX_SIMULTANEOUS_TOUCHES];
 }
 
-@property(nonatomic, strong) EAGLContext *context;
 @property(nonatomic, strong) id<MTLDevice> metalDevice;
-@property(nonatomic, strong) CADisplayLink *displayLink;
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
-@property(nonatomic, assign) GLFMRenderingAPI renderingAPI;
-@property(nonatomic, assign) CGSize drawableSize;
 @property(nonatomic, assign) BOOL multipleTouchEnabled;
 @property(nonatomic, assign) BOOL keyboardRequested;
 @property(nonatomic, assign) BOOL keyboardVisible;
-@property(nonatomic, assign) BOOL surfaceCreatedNotified;
 
 @end
 
@@ -346,23 +470,6 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
     return self;
 }
 
-- (BOOL)animating {
-    return (self.displayLink != nil);
-}
-
-- (void)setAnimating:(BOOL)animating {
-    if (self.animating != animating) {
-        if (!animating) {
-            [self.displayLink invalidate];
-            self.displayLink = nil;
-        } else {
-            self.displayLink = [CADisplayLink displayLinkWithTarget:self
-                                                           selector:@selector(render:)];
-            [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
-        }
-    }
-}
-
 - (BOOL)prefersStatusBarHidden {
     return _glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
 }
@@ -375,94 +482,27 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
     glfmMain(_glfmDisplay);
 
     GLFMAppDelegate *delegate = UIApplication.sharedApplication.delegate;
-    self.view = GLFM_AUTORELEASE([[GLFMView alloc] initWithFrame:delegate.window.bounds]);
+    self.view = GLFM_AUTORELEASE([[GLFMOpenGLView alloc] initWithFrame:delegate.window.bounds contentScaleFactor:[UIScreen mainScreen].nativeScale glfmDisplay:_glfmDisplay]);
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.view.contentScaleFactor = [UIScreen mainScreen].nativeScale;
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    GLFMView *view = (GLFMView *)self.view;
-    self.drawableSize = [view preferredDrawableSize];
+    id<GLFMView> view = (id<GLFMView>)self.view;
 
-    if (_glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
-        self.context = GLFM_AUTORELEASE([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3]);
-        self.renderingAPI = GLFMRenderingAPIOpenGLES3;
-    }
-    if (!self.context) {
-        self.context = GLFM_AUTORELEASE([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2]);
-        self.renderingAPI = GLFMRenderingAPIOpenGLES2;
-    }
-
-    if (!self.context) {
-        _glfmReportSurfaceError(_glfmDisplay, "Failed to create ES context");
-        return;
-    }
-
-    view.context = self.context;
-
+    GLFMAppDelegate *delegate = UIApplication.sharedApplication.delegate;
+    view.animating = delegate.active;
+    
 #if TARGET_OS_IOS
-    view.multipleTouchEnabled = self.multipleTouchEnabled;
+    self.view.multipleTouchEnabled = self.multipleTouchEnabled;
 
     [self setNeedsStatusBarAppearanceUpdate];
-#endif
 
-    switch (_glfmDisplay->colorFormat) {
-        case GLFMColorFormatRGB565:
-            view.colorFormat = kEAGLColorFormatRGB565;
-            break;
-        case GLFMColorFormatRGBA8888:
-        default:
-            view.colorFormat = kEAGLColorFormatRGBA8;
-            break;
-    }
-
-    switch (_glfmDisplay->depthFormat) {
-        case GLFMDepthFormatNone:
-        default:
-            view.depthBits = 0;
-            break;
-        case GLFMDepthFormat16:
-            view.depthBits = 16;
-            break;
-        case GLFMDepthFormat24:
-            view.depthBits = 24;
-            break;
-    }
-
-    switch (_glfmDisplay->stencilFormat) {
-        case GLFMStencilFormatNone:
-        default:
-            view.stencilBits = 0;
-            break;
-        case GLFMStencilFormat8:
-            view.stencilBits = 8;
-            break;
-    }
-
-    view.multisampling = _glfmDisplay->multisample != GLFMMultisampleNone;
-
-    [view createDrawable];
-
-    if (view.drawableWidth > 0 && view.drawableHeight > 0) {
-        self.drawableSize = CGSizeMake(view.drawableWidth, view.drawableHeight);
-        self.animating = YES;
-    }
-
-#if TARGET_OS_IOS
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(keyboardFrameChanged:)
                                                name:UIKeyboardWillChangeFrameNotification
-                                             object:view.window];
+                                             object:self.view.window];
 #endif
-}
-
-- (void)viewDidLayoutSubviews {
-    [super viewDidLayoutSubviews];
-    // First render as soon as safeAreaInsets are set
-    if (!self.surfaceCreatedNotified && self.displayLink) {
-        [self render:self.displayLink];
-    }
 }
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
@@ -494,52 +534,14 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
 }
 
 - (void)dealloc {
-    [self setAnimating:NO];
-    if ([EAGLContext currentContext] == self.context) {
-        [EAGLContext setCurrentContext:nil];
-    }
     if (_glfmDisplay->surfaceDestroyedFunc) {
         _glfmDisplay->surfaceDestroyedFunc(_glfmDisplay);
     }
     free(_glfmDisplay);
 #if !__has_feature(objc_arc)
-    self.context = nil;
     self.metalDevice = nil;
     [super dealloc];
 #endif
-}
-
-- (void)render:(CADisplayLink *)displayLink {
-    GLFMView *view = (GLFMView *)self.view;
-
-    if (!self.surfaceCreatedNotified) {
-        self.surfaceCreatedNotified = YES;
-
-        if (_glfmDisplay->surfaceCreatedFunc) {
-            _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, (int)self.drawableSize.width,
-                                             (int)self.drawableSize.height);
-        }
-    }
-
-    CGSize newDrawableSize = CGSizeMake(view.drawableWidth, view.drawableHeight);
-    if (!CGSizeEqualToSize(self.drawableSize, newDrawableSize)) {
-        self.drawableSize = newDrawableSize;
-        if (_glfmDisplay->surfaceResizedFunc) {
-            _glfmDisplay->surfaceResizedFunc(_glfmDisplay, (int)self.drawableSize.width,
-                                             (int)self.drawableSize.height);
-        }
-    }
-
-    [view prepareRender];
-    if (_glfmDisplay->mainLoopFunc) {
-        CFTimeInterval timestamp = displayLink.timestamp;
-        if (timestamp <= 0) {
-            // First render from viewDidLayoutSubviews
-            timestamp = CACurrentMediaTime();
-        }
-        _glfmDisplay->mainLoopFunc(_glfmDisplay, timestamp);
-    }
-    [view finishRender];
 }
 
 #pragma mark - UIResponder
@@ -811,7 +813,10 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
 
         GLFMViewController *vc = (GLFMViewController *)[self.window rootViewController];
         [vc clearTouches];
-        vc.animating = active;
+        if (vc.isViewLoaded) {
+            id<GLFMView> view = (id<GLFMView>)vc.view;
+            view.animating = active;
+        }
         if (vc.glfmDisplay && vc.glfmDisplay->focusFunc) {
             vc.glfmDisplay->focusFunc(vc.glfmDisplay, _active);
         }
@@ -884,9 +889,9 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
     }
 }
 
-static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor) {
-    NSUInteger newDrawableWidth = (NSUInteger)(bounds.size.width * contentScaleFactor);
-    NSUInteger newDrawableHeight = (NSUInteger)(bounds.size.height * contentScaleFactor);
+static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor, int *width, int *height) {
+    int newDrawableWidth = (int)(bounds.size.width * contentScaleFactor);
+    int newDrawableHeight = (int)(bounds.size.height * contentScaleFactor);
 
     // On the iPhone 6 when "Display Zoom" is set, the size will be incorrect.
     if (contentScaleFactor == 2.343750) {
@@ -896,21 +901,20 @@ static CGSize _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFact
             newDrawableWidth = 1334;
         }
     }
-
-    return CGSizeMake(newDrawableWidth, newDrawableHeight);
+    *width = newDrawableWidth;
+    *height = newDrawableHeight;
 }
 
 void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        if (vc.drawableSize.width > 0 && vc.drawableSize.height > 0) {
-            *width = (int)vc.drawableSize.width;
-            *height = (int)vc.drawableSize.height;
+        if (vc.isViewLoaded) {
+            id<GLFMView> view = (id<GLFMView>)vc.view;
+            *width = view.drawableWidth;
+            *height = view.drawableHeight;
         } else {
-            CGSize size = _glfmPreferredDrawableSize(UIScreen.mainScreen.bounds,
-                                                     UIScreen.mainScreen.nativeScale);
-            *width = (int)size.width;
-            *height = (int)size.height;
+            _glfmPreferredDrawableSize(UIScreen.mainScreen.bounds, UIScreen.mainScreen.nativeScale,
+                                       width, height);
         }
     } else {
         *width = 0;
@@ -975,7 +979,12 @@ void _glfmDisplayChromeUpdated(GLFMDisplay *display) {
 GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return vc.renderingAPI;
+        if (vc.isViewLoaded) {
+            id<GLFMView> view = (id<GLFMView>)vc.view;
+            return view.renderingAPI;
+        } else {
+            return GLFMRenderingAPIOpenGLES2;
+        }
     } else {
         return GLFMRenderingAPIOpenGLES2;
     }
