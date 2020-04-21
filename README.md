@@ -5,8 +5,10 @@ GLFM is an OpenGL ES layer for mobile devices and the web. GLFM supplies an Open
 
 GLFM is written in C and runs on iOS 9, tvOS 9, Android 2.3.3 (API 10), and WebGL 1.0 (via [Emscripten](https://github.com/kripken/emscripten)).
 
+Additionally, GLFM provides Metal support on iOS and tvOS.
+
 ## Features
-* OpenGL ES 2.0, 3.0, 3.1, and 3.2 display setup.
+* OpenGL ES 2, OpenGL ES 3, and Metal display setup.
 * Retina / high-DPI support.
 * Touch and keyboard events.
 * Events for application state and context loss.
@@ -117,11 +119,6 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 ## API
 See [glfm.h](include/glfm.h)
 
-## Build requirements
-* iOS: Xcode 9.0 or newer.
-* Android: Android Studio 3.0 or newer, NDK Bundle 16 or newer.
-* WebGL: Emscripten 1.35.0
-
 ## Use GLFM in an existing project
 
 1. Remove the project's existing `void main()` function, if any.
@@ -139,6 +136,8 @@ cmake -DGLFM_BUILD_EXAMPLE=ON -G Xcode ../..
 open GLFM.xcodeproj
 ```
 Switch to the `glfm_example` target and run on the simulator or a device.
+
+By default, Metal support is included, which requires linking to the Metal and MetalKit modules. If you do not need Metal support, add `GLFM_INCLUDE_METAL=0` to the "Preprocessor Macros" section of your project's Build Settings.
 
 ### Emscripten
 Assuming `EMSCRIPTEN_ROOT_PATH` points to active installed version of Emscripten.
