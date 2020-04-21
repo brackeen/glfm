@@ -102,6 +102,7 @@ typedef enum {
     GLFMRenderingAPIOpenGLES3,
     GLFMRenderingAPIOpenGLES31,
     GLFMRenderingAPIOpenGLES32,
+    GLFMRenderingAPIMetal,
 } GLFMRenderingAPI;
 
 typedef enum {
@@ -358,6 +359,10 @@ void glfmSetKeyboardVisibilityChangedFunc(GLFMDisplay *display,
 
 /// Returns true if this is an iOS device that supports Metal, false otherwise
 bool glfmIsMetalSupported(GLFMDisplay *display);
+
+/// Returns a (MTKView *) instance, or NULL if Metal is not available.
+/// This will only return a valid reference after the surface was created.
+void *glfmGetMetalView(GLFMDisplay *display);
 
 #if defined(GLFM_PLATFORM_ANDROID)
 

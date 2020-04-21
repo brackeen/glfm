@@ -20,22 +20,27 @@
 
 #include "glfm.h"
 
+#if !defined(GLFM_INCLUDE_METAL)
+#define GLFM_INCLUDE_METAL 1
+#endif
+
 #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
 
 #import <UIKit/UIKit.h>
-#import <Metal/Metal.h>
+#if GLFM_INCLUDE_METAL
 #import <MetalKit/MetalKit.h>
+#endif
 
 #include <dlfcn.h>
 #include "glfm_platform.h"
 
 #define MAX_SIMULTANEOUS_TOUCHES 10
 
-#if (defined(DEBUG) && DEBUG)
+#ifndef NDEBUG
+#define CHECK_GL_ERROR() ((void)0)
+#else
 #define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
 NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } while(0)
-#else
-#define CHECK_GL_ERROR() ((void)0)
 #endif
 
 #if __has_feature(objc_arc)
@@ -67,6 +72,120 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 @end
 
+#if GLFM_INCLUDE_METAL
+
+#pragma mark - GLFMMetalView
+
+@interface GLFMMetalView : MTKView <GLFMView, MTKViewDelegate>
+
+@property(nonatomic, assign) GLFMDisplay *glfmDisplay;
+@property(nonatomic, assign) int drawableWidth;
+@property(nonatomic, assign) int drawableHeight;
+@property(nonatomic, assign) BOOL surfaceCreatedNotified;
+
+@end
+
+@implementation GLFMMetalView
+
+@dynamic renderingAPI, animating;
+
+- (instancetype)initWithFrame:(CGRect)frame contentScaleFactor:(CGFloat)contentScaleFactor
+                       device:(id<MTLDevice>)device glfmDisplay:(GLFMDisplay *)glfmDisplay {
+    if ((self = [super initWithFrame:frame device:device])) {
+        self.contentScaleFactor = contentScaleFactor;
+        self.delegate = self;
+        self.glfmDisplay = glfmDisplay;
+        self.drawableWidth = (int)self.drawableSize.width;
+        self.drawableHeight = (int)self.drawableSize.height;
+
+        switch (glfmDisplay->colorFormat) {
+            case GLFMColorFormatRGB565:
+                self.colorPixelFormat = MTLPixelFormatB5G6R5Unorm;
+                break;
+            case GLFMColorFormatRGBA8888:
+            default:
+                self.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
+                break;
+        }
+        
+        if (glfmDisplay->depthFormat == GLFMDepthFormatNone &&
+            glfmDisplay->stencilFormat == GLFMStencilFormatNone) {
+            self.depthStencilPixelFormat = MTLPixelFormatInvalid;
+        } else if (glfmDisplay->depthFormat == GLFMDepthFormatNone) {
+            self.depthStencilPixelFormat = MTLPixelFormatStencil8;
+        } else if (glfmDisplay->stencilFormat == GLFMStencilFormatNone) {
+            if (@available(iOS 13, tvOS 13, *)) {
+                if (glfmDisplay->depthFormat == GLFMDepthFormat16) {
+                    self.depthStencilPixelFormat = MTLPixelFormatDepth16Unorm;
+                } else {
+                    self.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
+                }
+            } else {
+                self.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
+            }
+            
+        } else {
+            self.depthStencilPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+        }
+        
+        self.sampleCount = (glfmDisplay->multisample == GLFMMultisampleNone) ? 1 : 4;
+    }
+    return self;
+}
+
+- (GLFMRenderingAPI)renderingAPI {
+    return GLFMRenderingAPIMetal;
+}
+
+- (BOOL)animating {
+    return !self.paused;
+}
+
+- (void)setAnimating:(BOOL)animating {
+    self.paused = !animating;
+}
+
+- (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size {
+    
+}
+
+- (void)drawInMTKView:(MTKView *)view {
+    int newDrawableWidth = (int)self.drawableSize.width;
+    int newDrawableHeight = (int)self.drawableSize.height;
+    if (!self.surfaceCreatedNotified) {
+        self.surfaceCreatedNotified = YES;
+
+        self.drawableWidth = newDrawableWidth;
+        self.drawableHeight = newDrawableHeight;
+        if (_glfmDisplay->surfaceCreatedFunc) {
+            _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, self.drawableWidth, self.drawableHeight);
+        }
+    } else if (newDrawableWidth != self.drawableWidth || newDrawableHeight != self.drawableHeight) {
+        self.drawableWidth = newDrawableWidth;
+        self.drawableHeight = newDrawableHeight;
+        if (_glfmDisplay->surfaceResizedFunc) {
+            _glfmDisplay->surfaceResizedFunc(_glfmDisplay, self.drawableWidth, self.drawableHeight);
+        }
+    }
+    
+    if (_glfmDisplay->mainLoopFunc) {
+        _glfmDisplay->mainLoopFunc(_glfmDisplay, CACurrentMediaTime());
+    }
+}
+
+- (void)layoutSubviews {
+    // First render as soon as safeAreaInsets are set
+    if (!self.surfaceCreatedNotified) {
+        [self draw];
+    }
+}
+
+@end
+
+#endif
+
+#pragma mark - GLFMOpenGLView
+
 @interface GLFMOpenGLView : UIView <GLFMView> {
     GLint _drawableWidth;
     GLint _drawableHeight;
@@ -89,11 +208,6 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 @property(nonatomic, assign) BOOL surfaceCreatedNotified;
 @property(nonatomic, assign) BOOL surfaceSizeChanged;
 
-- (void)createDrawable;
-- (void)deleteDrawable;
-- (void)prepareRender;
-- (void)finishRender;
-
 @end
 
 @implementation GLFMOpenGLView
@@ -104,7 +218,8 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     return [CAEAGLLayer class];
 }
 
-- (instancetype)initWithFrame:(CGRect)frame contentScaleFactor:(CGFloat)contentScaleFactor glfmDisplay:(GLFMDisplay *)glfmDisplay {
+- (instancetype)initWithFrame:(CGRect)frame contentScaleFactor:(CGFloat)contentScaleFactor
+                  glfmDisplay:(GLFMDisplay *)glfmDisplay {
     if ((self = [super initWithFrame:frame])) {
         
         self.contentScaleFactor = contentScaleFactor;
@@ -451,7 +566,9 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     const void *activeTouches[MAX_SIMULTANEOUS_TOUCHES];
 }
 
+#if GLFM_INCLUDE_METAL
 @property(nonatomic, strong) id<MTLDevice> metalDevice;
+#endif
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
 @property(nonatomic, assign) BOOL multipleTouchEnabled;
 @property(nonatomic, assign) BOOL keyboardRequested;
@@ -470,6 +587,15 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     return self;
 }
 
+#if GLFM_INCLUDE_METAL
+- (id<MTLDevice>)metalDevice {
+    if (!_metalDevice) {
+        self.metalDevice = GLFM_AUTORELEASE(MTLCreateSystemDefaultDevice());
+    }
+    return _metalDevice;
+}
+#endif
+
 - (BOOL)prefersStatusBarHidden {
     return _glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
 }
@@ -478,21 +604,40 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     return _glfmDisplay->uiChrome == GLFMUserInterfaceChromeFullscreen;
 }
 
+- (UIView<GLFMView> *)glfmView {
+    return (UIView<GLFMView> *)self.view;
+}
+
 - (void)loadView {
     glfmMain(_glfmDisplay);
 
     GLFMAppDelegate *delegate = UIApplication.sharedApplication.delegate;
-    self.view = GLFM_AUTORELEASE([[GLFMOpenGLView alloc] initWithFrame:delegate.window.bounds contentScaleFactor:[UIScreen mainScreen].nativeScale glfmDisplay:_glfmDisplay]);
+    CGRect frame = delegate.window.bounds;
+    CGFloat scale = [UIScreen mainScreen].nativeScale;
+    UIView<GLFMView> *glfmView = nil;
+    
+#if GLFM_INCLUDE_METAL
+    if (_glfmDisplay->preferredAPI == GLFMRenderingAPIMetal && self.metalDevice) {
+        glfmView = GLFM_AUTORELEASE([[GLFMMetalView alloc] initWithFrame:frame
+                                                       contentScaleFactor:scale
+                                                                   device:self.metalDevice
+                                                              glfmDisplay:_glfmDisplay]);
+    }
+#endif
+    if (!glfmView) {
+        glfmView = GLFM_AUTORELEASE([[GLFMOpenGLView alloc] initWithFrame:frame
+                                                        contentScaleFactor:scale
+                                                               glfmDisplay:_glfmDisplay]);
+    }
+    self.view = glfmView;
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    id<GLFMView> view = (id<GLFMView>)self.view;
-
     GLFMAppDelegate *delegate = UIApplication.sharedApplication.delegate;
-    view.animating = delegate.active;
+    self.glfmView.animating = delegate.active;
     
 #if TARGET_OS_IOS
     self.view.multipleTouchEnabled = self.multipleTouchEnabled;
@@ -539,7 +684,9 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     }
     free(_glfmDisplay);
 #if !__has_feature(objc_arc)
+#if GLFM_INCLUDE_METAL
     self.metalDevice = nil;
+#endif
     [super dealloc];
 #endif
 }
@@ -814,8 +961,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         GLFMViewController *vc = (GLFMViewController *)[self.window rootViewController];
         [vc clearTouches];
         if (vc.isViewLoaded) {
-            id<GLFMView> view = (id<GLFMView>)vc.view;
-            view.animating = active;
+            vc.glfmView.animating = active;
         }
         if (vc.glfmDisplay && vc.glfmDisplay->focusFunc) {
             vc.glfmDisplay->focusFunc(vc.glfmDisplay, _active);
@@ -909,9 +1055,8 @@ void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         if (vc.isViewLoaded) {
-            id<GLFMView> view = (id<GLFMView>)vc.view;
-            *width = view.drawableWidth;
-            *height = view.drawableHeight;
+            *width = vc.glfmView.drawableWidth;
+            *height = vc.glfmView.drawableHeight;
         } else {
             _glfmPreferredDrawableSize(UIScreen.mainScreen.bounds, UIScreen.mainScreen.nativeScale,
                                        width, height);
@@ -980,8 +1125,7 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         if (vc.isViewLoaded) {
-            id<GLFMView> view = (id<GLFMView>)vc.view;
-            return view.renderingAPI;
+            return vc.glfmView.renderingAPI;
         } else {
             return GLFMRenderingAPIOpenGLES2;
         }
@@ -1043,15 +1187,28 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
 // MARK: Platform-specific functions
 
 bool glfmIsMetalSupported(GLFMDisplay *display) {
+#if GLFM_INCLUDE_METAL
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        if (!vc.metalDevice) {
-            vc.metalDevice = GLFM_AUTORELEASE(MTLCreateSystemDefaultDevice());
-        }
         return (vc.metalDevice != nil);
-    } else {
-        return false;
     }
+#endif
+    return false;
+}
+
+void *glfmGetMetalView(GLFMDisplay *display) {
+#if GLFM_INCLUDE_METAL
+    if (display) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        if (vc.isViewLoaded) {
+            UIView *view = vc.view;
+            if ([view isKindOfClass:[MTKView class]]) {
+                return (__bridge void *)view;
+            }
+        }
+    }
+#endif
+    return NULL;
 }
 
 #endif

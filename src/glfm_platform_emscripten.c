@@ -207,6 +207,10 @@ bool glfmIsMetalSupported(GLFMDisplay *display) {
     return false;
 }
 
+void *glfmGetMetalView(GLFMDisplay *display) {
+    return NULL;
+}
+
 // MARK: Emscripten glue
 
 static int _glfmGetDisplayWidth(GLFMDisplay *display) {
