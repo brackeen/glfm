@@ -16,6 +16,10 @@ include(GLFMAppTarget)
 
 # Test pattern
 set(GLFM_APP_TARGET_NAME glfm_test_pattern)
-set(GLFM_APP_SRC src/test_pattern.c src/file_compat.h)
+set(GLFM_APP_SRC src/test_pattern.c src/test_pattern_renderer.h src/test_pattern_renderer_gles2.c src/file_compat.h)
+if (IOS)
+    set(GLFM_APP_SRC ${GLFM_APP_SRC} src/test_pattern_renderer_metal.m src/test_pattern_renderer.metal)
+    set_source_files_properties(src/test_pattern_renderer.metal PROPERTIES LANGUAGE METAL)
+endif()
 include(GLFMAppTarget)
 set_property(TARGET glfm_test_pattern PROPERTY C_STANDARD 99)
