@@ -600,8 +600,8 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     return _glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
 }
 
-- (BOOL)prefersHomeIndicatorAutoHidden {
-    return _glfmDisplay->uiChrome == GLFMUserInterfaceChromeFullscreen;
+- (UIRectEdge)preferredScreenEdgesDeferringSystemGestures {
+    return _glfmDisplay->uiChrome == GLFMUserInterfaceChromeFullscreen ? UIRectEdgeBottom : UIRectEdgeNone;
 }
 
 - (UIView<GLFMView> *)glfmView {
@@ -1115,7 +1115,7 @@ void _glfmDisplayChromeUpdated(GLFMDisplay *display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         [vc setNeedsStatusBarAppearanceUpdate];
         if (@available(iOS 11, *)) {
-            [vc setNeedsUpdateOfHomeIndicatorAutoHidden];
+            [vc setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
         }
 #endif
     }
