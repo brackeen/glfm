@@ -70,6 +70,8 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 @property(nonatomic, readonly) int drawableHeight;
 @property(nonatomic, assign) BOOL animating;
 
+- (void)draw;
+
 @end
 
 #if GLFM_INCLUDE_METAL
@@ -539,6 +541,11 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     [self finishRender];
 }
 
+- (void)draw {
+    if (self.displayLink) {
+        [self render:self.displayLink];
+    }
+}
 
 - (void)layoutSubviews {
     int newDrawableWidth;
@@ -553,8 +560,8 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     }
     
     // First render as soon as safeAreaInsets are set
-    if (!self.surfaceCreatedNotified && self.displayLink) {
-        [self render:self.displayLink];
+    if (!self.surfaceCreatedNotified) {
+        [self draw];
     }
 }
 
@@ -959,13 +966,17 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         _active = active;
 
         GLFMViewController *vc = (GLFMViewController *)[self.window rootViewController];
-        [vc clearTouches];
-        if (vc.isViewLoaded) {
-            vc.glfmView.animating = active;
-        }
         if (vc.glfmDisplay && vc.glfmDisplay->focusFunc) {
             vc.glfmDisplay->focusFunc(vc.glfmDisplay, _active);
         }
+        if (vc.isViewLoaded) {
+            if (!active) {
+                // Draw once when entering the background so that a game can show "paused" state.
+                [vc.glfmView draw];
+            }
+            vc.glfmView.animating = active;
+        }
+        [vc clearTouches];
     }
 }
 
