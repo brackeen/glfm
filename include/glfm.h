@@ -312,37 +312,40 @@ bool glfmExtensionSupported(const char *extension);
 GLFMProc glfmGetProcAddress(const char *functionName);
 
 /// Sets the function to call before each frame is displayed.
-void glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc);
+GLFMMainLoopFunc glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc);
 
 /// Sets the function to call when a mouse or touch event occurs.
-void glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc);
+GLFMTouchFunc glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc);
 
 /// Sets the function to call when a key event occurs.
 /// Note, on iOS, only pressed events are sent (no repeated or released events) and with no
 /// modifiers.
-void glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
+GLFMKeyFunc glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
 
 /// Sets the function to call when character input events occur.
-void glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
+GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
 
 /// Sets the function to call when the surface could not be created.
 /// For example, the browser does not support WebGL.
-void glfmSetSurfaceErrorFunc(GLFMDisplay *display, GLFMSurfaceErrorFunc surfaceErrorFunc);
+GLFMSurfaceErrorFunc glfmSetSurfaceErrorFunc(GLFMDisplay *display,
+                                             GLFMSurfaceErrorFunc surfaceErrorFunc);
 
 /// Sets the function to call when the surface was created.
-void glfmSetSurfaceCreatedFunc(GLFMDisplay *display, GLFMSurfaceCreatedFunc surfaceCreatedFunc);
+GLFMSurfaceCreatedFunc glfmSetSurfaceCreatedFunc(GLFMDisplay *display,
+                                                 GLFMSurfaceCreatedFunc surfaceCreatedFunc);
 
 /// Sets the function to call when the surface was resized (or rotated).
-void glfmSetSurfaceResizedFunc(GLFMDisplay *display, GLFMSurfaceResizedFunc surfaceResizedFunc);
+GLFMSurfaceResizedFunc glfmSetSurfaceResizedFunc(GLFMDisplay *display,
+                                                 GLFMSurfaceResizedFunc surfaceResizedFunc);
 
 /// Sets the function to call when the surface was destroyed. For example, OpenGL context loss.
 /// All OpenGL resources should be deleted in this call.
-void glfmSetSurfaceDestroyedFunc(GLFMDisplay *display,
-                                 GLFMSurfaceDestroyedFunc surfaceDestroyedFunc);
+GLFMSurfaceDestroyedFunc glfmSetSurfaceDestroyedFunc(GLFMDisplay *display,
+                                                     GLFMSurfaceDestroyedFunc surfaceDestroyedFunc);
 
-void glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMemoryFunc);
+GLFMMemoryWarningFunc glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMemoryFunc);
 
-void glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focusFunc);
+GLFMAppFocusFunc glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focusFunc);
 
 /// Requests to show or hide the onscreen virtual keyboard. On Emscripten, this function does
 /// nothing.
@@ -352,8 +355,9 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible);
 bool glfmIsKeyboardVisible(GLFMDisplay *display);
 
 /// Sets the function to call when the virtual keyboard changes visibility or changes bounds.
-void glfmSetKeyboardVisibilityChangedFunc(GLFMDisplay *display,
-                                          GLFMKeyboardVisibilityChangedFunc visibilityChangedFunc);
+GLFMKeyboardVisibilityChangedFunc
+glfmSetKeyboardVisibilityChangedFunc(GLFMDisplay *display,
+                                     GLFMKeyboardVisibilityChangedFunc visibilityChangedFunc);
 
 // MARK: Platform-specific functions
 

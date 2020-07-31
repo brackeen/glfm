@@ -61,10 +61,14 @@ struct GLFMDisplay {
 
 // MARK: Setters
 
-void glfmSetSurfaceErrorFunc(GLFMDisplay *display, GLFMSurfaceErrorFunc surfaceErrorFunc) {
+GLFMSurfaceErrorFunc glfmSetSurfaceErrorFunc(GLFMDisplay *display,
+                                             GLFMSurfaceErrorFunc surfaceErrorFunc) {
+    GLFMSurfaceErrorFunc previous = NULL;
     if (display) {
+        previous = display->surfaceErrorFunc;
         display->surfaceErrorFunc = surfaceErrorFunc;
     }
+    return previous;
 }
 
 void glfmSetDisplayConfig(GLFMDisplay *display,
@@ -109,66 +113,98 @@ void glfmSetDisplayChrome(GLFMDisplay *display, GLFMUserInterfaceChrome uiChrome
     }
 }
 
-void glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc) {
+GLFMMainLoopFunc glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc) {
+    GLFMMainLoopFunc previous = NULL;
     if (display) {
+        previous = display->mainLoopFunc;
         display->mainLoopFunc = mainLoopFunc;
     }
+    return previous;
 }
 
-void glfmSetSurfaceCreatedFunc(GLFMDisplay *display, GLFMSurfaceCreatedFunc surfaceCreatedFunc) {
+GLFMSurfaceCreatedFunc glfmSetSurfaceCreatedFunc(GLFMDisplay *display,
+                                                 GLFMSurfaceCreatedFunc surfaceCreatedFunc) {
+    GLFMSurfaceCreatedFunc previous = NULL;
     if (display) {
+        previous = display->surfaceCreatedFunc;
         display->surfaceCreatedFunc = surfaceCreatedFunc;
     }
+    return previous;
 }
 
-void glfmSetSurfaceResizedFunc(GLFMDisplay *display, GLFMSurfaceResizedFunc surfaceResizedFunc) {
+GLFMSurfaceResizedFunc glfmSetSurfaceResizedFunc(GLFMDisplay *display,
+                                                 GLFMSurfaceResizedFunc surfaceResizedFunc) {
+    GLFMSurfaceResizedFunc previous = NULL;
     if (display) {
+        previous = display->surfaceResizedFunc;
         display->surfaceResizedFunc = surfaceResizedFunc;
     }
+    return previous;
 }
 
-void glfmSetSurfaceDestroyedFunc(GLFMDisplay *display,
-                                 GLFMSurfaceDestroyedFunc surfaceDestroyedFunc) {
+GLFMSurfaceDestroyedFunc glfmSetSurfaceDestroyedFunc(GLFMDisplay *display,
+                                                     GLFMSurfaceDestroyedFunc surfaceDestroyedFunc) {
+    GLFMSurfaceDestroyedFunc previous = NULL;
     if (display) {
+        previous = display->surfaceDestroyedFunc;
         display->surfaceDestroyedFunc = surfaceDestroyedFunc;
     }
+    return previous;
 }
 
-void glfmSetKeyboardVisibilityChangedFunc(GLFMDisplay *display,
-                                          GLFMKeyboardVisibilityChangedFunc func) {
+GLFMKeyboardVisibilityChangedFunc glfmSetKeyboardVisibilityChangedFunc(GLFMDisplay *display,
+                                                                       GLFMKeyboardVisibilityChangedFunc func) {
+    GLFMKeyboardVisibilityChangedFunc previous = NULL;
     if (display) {
+        previous = display->keyboardVisibilityChangedFunc;
         display->keyboardVisibilityChangedFunc = func;
     }
+    return previous;
 }
 
-void glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc) {
+GLFMTouchFunc glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc) {
+    GLFMTouchFunc previous = NULL;
     if (display) {
+        previous = display->touchFunc;
         display->touchFunc = touchFunc;
     }
+    return previous;
 }
 
-void glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc) {
+GLFMKeyFunc glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc) {
+    GLFMKeyFunc previous = NULL;
     if (display) {
+        previous = display->keyFunc;
         display->keyFunc = keyFunc;
     }
+    return previous;
 }
 
-void glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc) {
+GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc) {
+    GLFMCharFunc previous = NULL;
     if (display) {
+        previous = display->charFunc;
         display->charFunc = charFunc;
     }
+    return previous;
 }
 
-void glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMemoryFunc) {
+GLFMMemoryWarningFunc glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMemoryFunc) {
+    GLFMMemoryWarningFunc previous = NULL;
     if (display) {
+        previous = display->lowMemoryFunc;
         display->lowMemoryFunc = lowMemoryFunc;
     }
+    return previous;
 }
 
-void glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focusFunc) {
+GLFMAppFocusFunc glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focusFunc) {
+    GLFMAppFocusFunc previous = NULL;
     if (display) {
+        previous = display->focusFunc;
         display->focusFunc = focusFunc;
     }
+    return previous;
 }
 
 // MARK: Helper functions
