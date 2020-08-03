@@ -55,7 +55,7 @@ static void drawFrameStart(Renderer *renderer, int screenWidth, int screenHeight
         
         id<MTLRenderCommandEncoder> renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
         renderCommandEncoder.label = @"Test Pattern Render Command Encoder";
-        [renderCommandEncoder setViewport:(MTLViewport){ 0.0, 0.0, screenWidth, screenHeight, -1024, 1024 }];
+        [renderCommandEncoder setViewport:(MTLViewport){ 0.0, 0.0, screenWidth, screenHeight, 0.0, 1.0 }];
         [renderCommandEncoder setRenderPipelineState:impl->pipelineState];
         [renderCommandEncoder setFragmentSamplerState:impl->sampler atIndex:0];
 
