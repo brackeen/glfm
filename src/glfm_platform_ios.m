@@ -658,7 +658,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 }
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
-    BOOL isTablet = (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad);
+    BOOL isTablet = [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad;
     GLFMUserInterfaceOrientation uiOrientations = _glfmDisplay->allowedOrientations;
     if (uiOrientations == GLFMUserInterfaceOrientationAny) {
         if (isTablet) {
@@ -1099,12 +1099,15 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
             *left = insets.left * vc.view.contentScaleFactor;
         } else {
 #if TARGET_OS_IOS
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
             if (![vc prefersStatusBarHidden]) {
                 *top = ([UIApplication sharedApplication].statusBarFrame.size.height *
                         vc.view.contentScaleFactor);
             } else {
                 *top = 0.0;
             }
+#pragma clang diagnostic pop
 #else
             *top = 0.0;
 #endif
