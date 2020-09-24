@@ -126,6 +126,12 @@ typedef enum {
     GLFMMultisample4X,
 } GLFMMultisample;
 
+typedef enum {
+    GLFMSwapBehaviorPlatformDefault,
+    GLFMSwapBehaviorBufferDestroyed,
+    GLFMSwapBehaviorBufferPreserved,
+} GLFMSwapBehavior;
+
 /// GLFMUserInterfaceChrome defines whether system UI chrome (status bar, navigation bar) is shown.
 /// This value is ignored on Emscripten.
 /// GLFMUserInterfaceChromeNavigation (default)
@@ -353,6 +359,14 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible);
 
 /// Returns true if the virtual keyboard is currently visible.
 bool glfmIsKeyboardVisible(GLFMDisplay *display);
+
+/// Sets the swap behavior for newly created surfaces. Currently only supported on
+/// Android. In order to take effect, the behavior should be set before the surface
+/// is created, preferable at the very beginning of the glfmMain function.
+void glfmSetSwapBehavior(GLFMDisplay *display, GLFMSwapBehavior behavior);
+
+/// Returns the swap buffer behavior.
+GLFMSwapBehavior glfmGetSwapBehavior(GLFMDisplay *display);
 
 /// Sets the function to call when the virtual keyboard changes visibility or changes bounds.
 GLFMKeyboardVisibilityChangedFunc

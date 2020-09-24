@@ -40,6 +40,7 @@ struct GLFMDisplay {
     GLFMMultisample multisample;
     GLFMUserInterfaceOrientation allowedOrientations;
     GLFMUserInterfaceChrome uiChrome;
+    GLFMSwapBehavior swapBehavior;
 
     // Callbacks
     GLFMMainLoopFunc mainLoopFunc;
@@ -205,6 +206,20 @@ GLFMAppFocusFunc glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focu
         display->focusFunc = focusFunc;
     }
     return previous;
+}
+
+void glfmSetSwapBehavior(GLFMDisplay *display, GLFMSwapBehavior behavior) {
+    if (display) {
+        display->swapBehavior = behavior;
+    }
+}
+
+GLFMSwapBehavior glfmGetSwapBehavior(GLFMDisplay *display) {
+    if (display) {
+        return display->swapBehavior;
+    }
+
+    return GLFMSwapBehaviorPlatformDefault;
 }
 
 // MARK: Helper functions
