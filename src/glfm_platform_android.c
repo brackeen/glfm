@@ -543,6 +543,17 @@ static void _glfmEGLSurfaceInit(GLFMPlatformData *platformData) {
         platformData->eglSurface = eglCreateWindowSurface(platformData->eglDisplay,
                                                           platformData->eglConfig,
                                                           platformData->app->window, NULL);
+
+        switch (platformData->display->swapBehavior) {
+        case GLFMSwapBehaviorPlatformDefault:
+            // Platform default, do nothing.
+            break;
+        case GLFMSwapBehaviorBufferPreserved:
+            eglSurfaceAttrib(platformData->eglDisplay, platformData->eglSurface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED);
+            break;
+        case GLFMSwapBehaviorBufferDestroyed:
+            eglSurfaceAttrib(platformData->eglDisplay, platformData->eglSurface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_DESTROYED);
+        }
     }
 }
 
@@ -1218,6 +1229,7 @@ void android_main(struct android_app *app) {
         // This should call glfmInit()
         platformData->display = calloc(1, sizeof(GLFMDisplay));
         platformData->display->platformData = platformData;
+        platformData->display->swapBehavior = GLFMSwapBehaviorPlatformDefault;
         glfmMain(platformData->display);
     }
 
