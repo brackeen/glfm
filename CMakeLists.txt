@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.1.0) # Cmake 3.18 required for Xcode 12
 
 project(GLFM C)
 
@@ -48,6 +48,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Android")
         C_STANDARD 99)
 elseif (IOS)
     target_link_libraries(glfm "-framework Foundation -framework CoreGraphics -framework UIKit -framework OpenGLES -framework QuartzCore -framework Metal -framework MetalKit")
+    target_compile_definitions(glfm PRIVATE GLES_SILENCE_DEPRECATION)
     set_target_properties(glfm PROPERTIES
         ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/GLFM.build/lib # For Archiving
         XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos iphonesimulator appletvos appletvsimulator"

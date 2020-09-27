@@ -129,10 +129,11 @@ See [glfm.h](include/glfm.h)
 Use the `CMakeLists.txt` file with the `-DGLFM_BUILD_EXAMPLE=ON` option to build the example projects.
 
 ### Xcode
+
+Xcode 12 requires CMake 3.18
+
 ```Shell
-mkdir -p build/ios
-cd build/ios
-cmake -DGLFM_BUILD_EXAMPLE=ON -G Xcode ../..
+mkdir -p build/ios && cd build/ios && cmake -DGLFM_BUILD_EXAMPLE=ON -G Xcode ../..
 open GLFM.xcodeproj
 ```
 Switch to the `glfm_example` target and run on the simulator or a device.
@@ -142,8 +143,7 @@ By default, Metal support is included, which requires linking to the Metal and M
 ### Emscripten
 Assuming `EMSCRIPTEN_ROOT_PATH` points to active installed version of Emscripten.
 ```Shell
-mkdir -p build/emscripten
-cd build/emscripten
+mkdir -p build/emscripten && cd build/emscripten
 cmake -DGLFM_BUILD_EXAMPLE=ON -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN_ROOT_PATH/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../..
 cmake --build .
 ```
