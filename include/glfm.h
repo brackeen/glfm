@@ -95,7 +95,7 @@
 extern "C" {
 #endif
 
-// MARK: Enums
+// MARK: - Enums
 
 typedef enum {
     GLFMRenderingAPIOpenGLES2,
@@ -203,7 +203,7 @@ typedef enum {
     GLFMKeyActionReleased,
 } GLFMKeyAction;
 
-// MARK: Structs and function pointers
+// MARK: - Structs and function pointers
 
 typedef struct GLFMDisplay GLFMDisplay;
 
@@ -247,7 +247,7 @@ typedef void (*GLFMMemoryWarningFunc)(GLFMDisplay *display);
 
 typedef void (*GLFMAppFocusFunc)(GLFMDisplay *display, bool focused);
 
-// MARK: Functions
+// MARK: - Functions
 
 /// Main entry point for the app, where the display can be initialized and the GLFMMainLoopFunc
 /// can be set.
@@ -276,12 +276,6 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
 /// Returns the allowed user interface orientations
 GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *display);
 
-/// Sets whether multitouch input is enabled. By default, multitouch is disabled.
-void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled);
-
-/// Gets whether multitouch input is enabled. By default, multitouch is disabled.
-bool glfmGetMultitouchEnabled(GLFMDisplay *display);
-
 /// Gets the display size, in pixels.
 void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height);
 
@@ -305,11 +299,13 @@ void glfmSetDisplayChrome(GLFMDisplay *display, GLFMUserInterfaceChrome uiChrome
 /// created. Defaults to GLFMRenderingAPIOpenGLES2.
 GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display);
 
-/// Gets whether the display has touch capabilities.
-bool glfmHasTouch(GLFMDisplay *display);
+/// Sets the swap behavior for newly created surfaces. Currently only supported on
+/// Android. In order to take effect, the behavior should be set before the surface
+/// is created, preferable at the very beginning of the glfmMain function.
+void glfmSetSwapBehavior(GLFMDisplay *display, GLFMSwapBehavior behavior);
 
-/// Sets the mouse cursor (only on platforms with a mouse)
-void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor);
+/// Returns the swap buffer behavior.
+GLFMSwapBehavior glfmGetSwapBehavior(GLFMDisplay *display);
 
 /// Checks if a named OpenGL extension is supported
 bool glfmExtensionSupported(const char *extension);
@@ -317,19 +313,10 @@ bool glfmExtensionSupported(const char *extension);
 /// Gets the address of the specified function.
 GLFMProc glfmGetProcAddress(const char *functionName);
 
+// MARK: - Callback functions
+
 /// Sets the function to call before each frame is displayed.
 GLFMMainLoopFunc glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc);
-
-/// Sets the function to call when a mouse or touch event occurs.
-GLFMTouchFunc glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc);
-
-/// Sets the function to call when a key event occurs.
-/// Note, on iOS, only pressed events are sent (no repeated or released events) and with no
-/// modifiers.
-GLFMKeyFunc glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
-
-/// Sets the function to call when character input events occur.
-GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
 
 /// Sets the function to call when the surface could not be created.
 /// For example, the browser does not support WebGL.
@@ -353,6 +340,20 @@ GLFMMemoryWarningFunc glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryW
 
 GLFMAppFocusFunc glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focusFunc);
 
+// MARK: - Input functions
+
+/// Sets whether multitouch input is enabled. By default, multitouch is disabled.
+void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled);
+
+/// Gets whether multitouch input is enabled. By default, multitouch is disabled.
+bool glfmGetMultitouchEnabled(GLFMDisplay *display);
+
+/// Gets whether the display has touch capabilities.
+bool glfmHasTouch(GLFMDisplay *display);
+
+/// Sets the mouse cursor (only on platforms with a mouse)
+void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor);
+
 /// Requests to show or hide the onscreen virtual keyboard. On Emscripten, this function does
 /// nothing.
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible);
@@ -360,20 +361,23 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible);
 /// Returns true if the virtual keyboard is currently visible.
 bool glfmIsKeyboardVisible(GLFMDisplay *display);
 
-/// Sets the swap behavior for newly created surfaces. Currently only supported on
-/// Android. In order to take effect, the behavior should be set before the surface
-/// is created, preferable at the very beginning of the glfmMain function.
-void glfmSetSwapBehavior(GLFMDisplay *display, GLFMSwapBehavior behavior);
-
-/// Returns the swap buffer behavior.
-GLFMSwapBehavior glfmGetSwapBehavior(GLFMDisplay *display);
-
 /// Sets the function to call when the virtual keyboard changes visibility or changes bounds.
 GLFMKeyboardVisibilityChangedFunc
 glfmSetKeyboardVisibilityChangedFunc(GLFMDisplay *display,
                                      GLFMKeyboardVisibilityChangedFunc visibilityChangedFunc);
 
-// MARK: Platform-specific functions
+/// Sets the function to call when a mouse or touch event occurs.
+GLFMTouchFunc glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc);
+
+/// Sets the function to call when a key event occurs.
+/// Note, on iOS, only pressed events are sent (no repeated or released events) and with no
+/// modifiers.
+GLFMKeyFunc glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
+
+/// Sets the function to call when character input events occur.
+GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
+
+// MARK: - Platform-specific functions
 
 /// Returns true if this is an iOS device that supports Metal, false otherwise
 bool glfmIsMetalSupported(GLFMDisplay *display);
