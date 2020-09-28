@@ -27,6 +27,7 @@
 #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
 
 #import <UIKit/UIKit.h>
+#import <CoreMotion/CoreMotion.h>
 #if GLFM_INCLUDE_METAL
 #import <MetalKit/MetalKit.h>
 #endif
@@ -69,6 +70,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 @property(nonatomic, readonly) int drawableWidth;
 @property(nonatomic, readonly) int drawableHeight;
 @property(nonatomic, assign) BOOL animating;
+@property(nonatomic, copy, nullable) void (^preRenderCallback)(void);
 
 - (void)draw;
 
@@ -89,6 +91,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 @implementation GLFMMetalView
 
+@synthesize preRenderCallback;
 @dynamic renderingAPI, animating;
 
 - (instancetype)initWithFrame:(CGRect)frame contentScaleFactor:(CGFloat)contentScaleFactor
@@ -170,6 +173,10 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         }
     }
     
+    if (self.preRenderCallback) {
+        self.preRenderCallback();
+    }
+    
     if (_glfmDisplay->mainLoopFunc) {
         _glfmDisplay->mainLoopFunc(_glfmDisplay, CACurrentMediaTime());
     }
@@ -214,6 +221,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 @implementation GLFMOpenGLView
 
+@synthesize preRenderCallback;
 @dynamic drawableWidth, drawableHeight, animating;
 
 + (Class)layerClass {
@@ -529,6 +537,10 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         }
     }
     
+    if (self.preRenderCallback) {
+        self.preRenderCallback();
+    }
+    
     [self prepareRender];
     if (_glfmDisplay->mainLoopFunc) {
         CFTimeInterval timestamp = displayLink.timestamp;
@@ -576,6 +588,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 #if GLFM_INCLUDE_METAL
 @property(nonatomic, strong) id<MTLDevice> metalDevice;
 #endif
+@property(nonatomic, strong) CMMotionManager *motionManager;
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
 @property(nonatomic, assign) BOOL multipleTouchEnabled;
 @property(nonatomic, assign) BOOL keyboardRequested;
@@ -602,6 +615,17 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     return _metalDevice;
 }
 #endif
+
+- (CMMotionManager *)motionManager {
+    if (!_motionManager) {
+        _motionManager = GLFM_AUTORELEASE([CMMotionManager new]);
+    }
+    return _motionManager;
+}
+
+- (BOOL)isMotionManagerLoaded {
+    return _motionManager != nil;
+}
 
 - (BOOL)prefersStatusBarHidden {
     return _glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
@@ -636,6 +660,11 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
                                                         contentScaleFactor:scale
                                                                glfmDisplay:_glfmDisplay]);
     }
+    __weak __typeof(self) weakSelf = self;
+    glfmView.preRenderCallback = ^{
+        __strong __typeof(self) strongSelf = weakSelf;
+        [strongSelf handleMotionEvents];
+    };
     self.view = glfmView;
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 }
@@ -685,12 +714,62 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     }
 }
 
+- (void)handleMotionEvents {
+    if (!self.isMotionManagerLoaded) {
+        return;
+    }
+    if (self.motionManager.isDeviceMotionActive) {
+        GLFMSensorFunc accelerometerFunc = self.glfmDisplay->sensorFuncs[GLFMSensorAccelerometer];
+        if (accelerometerFunc) {
+            GLFMSensorEvent event = { 0 };
+            event.sensor = GLFMSensorAccelerometer;
+            event.vector.x = self.motionManager.deviceMotion.userAcceleration.x + self.motionManager.deviceMotion.gravity.x;
+            event.vector.y = self.motionManager.deviceMotion.userAcceleration.y + self.motionManager.deviceMotion.gravity.y;
+            event.vector.z = self.motionManager.deviceMotion.userAcceleration.z + self.motionManager.deviceMotion.gravity.z;
+            accelerometerFunc(self.glfmDisplay, event);
+        }
+        
+        GLFMSensorFunc magnetometerFunc = self.glfmDisplay->sensorFuncs[GLFMSensorMagnetometer];
+        if (magnetometerFunc) {
+            GLFMSensorEvent event = { 0 };
+            event.sensor = GLFMSensorMagnetometer;
+            event.vector.x = self.motionManager.deviceMotion.magneticField.field.x;
+            event.vector.y = self.motionManager.deviceMotion.magneticField.field.y;
+            event.vector.z = self.motionManager.deviceMotion.magneticField.field.z;
+            magnetometerFunc(self.glfmDisplay, event);
+        }
+        
+        GLFMSensorFunc gyroscopeFunc = self.glfmDisplay->sensorFuncs[GLFMSensorGyroscope];
+        if (gyroscopeFunc) {
+            GLFMSensorEvent event = { 0 };
+            event.sensor = GLFMSensorGyroscope;
+            event.vector.x = self.motionManager.deviceMotion.rotationRate.x;
+            event.vector.y = self.motionManager.deviceMotion.rotationRate.y;
+            event.vector.z = self.motionManager.deviceMotion.rotationRate.z;
+            gyroscopeFunc(self.glfmDisplay, event);
+        }
+        
+        GLFMSensorFunc rotationFunc = self.glfmDisplay->sensorFuncs[GLFMSensorRotationMatrix];
+        if (rotationFunc) {
+            GLFMSensorEvent event = { 0 };
+            event.sensor = GLFMSensorRotationMatrix;
+            CMRotationMatrix matrix = self.motionManager.deviceMotion.attitude.rotationMatrix;
+            event.matrix.m00 = matrix.m11; event.matrix.m01 = matrix.m12; event.matrix.m02 = matrix.m13;
+            event.matrix.m10 = matrix.m21; event.matrix.m11 = matrix.m22; event.matrix.m12 = matrix.m23;
+            event.matrix.m20 = matrix.m31; event.matrix.m21 = matrix.m32; event.matrix.m22 = matrix.m33;
+            rotationFunc(self.glfmDisplay, event);
+        }
+    }
+}
+
 - (void)dealloc {
     if (_glfmDisplay->surfaceDestroyedFunc) {
         _glfmDisplay->surfaceDestroyedFunc(_glfmDisplay);
     }
     free(_glfmDisplay);
+    self.glfmView.preRenderCallback = nil;
 #if !__has_feature(objc_arc)
+    self.motionManager = nil;
 #if GLFM_INCLUDE_METAL
     self.metalDevice = nil;
 #endif
@@ -1195,6 +1274,42 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
         return vc.keyboardRequested;
     } else {
         return false;
+    }
+}
+
+bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
+    if (display) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        switch (sensor) {
+            case GLFMSensorAccelerometer:
+                return vc.motionManager.deviceMotionAvailable && vc.motionManager.accelerometerAvailable;
+            case GLFMSensorMagnetometer:
+                return vc.motionManager.deviceMotionAvailable && vc.motionManager.magnetometerAvailable;
+            case GLFMSensorGyroscope:
+                return vc.motionManager.deviceMotionAvailable && vc.motionManager.gyroAvailable;
+            case GLFMSensorRotationMatrix:
+                return vc.motionManager.deviceMotionAvailable;
+        }
+    }
+    return false;
+}
+
+void _glfmSensorFuncUpdated(GLFMDisplay *display, GLFMSensor sensor, GLFMSensorFunc sensorFunc) {
+    if (display) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        bool enable = false;
+        for (int i = 0; i < GLFM_NUM_SENSORS; i++) {
+            if (display->sensorFuncs[i] != NULL) {
+                enable = true;
+                break;
+            }
+        }
+        
+        if (enable && !vc.motionManager.deviceMotionActive) {
+            [vc.motionManager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXArbitraryCorrectedZVertical];
+        } else if (!enable && vc.motionManager.deviceMotionActive) {
+            [vc.motionManager stopDeviceMotionUpdates];
+        }
     }
 }
 

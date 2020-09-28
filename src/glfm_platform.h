@@ -31,6 +31,8 @@
 extern "C" {
 #endif
 
+#define GLFM_NUM_SENSORS 4
+
 struct GLFMDisplay {
     // Config
     GLFMRenderingAPI preferredAPI;
@@ -54,13 +56,19 @@ struct GLFMDisplay {
     GLFMKeyboardVisibilityChangedFunc keyboardVisibilityChangedFunc;
     GLFMMemoryWarningFunc lowMemoryFunc;
     GLFMAppFocusFunc focusFunc;
+    GLFMSensorFunc sensorFuncs[GLFM_NUM_SENSORS];
 
     // External data
     void *userData;
     void *platformData;
 };
 
-// MARK: Setters
+// MARK: - Notification functions
+
+void _glfmDisplayChromeUpdated(GLFMDisplay *display);
+void _glfmSensorFuncUpdated(GLFMDisplay *display, GLFMSensor sensor, GLFMSensorFunc sensorFunc);
+
+// MARK: - Setters
 
 GLFMSurfaceErrorFunc glfmSetSurfaceErrorFunc(GLFMDisplay *display,
                                              GLFMSurfaceErrorFunc surfaceErrorFunc) {
@@ -100,8 +108,6 @@ void glfmSetUserData(GLFMDisplay *display, void *userData) {
 void *glfmGetUserData(GLFMDisplay *display) {
     return display ? display->userData : NULL;
 }
-
-void _glfmDisplayChromeUpdated(GLFMDisplay *display);
 
 GLFMUserInterfaceChrome glfmGetDisplayChrome(GLFMDisplay *display) {
     return display ? display->uiChrome : GLFMUserInterfaceChromeNavigation;
@@ -190,6 +196,17 @@ GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc) {
     return previous;
 }
 
+GLFMSensorFunc glfmSetSensorFunc(GLFMDisplay *display, GLFMSensor sensor, GLFMSensorFunc sensorFunc) {
+    GLFMSensorFunc previous = NULL;
+    int index = (int)sensor;
+    if (display && index >= 0 && index < GLFM_NUM_SENSORS) {
+        previous = display->sensorFuncs[index];
+        display->sensorFuncs[index] = sensorFunc;
+        _glfmSensorFuncUpdated(display, sensor, sensorFunc);
+    }
+    return previous;
+}
+
 GLFMMemoryWarningFunc glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMemoryFunc) {
     GLFMMemoryWarningFunc previous = NULL;
     if (display) {
@@ -222,7 +239,7 @@ GLFMSwapBehavior glfmGetSwapBehavior(GLFMDisplay *display) {
     return GLFMSwapBehaviorPlatformDefault;
 }
 
-// MARK: Helper functions
+// MARK: - Helper functions
 
 static void _glfmReportSurfaceError(GLFMDisplay *display, const char *errorMessage) {
     if (display->surfaceErrorFunc && errorMessage) {
