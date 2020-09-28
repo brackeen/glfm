@@ -26,6 +26,7 @@
 #include "glfm_platform.h"
 #include <EGL/egl.h>
 #include <android/log.h>
+#include <android/sensor.h>
 #include <android/window.h>
 #include <dlfcn.h>
 #include <unistd.h>
@@ -66,6 +67,9 @@ static struct timespec _glfmTimeSubstract(struct timespec a, struct timespec b) 
 // MARK: Platform data (global singleton)
 
 #define MAX_SIMULTANEOUS_TOUCHES 5
+#define LOOPER_ID_SENSOR_EVENT_QUEUE 0xdb2a20
+
+static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
 
 typedef struct {
     struct android_app *app;
@@ -91,6 +95,9 @@ typedef struct {
 
     GLFMDisplay *display;
     GLFMRenderingAPI renderingAPI;
+
+    ASensorEventQueue *sensorEventQueue;
+    bool enabledSensors[GLFM_NUM_SENSORS];
 
     JNIEnv *jniEnv;
 } GLFMPlatformData;
@@ -1289,21 +1296,54 @@ void android_main(struct android_app *app) {
                 source->process(app, source);
             }
 
-            (void)eventIdentifier;
-//          if (eventIdentifier == LOOPER_ID_USER) {
-//              if (platformData->accelerometerSensor != NULL) {
-//                  ASensorEvent event;
-//                  while (ASensorEventQueue_getEvents(platformData->sensorEventQueue,
-//                                                     &event, 1) > 0) {
-//                      LOG_DEBUG("accelerometer: x=%f y=%f z=%f",
-//                           event.acceleration.x, event.acceleration.y,
-//                           event.acceleration.z);
-//                  }
-//              }
-//          }
+            if (eventIdentifier == LOOPER_ID_SENSOR_EVENT_QUEUE) {
+                ASensorEvent event;
+                while (ASensorEventQueue_getEvents(platformData->sensorEventQueue, &event, 1) > 0) {
+                    if (event.type == ASENSOR_TYPE_ACCELEROMETER) {
+                        GLFMSensorFunc sensorFunc = platformData->display->sensorFuncs[GLFMSensorAccelerometer];
+                        if (sensorFunc) {
+                            const double G = (double)ASENSOR_STANDARD_GRAVITY;
+                            GLFMSensorEvent sensorEvent = { 0 };
+                            sensorEvent.sensor = GLFMSensorAccelerometer;
+                            // Convert to iOS format
+                            sensorEvent.vector.x = (double)event.acceleration.x / -G;
+                            sensorEvent.vector.y = (double)event.acceleration.y / -G;
+                            sensorEvent.vector.z = (double)event.acceleration.z / -G;
+                            sensorFunc(platformData->display, sensorEvent);
+                        }
+                    } else if (event.type == ASENSOR_TYPE_MAGNETIC_FIELD) {
+                        GLFMSensorFunc sensorFunc = platformData->display->sensorFuncs[GLFMSensorMagnetometer];
+                        if (sensorFunc) {
+                            GLFMSensorEvent sensorEvent = { 0 };
+                            sensorEvent.sensor = GLFMSensorMagnetometer;
+                            sensorEvent.vector.x = (double)event.magnetic.x;
+                            sensorEvent.vector.y = (double)event.magnetic.y;
+                            sensorEvent.vector.z = (double)event.magnetic.z;
+                            sensorFunc(platformData->display, sensorEvent);
+                        }
+                    } else if (event.type == ASENSOR_TYPE_GYROSCOPE) {
+                        GLFMSensorFunc sensorFunc = platformData->display->sensorFuncs[GLFMSensorGyroscope];
+                        if (sensorFunc) {
+                            GLFMSensorEvent sensorEvent = { 0 };
+                            sensorEvent.sensor = GLFMSensorGyroscope;
+                            sensorEvent.vector.x = (double)event.vector.x;
+                            sensorEvent.vector.y = (double)event.vector.y;
+                            sensorEvent.vector.z = (double)event.vector.z;
+                            sensorFunc(platformData->display, sensorEvent);
+                        }
+
+                    }
+                }
+            }
 
             if (app->destroyRequested != 0) {
                 LOG_LIFECYCLE("Destroying thread");
+                if (platformData->sensorEventQueue) {
+                    _glfmSetAllRequestedSensorsEnabled(platformData->display, false);
+                    ASensorManager *sensorManager = ASensorManager_getInstance();
+                    ASensorManager_destroyEventQueue(sensorManager, platformData->sensorEventQueue);
+                    platformData->sensorEventQueue = NULL;
+                }
                 _glfmEGLDestroy(platformData);
                 _glfmSetAnimating(platformData, false);
                 (*vm)->DetachCurrentThread(vm);
@@ -1492,6 +1532,84 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
 bool glfmIsKeyboardVisible(GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     return platformData->keyboardVisible;
+}
+
+// MARK: Sensors
+
+static const ASensor *_glfmASensor(GLFMSensor sensor) {
+    int type;
+    switch (sensor) {
+        case GLFMSensorAccelerometer:
+            type = ASENSOR_TYPE_ACCELEROMETER;
+            break;
+        case GLFMSensorMagnetometer:
+            type = ASENSOR_TYPE_MAGNETIC_FIELD;
+            break;
+        case GLFMSensorGyroscope:
+            type = ASENSOR_TYPE_GYROSCOPE;
+            break;
+        default:
+            type = ASENSOR_TYPE_INVALID;
+            break;
+    }
+    if (type == ASENSOR_TYPE_INVALID) {
+        return NULL;
+    } else {
+        ASensorManager *sensorManager = ASensorManager_getInstance();
+        return ASensorManager_getDefaultSensor(sensorManager, type);
+    }
+}
+
+static void _glfmSetASensorEnabled(GLFMPlatformData *platformData, GLFMSensor sensor, bool enable) {
+    int index = (int)sensor;
+    if (!platformData || index < 0 || index >= GLFM_NUM_SENSORS) {
+        return;
+    }
+    bool isEnabled = platformData->enabledSensors[index];
+    if (isEnabled == enable) {
+        return;
+    }
+    const ASensor *aSensor = _glfmASensor(sensor);
+    if (aSensor == NULL) {
+        return;
+    }
+    if (platformData->sensorEventQueue == NULL) {
+        ASensorManager *sensorManager = ASensorManager_getInstance();
+        platformData->sensorEventQueue = ASensorManager_createEventQueue(sensorManager,
+                ALooper_forThread(), LOOPER_ID_SENSOR_EVENT_QUEUE, NULL, NULL);
+        if (!platformData->sensorEventQueue) {
+            return;
+        }
+    }
+    if (enable && !isEnabled) {
+        if (ASensorEventQueue_enableSensor(platformData->sensorEventQueue, aSensor) == 0) {
+            platformData->enabledSensors[index] = true;
+        }
+    } else if (!enable && isEnabled) {
+        if (ASensorEventQueue_disableSensor(platformData->sensorEventQueue, aSensor) == 0) {
+            platformData->enabledSensors[index] = false;
+        }
+    }
+}
+
+static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable) {
+    if (display) {
+        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+        for (int i = 0; i < GLFM_NUM_SENSORS; i++) {
+            bool shouldEnable = enable && (display->sensorFuncs[i] != NULL);
+            _glfmSetASensorEnabled(platformData, (GLFMSensor)i, shouldEnable);
+        }
+    }
+}
+
+bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
+    (void)display;
+    return _glfmASensor(sensor) != NULL;
+}
+
+void _glfmSensorFuncUpdated(GLFMDisplay *display, GLFMSensor sensor, GLFMSensorFunc sensorFunc) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    _glfmSetASensorEnabled(platformData, sensor, sensorFunc != NULL);
 }
 
 // MARK: Platform-specific functions

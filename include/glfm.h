@@ -203,6 +203,13 @@ typedef enum {
     GLFMKeyActionReleased,
 } GLFMKeyAction;
 
+typedef enum {
+    GLFMSensorAccelerometer, // Events are a vector in G's
+    GLFMSensorMagnetometer, // Events are a vector in microteslas
+    GLFMSensorGyroscope, // Events are a vector in radians/sec
+    GLFMSensorRotationMatrix, // Events are a rotation matrix
+} GLFMSensor;
+
 // MARK: - Structs and function pointers
 
 typedef struct GLFMDisplay GLFMDisplay;
@@ -246,6 +253,23 @@ typedef void (*GLFMSurfaceDestroyedFunc)(GLFMDisplay *display);
 typedef void (*GLFMMemoryWarningFunc)(GLFMDisplay *display);
 
 typedef void (*GLFMAppFocusFunc)(GLFMDisplay *display, bool focused);
+
+// Use event.vector for all sensors except for GLFMSensorRotationMatrix, which uses event.matrix
+typedef struct {
+    GLFMSensor sensor;
+    union {
+        struct {
+            double x, y, z;
+        } vector;
+        struct {
+            double m00, m01, m02;
+            double m10, m11, m12;
+            double m20, m21, m22;
+        } matrix;
+    };
+} GLFMSensorEvent;
+
+typedef void (*GLFMSensorFunc)(GLFMDisplay *display, GLFMSensorEvent event);
 
 // MARK: - Functions
 
@@ -351,6 +375,9 @@ bool glfmGetMultitouchEnabled(GLFMDisplay *display);
 /// Gets whether the display has touch capabilities.
 bool glfmHasTouch(GLFMDisplay *display);
 
+/// Checks if a sensor is available (always returns false on Emscripten)
+bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor);
+
 /// Sets the mouse cursor (only on platforms with a mouse)
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor);
 
@@ -376,6 +403,12 @@ GLFMKeyFunc glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
 
 /// Sets the function to call when character input events occur.
 GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
+
+/// Sets the function to call when the sensor events occur for a particular sensor.
+/// If the sensor is not available, this function does nothing.
+/// This function automatically enables events for the sensor; to disable, set the callback to NULL.
+/// Callbacks are automatically disabled when the app is inactive.
+GLFMSensorFunc glfmSetSensorFunc(GLFMDisplay *display, GLFMSensor sensor, GLFMSensorFunc sensorFunc);
 
 // MARK: - Platform-specific functions
 
