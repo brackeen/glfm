@@ -204,14 +204,14 @@ static jobject _glfmGetDecorView(struct android_app *app) {
 }
 
 static void _glfmSetFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome) {
-    static const int View_STATUS_BAR_HIDDEN = 0x00000001;
-    static const int View_SYSTEM_UI_FLAG_LOW_PROFILE = 0x00000001;
-    static const int View_SYSTEM_UI_FLAG_HIDE_NAVIGATION = 0x00000002;
-    static const int View_SYSTEM_UI_FLAG_FULLSCREEN = 0x00000004;
-    static const int View_SYSTEM_UI_FLAG_LAYOUT_STABLE = 0x00000100;
-    static const int View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION = 0x00000200;
-    static const int View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN = 0x00000400;
-    static const int View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x00001000;
+    static const unsigned int View_STATUS_BAR_HIDDEN = 0x00000001;
+    static const unsigned int View_SYSTEM_UI_FLAG_LOW_PROFILE = 0x00000001;
+    static const unsigned int View_SYSTEM_UI_FLAG_HIDE_NAVIGATION = 0x00000002;
+    static const unsigned int View_SYSTEM_UI_FLAG_FULLSCREEN = 0x00000004;
+    static const unsigned int View_SYSTEM_UI_FLAG_LAYOUT_STABLE = 0x00000100;
+    static const unsigned int View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION = 0x00000200;
+    static const unsigned int View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN = 0x00000400;
+    static const unsigned int View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x00001000;
 
     const int SDK_INT = app->activity->sdkVersion;
     if (SDK_INT < 11) {
@@ -236,24 +236,24 @@ static void _glfmSetFullScreen(struct android_app *app, GLFMUserInterfaceChrome 
     } else if (SDK_INT >= 14 && SDK_INT < 19) {
         if (uiChrome == GLFMUserInterfaceChromeNavigation) {
             _glfmCallJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                        View_SYSTEM_UI_FLAG_FULLSCREEN);
+                                        (jint)View_SYSTEM_UI_FLAG_FULLSCREEN);
         } else {
             _glfmCallJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                        View_SYSTEM_UI_FLAG_LOW_PROFILE |
-                                        View_SYSTEM_UI_FLAG_FULLSCREEN);
+                                        (jint)(View_SYSTEM_UI_FLAG_LOW_PROFILE |
+                                               View_SYSTEM_UI_FLAG_FULLSCREEN));
         }
     } else if (SDK_INT >= 19) {
         if (uiChrome == GLFMUserInterfaceChromeNavigation) {
             _glfmCallJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                        View_SYSTEM_UI_FLAG_FULLSCREEN);
+                                        (jint)View_SYSTEM_UI_FLAG_FULLSCREEN);
         } else {
             _glfmCallJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                        View_SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                                        View_SYSTEM_UI_FLAG_FULLSCREEN |
-                                        View_SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                                        View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                                        View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                                        View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                                        (jint)(View_SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                                               View_SYSTEM_UI_FLAG_FULLSCREEN |
+                                               View_SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                                               View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                                               View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                                               View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY));
         }
     }
     (*jni)->DeleteLocalRef(jni, decorView);
@@ -417,8 +417,8 @@ static uint32_t _glfmGetUnicodeChar(GLFMPlatformData *platformData, AInputEvent 
     jmethodID eventConstructor = (*jni)->GetMethodID(jni, keyEventClass, "<init>", "(II)V");
 
     jobject eventObject = (*jni)->NewObject(jni, keyEventClass, eventConstructor,
-                                            AKEY_EVENT_ACTION_DOWN, keyCode);
-    if (!keyEventClass || _glfmWasJavaExceptionThrown()) {
+                                            (jint)AKEY_EVENT_ACTION_DOWN, keyCode);
+    if (!eventObject || _glfmWasJavaExceptionThrown()) {
         return 0;
     }
 
@@ -1001,22 +1001,22 @@ static void _glfmOnAppCmd(struct android_app *app, int32_t cmd) {
 static const char *_glfmUnicodeToUTF8(uint32_t unicode) {
     static char utf8[5];
     if (unicode < 0x80) {
-        utf8[0] = (char)(unicode & 0x7f);
+        utf8[0] = (char)(unicode & 0x7fu);
         utf8[1] = 0;
     } else if (unicode < 0x800) {
-        utf8[0] = (char)(0xc0 | (unicode >> 6));
-        utf8[1] = (char)(0x80 | (unicode & 0x3f));
+        utf8[0] = (char)(0xc0u | (unicode >> 6u));
+        utf8[1] = (char)(0x80u | (unicode & 0x3fu));
         utf8[2] = 0;
     } else if (unicode < 0x10000) {
-        utf8[0] = (char)(0xe0 | (unicode >> 12));
-        utf8[1] = (char)(0x80 | ((unicode >> 6) & 0x3f));
-        utf8[2] = (char)(0x80 | (unicode & 0x3f));
+        utf8[0] = (char)(0xe0u | (unicode >> 12u));
+        utf8[1] = (char)(0x80u | ((unicode >> 6u) & 0x3fu));
+        utf8[2] = (char)(0x80u | (unicode & 0x3fu));
         utf8[3] = 0;
     } else if (unicode < 0x110000) {
-        utf8[0] = (char)(0xf0 | (unicode >> 18));
-        utf8[1] = (char)(0x80 | ((unicode >> 12) & 0x3f));
-        utf8[2] = (char)(0x80 | ((unicode >> 6) & 0x3f));
-        utf8[3] = (char)(0x80 | (unicode & 0x3f));
+        utf8[0] = (char)(0xf0u | (unicode >> 18u));
+        utf8[1] = (char)(0x80u | ((unicode >> 12u) & 0x3fu));
+        utf8[2] = (char)(0x80u | ((unicode >> 6u) & 0x3fu));
+        utf8[3] = (char)(0x80u | (unicode & 0x3fu));
         utf8[4] = 0;
     } else {
         utf8[0] = 0;
@@ -1028,7 +1028,7 @@ static int32_t _glfmOnInputEvent(struct android_app *app, AInputEvent *event) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
     const int32_t eventType = AInputEvent_getType(event);
     if (eventType == AINPUT_EVENT_TYPE_KEY) {
-        int handled = 0;
+        unsigned int handled = 0;
         if (platformData->display && platformData->display->keyFunc) {
             int32_t aKeyCode = AKeyEvent_getKeyCode(event);
             int32_t aAction = AKeyEvent_getAction(event);
@@ -1120,12 +1120,12 @@ static int32_t _glfmOnInputEvent(struct android_app *app, AInputEvent *event) {
                 }
             }
         }
-        return handled;
+        return (int32_t)handled;
     } else if (eventType == AINPUT_EVENT_TYPE_MOTION) {
         if (platformData->display && platformData->display->touchFunc) {
             const int maxTouches = platformData->multitouchEnabled ? MAX_SIMULTANEOUS_TOUCHES : 1;
             const int32_t action = AMotionEvent_getAction(event);
-            const int maskedAction = action & AMOTION_EVENT_ACTION_MASK;
+            const uint32_t maskedAction = (uint32_t)action & (uint32_t)AMOTION_EVENT_ACTION_MASK;
 
             GLFMTouchPhase phase;
             bool validAction = true;
@@ -1162,20 +1162,20 @@ static int32_t _glfmOnInputEvent(struct android_app *app, AInputEvent *event) {
                             double y = (double)AMotionEvent_getY(event, i);
                             platformData->display->touchFunc(platformData->display, touchNumber,
                                                              phase, x, y);
-                            //LOG_DEBUG("Touch %i: (%i) %i,%i", touchNumber, phase, x, y);
+                            //LOG_DEBUG("Touch: (num=%i, phase=%i) %f,%f", touchNumber, phase, x, y);
                         }
                     }
                 } else {
-                    const size_t index =
-                        (size_t)((action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >>
-                                 AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
+                    const size_t index = (size_t)(((uint32_t)action &
+                            (uint32_t)AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >>
+                            (uint32_t)AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
                     const int touchNumber = AMotionEvent_getPointerId(event, index);
                     if (touchNumber >= 0 && touchNumber < maxTouches) {
                         double x = (double)AMotionEvent_getX(event, index);
                         double y = (double)AMotionEvent_getY(event, index);
                         platformData->display->touchFunc(platformData->display, touchNumber,
                                                          phase, x, y);
-                        //LOG_DEBUG("Touch %i: (%i) %i,%i", touchNumber, phase, x, y);
+                        //LOG_DEBUG("Touch: (num=%i, phase=%i) %f,%f", touchNumber, phase, x, y);
                     }
                 }
             }
@@ -1497,10 +1497,12 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
 // MARK: Platform-specific functions
 
 bool glfmIsMetalSupported(GLFMDisplay *display) {
+    (void)display;
     return false;
 }
 
 void *glfmGetMetalView(GLFMDisplay *display) {
+    (void)display;
     return NULL;
 }
 
