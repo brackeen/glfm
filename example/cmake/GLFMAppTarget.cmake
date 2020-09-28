@@ -109,7 +109,7 @@ else()
     # In place of MacOSXBundleInfo.plist.in
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/CMake-Info.plist.in
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-        "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
+        "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
         "<plist version=\"1.0\">\n"
         "<dict>\n"
         "	<key>CFBundleDevelopmentRegion</key>\n"
