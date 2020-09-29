@@ -47,9 +47,11 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 #if __has_feature(objc_arc)
 #define GLFM_AUTORELEASE(value) value
 #define GLFM_RELEASE(value) ((void)0)
+#define GLFM_WEAK __weak
 #else
 #define GLFM_AUTORELEASE(value) [value autorelease]
 #define GLFM_RELEASE(value) [value release]
+#define GLFM_WEAK __unsafe_unretained
 #endif
 
 @interface GLFMAppDelegate : NSObject <UIApplicationDelegate>
@@ -91,7 +93,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 @implementation GLFMMetalView
 
-@synthesize preRenderCallback;
+@synthesize preRenderCallback = _preRenderCallback;
 @dynamic renderingAPI, animating;
 
 - (instancetype)initWithFrame:(CGRect)frame contentScaleFactor:(CGFloat)contentScaleFactor
@@ -173,8 +175,8 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         }
     }
     
-    if (self.preRenderCallback) {
-        self.preRenderCallback();
+    if (_preRenderCallback) {
+        _preRenderCallback();
     }
     
     if (_glfmDisplay->mainLoopFunc) {
@@ -188,6 +190,13 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         [self draw];
     }
 }
+
+#if !__has_feature(objc_arc)
+- (void)dealloc {
+    [_preRenderCallback release];
+    [super dealloc];
+}
+#endif
 
 @end
 
@@ -221,7 +230,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 @implementation GLFMOpenGLView
 
-@synthesize preRenderCallback;
+@synthesize preRenderCallback = _preRenderCallback;
 @dynamic drawableWidth, drawableHeight, animating;
 
 + (Class)layerClass {
@@ -299,6 +308,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 #if !__has_feature(objc_arc)
     self.context = nil;
     self.colorFormat = nil;
+    [_preRenderCallback release];
     [super dealloc];
 #endif
 }
@@ -537,8 +547,8 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         }
     }
     
-    if (self.preRenderCallback) {
-        self.preRenderCallback();
+    if (_preRenderCallback) {
+        _preRenderCallback();
     }
     
     [self prepareRender];
@@ -618,7 +628,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 - (CMMotionManager *)motionManager {
     if (!_motionManager) {
-        _motionManager = GLFM_AUTORELEASE([CMMotionManager new]);
+        self.motionManager = GLFM_AUTORELEASE([CMMotionManager new]);
     }
     return _motionManager;
 }
@@ -660,10 +670,9 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
                                                         contentScaleFactor:scale
                                                                glfmDisplay:_glfmDisplay]);
     }
-    __weak __typeof(self) weakSelf = self;
+    GLFM_WEAK __typeof(self) weakSelf = self;
     glfmView.preRenderCallback = ^{
-        __strong __typeof(self) strongSelf = weakSelf;
-        [strongSelf handleMotionEvents];
+        [weakSelf handleMotionEvents];
     };
     self.view = glfmView;
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
