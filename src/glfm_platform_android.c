@@ -1313,6 +1313,7 @@ void android_main(struct android_app *app) {
                         // Convert to iOS format
                         GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorAccelerometer];
                         sensorEvent->sensor = GLFMSensorAccelerometer;
+                        sensorEvent->timestamp = event.timestamp / 1000000000.0;
                         sensorEvent->vector.x = (double)event.acceleration.x / -G;
                         sensorEvent->vector.y = (double)event.acceleration.y / -G;
                         sensorEvent->vector.z = (double)event.acceleration.z / -G;
@@ -1321,6 +1322,7 @@ void android_main(struct android_app *app) {
                     } else if (event.type == ASENSOR_TYPE_MAGNETIC_FIELD) {
                         GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorMagnetometer];
                         sensorEvent->sensor = GLFMSensorMagnetometer;
+                        sensorEvent->timestamp = event.timestamp / 1000000000.0;
                         sensorEvent->vector.x = (double)event.magnetic.x;
                         sensorEvent->vector.y = (double)event.magnetic.y;
                         sensorEvent->vector.z = (double)event.magnetic.z;
@@ -1329,6 +1331,7 @@ void android_main(struct android_app *app) {
                     } else if (event.type == ASENSOR_TYPE_GYROSCOPE) {
                         GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorGyroscope];
                         sensorEvent->sensor = GLFMSensorGyroscope;
+                        sensorEvent->timestamp = event.timestamp / 1000000000.0;
                         sensorEvent->vector.x = (double)event.vector.x;
                         sensorEvent->vector.y = (double)event.vector.y;
                         sensorEvent->vector.z = (double)event.vector.z;
@@ -1352,6 +1355,7 @@ void android_main(struct android_app *app) {
                     if (_glfmGetRotationMatrix(sensorEvent,
                             a->vector.x, a->vector.y, a->vector.z,
                             m->vector.x, m->vector.y, m->vector.z)) {
+                        sensorEvent->timestamp = (a->timestamp > m->timestamp ? a->timestamp : m->timestamp);
                         sensorEventReceived[GLFMSensorRotationMatrix] = true;
                         platformData->sensorEventValid[GLFMSensorRotationMatrix] = true;
                     }
