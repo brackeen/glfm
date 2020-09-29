@@ -1582,13 +1582,15 @@ static bool _glfmGetRotationMatrix(GLFMSensorEvent *out,
     double by = magnetY;
     double bz = magnetZ;
 
+    // Cross product (b x a)
     double cx = by * az - bz * ay;
     double cy = bz * ax - bx * az;
     double cz = bx * ay - by * ax;
 
-    double dx = az * cy - ay * cz;
-    double dy = ax * cz - az * cx;
-    double dz = ay * cx - ax * cy;
+    // Cross product (c x a)
+    double dx = cy * az - cz * ay;
+    double dy = cz * ax - cx * az;
+    double dz = cx * ay - cy * ax;
 
     double aLen = sqrt(ax * ax + ay * ay + az * az);
     double cLen = sqrt(cx * cx + cy * cy + cz * cz);
@@ -1597,16 +1599,9 @@ static bool _glfmGetRotationMatrix(GLFMSensorEvent *out,
     if (aLen < 0.01 || cLen < 0.01 || dLen < 0.01) {
         return false;
     }
-    out->matrix.m00 = dx / dLen;
-    out->matrix.m10 = dy / dLen;
-    out->matrix.m20 = dz / dLen;
-    out->matrix.m01 = cx / cLen;
-    out->matrix.m11 = cy / cLen;
-    out->matrix.m21 = cz / cLen;
-    out->matrix.m02 = ax / aLen;
-    out->matrix.m12 = ay / aLen;
-    out->matrix.m22 = az / aLen;
-
+    out->matrix.m00 = dx / dLen; out->matrix.m10 = dy / dLen; out->matrix.m20 = dz / dLen;
+    out->matrix.m01 = cx / cLen; out->matrix.m11 = cy / cLen; out->matrix.m21 = cz / cLen;
+    out->matrix.m02 = ax / aLen; out->matrix.m12 = ay / aLen; out->matrix.m22 = az / aLen;
     return true;
 }
 
