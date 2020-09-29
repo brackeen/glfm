@@ -257,6 +257,7 @@ typedef void (*GLFMAppFocusFunc)(GLFMDisplay *display, bool focused);
 // Use event.vector for all sensors except for GLFMSensorRotationMatrix, which uses event.matrix
 typedef struct {
     GLFMSensor sensor;
+    double timestamp;
     union {
         struct {
             double x, y, z;

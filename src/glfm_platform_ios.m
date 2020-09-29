@@ -737,6 +737,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     if (accelerometerFunc) {
         GLFMSensorEvent event = { 0 };
         event.sensor = GLFMSensorAccelerometer;
+        event.timestamp = deviceMotion.timestamp;
         event.vector.x = deviceMotion.userAcceleration.x + deviceMotion.gravity.x;
         event.vector.y = deviceMotion.userAcceleration.y + deviceMotion.gravity.y;
         event.vector.z = deviceMotion.userAcceleration.z + deviceMotion.gravity.z;
@@ -747,6 +748,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     if (magnetometerFunc) {
         GLFMSensorEvent event = { 0 };
         event.sensor = GLFMSensorMagnetometer;
+        event.timestamp = deviceMotion.timestamp;
         event.vector.x = deviceMotion.magneticField.field.x;
         event.vector.y = deviceMotion.magneticField.field.y;
         event.vector.z = deviceMotion.magneticField.field.z;
@@ -757,6 +759,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     if (gyroscopeFunc) {
         GLFMSensorEvent event = { 0 };
         event.sensor = GLFMSensorGyroscope;
+        event.timestamp = deviceMotion.timestamp;
         event.vector.x = deviceMotion.rotationRate.x;
         event.vector.y = deviceMotion.rotationRate.y;
         event.vector.z = deviceMotion.rotationRate.z;
@@ -767,6 +770,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     if (rotationFunc) {
         GLFMSensorEvent event = { 0 };
         event.sensor = GLFMSensorRotationMatrix;
+        event.timestamp = deviceMotion.timestamp;
         CMRotationMatrix matrix = deviceMotion.attitude.rotationMatrix;
         event.matrix.m00 = matrix.m11; event.matrix.m01 = matrix.m12; event.matrix.m02 = matrix.m13;
         event.matrix.m10 = matrix.m21; event.matrix.m11 = matrix.m22; event.matrix.m12 = matrix.m23;
