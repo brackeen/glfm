@@ -72,6 +72,9 @@ static struct timespec _glfmTimeSubstract(struct timespec a, struct timespec b) 
 #define SENSOR_UPDATE_INTERVAL_MICROS ((int)(0.01 * 1000000))
 
 static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
+static bool _glfmGetRotationMatrix(GLFMSensorEvent *out,
+                                   double accelX, double accelY, double accelZ,
+                                   double magnetX, double magnetY, double magnetZ);
 
 typedef struct {
     struct android_app *app;
@@ -99,7 +102,9 @@ typedef struct {
     GLFMRenderingAPI renderingAPI;
 
     ASensorEventQueue *sensorEventQueue;
-    bool enabledSensors[GLFM_NUM_SENSORS];
+    GLFMSensorEvent sensorEvent[GLFM_NUM_SENSORS];
+    bool sensorEventValid[GLFM_NUM_SENSORS];
+    bool deviceSensorEnabled[GLFM_NUM_SENSORS];
 
     JNIEnv *jniEnv;
 } GLFMPlatformData;
@@ -1301,35 +1306,62 @@ void android_main(struct android_app *app) {
 
             if (eventIdentifier == LOOPER_ID_SENSOR_EVENT_QUEUE) {
                 ASensorEvent event;
-                GLFMSensorEvent sensorEvents[GLFM_NUM_SENSORS] = { 0 };
-                bool sensorEventsReceived[GLFM_NUM_SENSORS] = { 0 };
+                bool sensorEventReceived[GLFM_NUM_SENSORS] = { 0 };
                 while (ASensorEventQueue_getEvents(platformData->sensorEventQueue, &event, 1) > 0) {
                     if (event.type == ASENSOR_TYPE_ACCELEROMETER) {
                         const double G = (double)ASENSOR_STANDARD_GRAVITY;
                         // Convert to iOS format
-                        sensorEvents[GLFMSensorAccelerometer].sensor = GLFMSensorAccelerometer;
-                        sensorEvents[GLFMSensorAccelerometer].vector.x = (double)event.acceleration.x / -G;
-                        sensorEvents[GLFMSensorAccelerometer].vector.y = (double)event.acceleration.y / -G;
-                        sensorEvents[GLFMSensorAccelerometer].vector.z = (double)event.acceleration.z / -G;
-                        sensorEventsReceived[GLFMSensorAccelerometer] = true;
+                        GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorAccelerometer];
+                        sensorEvent->sensor = GLFMSensorAccelerometer;
+                        sensorEvent->vector.x = (double)event.acceleration.x / -G;
+                        sensorEvent->vector.y = (double)event.acceleration.y / -G;
+                        sensorEvent->vector.z = (double)event.acceleration.z / -G;
+                        sensorEventReceived[GLFMSensorAccelerometer] = true;
+                        platformData->sensorEventValid[GLFMSensorAccelerometer] = true;
                     } else if (event.type == ASENSOR_TYPE_MAGNETIC_FIELD) {
-                        sensorEvents[GLFMSensorMagnetometer].sensor = GLFMSensorMagnetometer;
-                        sensorEvents[GLFMSensorMagnetometer].vector.x = (double)event.magnetic.x;
-                        sensorEvents[GLFMSensorMagnetometer].vector.y = (double)event.magnetic.y;
-                        sensorEvents[GLFMSensorMagnetometer].vector.z = (double)event.magnetic.z;
-                        sensorEventsReceived[GLFMSensorMagnetometer] = true;
+                        GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorMagnetometer];
+                        sensorEvent->sensor = GLFMSensorMagnetometer;
+                        sensorEvent->vector.x = (double)event.magnetic.x;
+                        sensorEvent->vector.y = (double)event.magnetic.y;
+                        sensorEvent->vector.z = (double)event.magnetic.z;
+                        sensorEventReceived[GLFMSensorMagnetometer] = true;
+                        platformData->sensorEventValid[GLFMSensorMagnetometer] = true;
                     } else if (event.type == ASENSOR_TYPE_GYROSCOPE) {
-                        sensorEvents[GLFMSensorGyroscope].sensor = GLFMSensorGyroscope;
-                        sensorEvents[GLFMSensorGyroscope].vector.x = (double)event.vector.x;
-                        sensorEvents[GLFMSensorGyroscope].vector.y = (double)event.vector.y;
-                        sensorEvents[GLFMSensorGyroscope].vector.z = (double)event.vector.z;
-                        sensorEventsReceived[GLFMSensorGyroscope] = true;
+                        GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorGyroscope];
+                        sensorEvent->sensor = GLFMSensorGyroscope;
+                        sensorEvent->vector.x = (double)event.vector.x;
+                        sensorEvent->vector.y = (double)event.vector.y;
+                        sensorEvent->vector.z = (double)event.vector.z;
+                        sensorEventReceived[GLFMSensorGyroscope] = true;
+                        platformData->sensorEventValid[GLFMSensorGyroscope] = true;
                     }
                 }
+
+                // Create rotation matrix if needed
+                bool newRotationComponentReceived = (sensorEventReceived[GLFMSensorAccelerometer] ||
+                                                     sensorEventReceived[GLFMSensorMagnetometer] ||
+                                                     sensorEventReceived[GLFMSensorGyroscope]);
+                bool hasMinimumRotationComponents = (platformData->sensorEventValid[GLFMSensorAccelerometer] &&
+                                                     platformData->sensorEventValid[GLFMSensorMagnetometer]);
+                if (platformData->display->sensorFuncs[GLFMSensorRotationMatrix] &&
+                    newRotationComponentReceived && hasMinimumRotationComponents) {
+                    GLFMSensorEvent *a = &platformData->sensorEvent[GLFMSensorAccelerometer];
+                    GLFMSensorEvent *m = &platformData->sensorEvent[GLFMSensorMagnetometer];
+                    GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorRotationMatrix];
+                    sensorEvent->sensor = GLFMSensorRotationMatrix;
+                    if (_glfmGetRotationMatrix(sensorEvent,
+                            a->vector.x, a->vector.y, a->vector.z,
+                            m->vector.x, m->vector.y, m->vector.z)) {
+                        sensorEventReceived[GLFMSensorRotationMatrix] = true;
+                        platformData->sensorEventValid[GLFMSensorRotationMatrix] = true;
+                    }
+                }
+
+                // Send callbacks
                 for (int i = 0; i < GLFM_NUM_SENSORS; i++) {
                     GLFMSensorFunc sensorFunc = platformData->display->sensorFuncs[i];
-                    if (sensorFunc && sensorEventsReceived[i]) {
-                        sensorFunc(platformData->display, sensorEvents[i]);
+                    if (sensorFunc && sensorEventReceived[i]) {
+                        sensorFunc(platformData->display, platformData->sensorEvent[i]);
                     }
                 }
             }
@@ -1534,88 +1566,128 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
 
 // MARK: Sensors
 
-static const ASensor *_glfmASensor(GLFMSensor sensor) {
-    int type;
+static bool _glfmGetRotationMatrix(GLFMSensorEvent *out,
+        double accelX, double accelY, double accelZ,
+        double magnetX, double magnetY, double magnetZ) {
+
+    double ax = -accelX;
+    double ay = -accelY;
+    double az = -accelZ;
+
+    double bx = magnetX;
+    double by = magnetY;
+    double bz = magnetZ;
+
+    double cx = by * az - bz * ay;
+    double cy = bz * ax - bx * az;
+    double cz = bx * ay - by * ax;
+
+    double dx = az * cy - ay * cz;
+    double dy = ax * cz - az * cx;
+    double dz = ay * cx - ax * cy;
+
+    double aLen = sqrt(ax * ax + ay * ay + az * az);
+    double cLen = sqrt(cx * cx + cy * cy + cz * cz);
+    double dLen = sqrt(dx * dx + dy * dy + dz * dz);
+
+    if (aLen < 0.01 || cLen < 0.01 || dLen < 0.01) {
+        return false;
+    }
+    out->matrix.m00 = dx / dLen;
+    out->matrix.m10 = dy / dLen;
+    out->matrix.m20 = dz / dLen;
+    out->matrix.m01 = cx / cLen;
+    out->matrix.m11 = cy / cLen;
+    out->matrix.m21 = cz / cLen;
+    out->matrix.m02 = ax / aLen;
+    out->matrix.m12 = ay / aLen;
+    out->matrix.m22 = az / aLen;
+
+    return true;
+}
+
+static const ASensor *_glfmGetDeviceSensor(GLFMSensor sensor) {
+    ASensorManager *sensorManager = ASensorManager_getInstance();
     switch (sensor) {
-        case GLFMSensorAccelerometer:
-            type = ASENSOR_TYPE_ACCELEROMETER;
-            break;
-        case GLFMSensorMagnetometer:
-            type = ASENSOR_TYPE_MAGNETIC_FIELD;
-            break;
-        case GLFMSensorGyroscope:
-            type = ASENSOR_TYPE_GYROSCOPE;
-            break;
         default:
-            type = ASENSOR_TYPE_INVALID;
-            break;
-    }
-    if (type == ASENSOR_TYPE_INVALID) {
-        return NULL;
-    } else {
-        ASensorManager *sensorManager = ASensorManager_getInstance();
-        return ASensorManager_getDefaultSensor(sensorManager, type);
+            return NULL;
+        case GLFMSensorAccelerometer:
+            return ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_ACCELEROMETER);
+        case GLFMSensorMagnetometer:
+            return ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_MAGNETIC_FIELD);
+        case GLFMSensorGyroscope:
+            return ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_GYROSCOPE);
+        case GLFMSensorRotationMatrix:
+            // Rotation has no device sensor, its value is from accelerometer and magnetic field
+            return NULL;
     }
 }
 
-static void _glfmSetASensorEnabled(GLFMPlatformData *platformData, GLFMSensor sensor, bool enable) {
-    int index = (int)sensor;
-    if (!platformData || index < 0 || index >= GLFM_NUM_SENSORS) {
+static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enabledGlobally) {
+    if (!display) {
         return;
     }
-    bool isEnabled = platformData->enabledSensors[index];
-    if (isEnabled == enable) {
-        return;
-    }
-    const ASensor *aSensor = _glfmASensor(sensor);
-    if (aSensor == NULL) {
-        return;
-    }
-    if (platformData->sensorEventQueue == NULL) {
-        ASensorManager *sensorManager = ASensorManager_getInstance();
-        platformData->sensorEventQueue = ASensorManager_createEventQueue(sensorManager,
-                ALooper_forThread(), LOOPER_ID_SENSOR_EVENT_QUEUE, NULL, NULL);
-        if (!platformData->sensorEventQueue) {
-            return;
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    bool rotationRequestedAndAvailable = (display->sensorFuncs[GLFMSensorRotationMatrix] != NULL &&
+                                          glfmIsSensorAvailable(display, GLFMSensorRotationMatrix));
+    for (int i = 0; i < GLFM_NUM_SENSORS; i++) {
+        GLFMSensor sensor = (GLFMSensor)i;
+        const ASensor *deviceSensor = _glfmGetDeviceSensor(sensor);
+        bool isRotationComponent = (sensor == GLFMSensorAccelerometer || sensor == GLFMSensorMagnetometer || sensor == GLFMSensorGyroscope);
+        bool isNeededEnabled = (display->sensorFuncs[i] != NULL || (isRotationComponent && rotationRequestedAndAvailable));
+        bool shouldEnable = enabledGlobally && isNeededEnabled;
+        bool isEnabled = platformData->deviceSensorEnabled[i];
+        if (!shouldEnable) {
+            platformData->sensorEventValid[i] = false;
         }
-    }
-    if (enable && !isEnabled) {
-        if (ASensorEventQueue_enableSensor(platformData->sensorEventQueue, aSensor) == 0) {
-            int minDelay = ASensor_getMinDelay(aSensor);
-            if (minDelay > 0) {
-                int delay = SENSOR_UPDATE_INTERVAL_MICROS;
-                if (delay < minDelay) {
-                    delay = minDelay;
-                }
-                ASensorEventQueue_setEventRate(platformData->sensorEventQueue, aSensor, delay);
+
+        if (isEnabled == shouldEnable || deviceSensor == NULL) {
+            continue;
+        }
+        if (platformData->sensorEventQueue == NULL) {
+            ASensorManager *sensorManager = ASensorManager_getInstance();
+            platformData->sensorEventQueue = ASensorManager_createEventQueue(sensorManager,
+                    ALooper_forThread(), LOOPER_ID_SENSOR_EVENT_QUEUE, NULL, NULL);
+            if (!platformData->sensorEventQueue) {
+                continue;
             }
-            platformData->enabledSensors[index] = true;
         }
-    } else if (!enable && isEnabled) {
-        if (ASensorEventQueue_disableSensor(platformData->sensorEventQueue, aSensor) == 0) {
-            platformData->enabledSensors[index] = false;
-        }
-    }
-}
-
-static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable) {
-    if (display) {
-        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-        for (int i = 0; i < GLFM_NUM_SENSORS; i++) {
-            bool shouldEnable = enable && (display->sensorFuncs[i] != NULL);
-            _glfmSetASensorEnabled(platformData, (GLFMSensor)i, shouldEnable);
+        if (shouldEnable && !isEnabled) {
+            if (ASensorEventQueue_enableSensor(platformData->sensorEventQueue, deviceSensor) == 0) {
+                int minDelay = ASensor_getMinDelay(deviceSensor);
+                if (minDelay > 0) {
+                    int delay = SENSOR_UPDATE_INTERVAL_MICROS;
+                    if (delay < minDelay) {
+                        delay = minDelay;
+                    }
+                    ASensorEventQueue_setEventRate(platformData->sensorEventQueue, deviceSensor, delay);
+                }
+                platformData->deviceSensorEnabled[i] = true;
+            }
+        } else if (!shouldEnable && isEnabled) {
+            if (ASensorEventQueue_disableSensor(platformData->sensorEventQueue, deviceSensor) == 0) {
+                platformData->deviceSensorEnabled[i] = false;
+            }
         }
     }
 }
 
 bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
     (void)display;
-    return _glfmASensor(sensor) != NULL;
+    if (sensor == GLFMSensorRotationMatrix) {
+        // Requires accelerometer and magnetometer, gyroscope optional
+        return (_glfmGetDeviceSensor(GLFMSensorAccelerometer) != NULL &&
+                _glfmGetDeviceSensor(GLFMSensorMagnetometer) != NULL);
+    } else {
+        return _glfmGetDeviceSensor(sensor) != NULL;
+    }
 }
 
-void _glfmSensorFuncUpdated(GLFMDisplay *display, GLFMSensor sensor, GLFMSensorFunc sensorFunc) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    _glfmSetASensorEnabled(platformData, sensor, sensorFunc != NULL);
+void _glfmSensorFuncUpdated(GLFMDisplay *display) {
+    if (display) {
+        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+        _glfmSetAllRequestedSensorsEnabled(display, platformData->animating);
+    }
 }
 
 // MARK: Platform-specific functions
