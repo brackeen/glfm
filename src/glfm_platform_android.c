@@ -910,6 +910,7 @@ static void _glfmSetAnimating(GLFMPlatformData *platformData, bool animating) {
         if (sendAppEvent && platformData->display && platformData->display->focusFunc) {
             platformData->display->focusFunc(platformData->display, animating);
         }
+        _glfmSetAllRequestedSensorsEnabled(platformData->display, animating);
     }
 }
 
