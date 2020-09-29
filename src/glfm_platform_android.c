@@ -68,6 +68,8 @@ static struct timespec _glfmTimeSubstract(struct timespec a, struct timespec b) 
 
 #define MAX_SIMULTANEOUS_TOUCHES 5
 #define LOOPER_ID_SENSOR_EVENT_QUEUE 0xdb2a20
+// Same as iOS
+#define SENSOR_UPDATE_INTERVAL_MICROS ((int)(0.01 * 1000000))
 
 static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
 
@@ -1299,40 +1301,35 @@ void android_main(struct android_app *app) {
 
             if (eventIdentifier == LOOPER_ID_SENSOR_EVENT_QUEUE) {
                 ASensorEvent event;
+                GLFMSensorEvent sensorEvents[GLFM_NUM_SENSORS] = { 0 };
+                bool sensorEventsReceived[GLFM_NUM_SENSORS] = { 0 };
                 while (ASensorEventQueue_getEvents(platformData->sensorEventQueue, &event, 1) > 0) {
                     if (event.type == ASENSOR_TYPE_ACCELEROMETER) {
-                        GLFMSensorFunc sensorFunc = platformData->display->sensorFuncs[GLFMSensorAccelerometer];
-                        if (sensorFunc) {
-                            const double G = (double)ASENSOR_STANDARD_GRAVITY;
-                            GLFMSensorEvent sensorEvent = { 0 };
-                            sensorEvent.sensor = GLFMSensorAccelerometer;
-                            // Convert to iOS format
-                            sensorEvent.vector.x = (double)event.acceleration.x / -G;
-                            sensorEvent.vector.y = (double)event.acceleration.y / -G;
-                            sensorEvent.vector.z = (double)event.acceleration.z / -G;
-                            sensorFunc(platformData->display, sensorEvent);
-                        }
+                        const double G = (double)ASENSOR_STANDARD_GRAVITY;
+                        // Convert to iOS format
+                        sensorEvents[GLFMSensorAccelerometer].sensor = GLFMSensorAccelerometer;
+                        sensorEvents[GLFMSensorAccelerometer].vector.x = (double)event.acceleration.x / -G;
+                        sensorEvents[GLFMSensorAccelerometer].vector.y = (double)event.acceleration.y / -G;
+                        sensorEvents[GLFMSensorAccelerometer].vector.z = (double)event.acceleration.z / -G;
+                        sensorEventsReceived[GLFMSensorAccelerometer] = true;
                     } else if (event.type == ASENSOR_TYPE_MAGNETIC_FIELD) {
-                        GLFMSensorFunc sensorFunc = platformData->display->sensorFuncs[GLFMSensorMagnetometer];
-                        if (sensorFunc) {
-                            GLFMSensorEvent sensorEvent = { 0 };
-                            sensorEvent.sensor = GLFMSensorMagnetometer;
-                            sensorEvent.vector.x = (double)event.magnetic.x;
-                            sensorEvent.vector.y = (double)event.magnetic.y;
-                            sensorEvent.vector.z = (double)event.magnetic.z;
-                            sensorFunc(platformData->display, sensorEvent);
-                        }
+                        sensorEvents[GLFMSensorMagnetometer].sensor = GLFMSensorMagnetometer;
+                        sensorEvents[GLFMSensorMagnetometer].vector.x = (double)event.magnetic.x;
+                        sensorEvents[GLFMSensorMagnetometer].vector.y = (double)event.magnetic.y;
+                        sensorEvents[GLFMSensorMagnetometer].vector.z = (double)event.magnetic.z;
+                        sensorEventsReceived[GLFMSensorMagnetometer] = true;
                     } else if (event.type == ASENSOR_TYPE_GYROSCOPE) {
-                        GLFMSensorFunc sensorFunc = platformData->display->sensorFuncs[GLFMSensorGyroscope];
-                        if (sensorFunc) {
-                            GLFMSensorEvent sensorEvent = { 0 };
-                            sensorEvent.sensor = GLFMSensorGyroscope;
-                            sensorEvent.vector.x = (double)event.vector.x;
-                            sensorEvent.vector.y = (double)event.vector.y;
-                            sensorEvent.vector.z = (double)event.vector.z;
-                            sensorFunc(platformData->display, sensorEvent);
-                        }
-
+                        sensorEvents[GLFMSensorGyroscope].sensor = GLFMSensorGyroscope;
+                        sensorEvents[GLFMSensorGyroscope].vector.x = (double)event.vector.x;
+                        sensorEvents[GLFMSensorGyroscope].vector.y = (double)event.vector.y;
+                        sensorEvents[GLFMSensorGyroscope].vector.z = (double)event.vector.z;
+                        sensorEventsReceived[GLFMSensorGyroscope] = true;
+                    }
+                }
+                for (int i = 0; i < GLFM_NUM_SENSORS; i++) {
+                    GLFMSensorFunc sensorFunc = platformData->display->sensorFuncs[i];
+                    if (sensorFunc && sensorEventsReceived[i]) {
+                        sensorFunc(platformData->display, sensorEvents[i]);
                     }
                 }
             }
@@ -1584,6 +1581,14 @@ static void _glfmSetASensorEnabled(GLFMPlatformData *platformData, GLFMSensor se
     }
     if (enable && !isEnabled) {
         if (ASensorEventQueue_enableSensor(platformData->sensorEventQueue, aSensor) == 0) {
+            int minDelay = ASensor_getMinDelay(aSensor);
+            if (minDelay > 0) {
+                int delay = SENSOR_UPDATE_INTERVAL_MICROS;
+                if (delay < minDelay) {
+                    delay = minDelay;
+                }
+                ASensorEventQueue_setEventRate(platformData->sensorEventQueue, aSensor, delay);
+            }
             platformData->enabledSensors[index] = true;
         }
     } else if (!enable && isEnabled) {
