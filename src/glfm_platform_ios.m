@@ -715,6 +715,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 - (CMMotionManager *)motionManager {
     if (!_motionManager) {
         self.motionManager = GLFM_AUTORELEASE([CMMotionManager new]);
+        self.motionManager.deviceMotionUpdateInterval = 0.01;
     }
     return _motionManager;
 }
