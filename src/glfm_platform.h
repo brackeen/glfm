@@ -66,7 +66,7 @@ struct GLFMDisplay {
 // MARK: - Notification functions
 
 void _glfmDisplayChromeUpdated(GLFMDisplay *display);
-void _glfmSensorFuncUpdated(GLFMDisplay *display, GLFMSensor sensor, GLFMSensorFunc sensorFunc);
+void _glfmSensorFuncUpdated(GLFMDisplay *display);
 
 // MARK: - Setters
 
@@ -202,7 +202,7 @@ GLFMSensorFunc glfmSetSensorFunc(GLFMDisplay *display, GLFMSensor sensor, GLFMSe
     if (display && index >= 0 && index < GLFM_NUM_SENSORS) {
         previous = display->sensorFuncs[index];
         display->sensorFuncs[index] = sensorFunc;
-        _glfmSensorFuncUpdated(display, sensor, sensorFunc);
+        _glfmSensorFuncUpdated(display);
     }
     return previous;
 }

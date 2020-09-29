@@ -1329,7 +1329,7 @@ bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
     return false;
 }
 
-void _glfmSensorFuncUpdated(GLFMDisplay *display, GLFMSensor sensor, GLFMSensorFunc sensorFunc) {
+void _glfmSensorFuncUpdated(GLFMDisplay *display) {
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         [vc updateMotionManagerActiveState];
