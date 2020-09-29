@@ -626,17 +626,6 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 }
 #endif
 
-- (CMMotionManager *)motionManager {
-    if (!_motionManager) {
-        self.motionManager = GLFM_AUTORELEASE([CMMotionManager new]);
-    }
-    return _motionManager;
-}
-
-- (BOOL)isMotionManagerLoaded {
-    return _motionManager != nil;
-}
-
 - (BOOL)prefersStatusBarHidden {
     return _glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
 }
@@ -723,51 +712,84 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     }
 }
 
+- (CMMotionManager *)motionManager {
+    if (!_motionManager) {
+        self.motionManager = GLFM_AUTORELEASE([CMMotionManager new]);
+    }
+    return _motionManager;
+}
+
+- (BOOL)isMotionManagerLoaded {
+    return _motionManager != nil;
+}
+
 - (void)handleMotionEvents {
-    if (!self.isMotionManagerLoaded) {
+    if (!self.isMotionManagerLoaded || !self.motionManager.isDeviceMotionActive) {
         return;
     }
-    if (self.motionManager.isDeviceMotionActive) {
-        GLFMSensorFunc accelerometerFunc = self.glfmDisplay->sensorFuncs[GLFMSensorAccelerometer];
-        if (accelerometerFunc) {
-            GLFMSensorEvent event = { 0 };
-            event.sensor = GLFMSensorAccelerometer;
-            event.vector.x = self.motionManager.deviceMotion.userAcceleration.x + self.motionManager.deviceMotion.gravity.x;
-            event.vector.y = self.motionManager.deviceMotion.userAcceleration.y + self.motionManager.deviceMotion.gravity.y;
-            event.vector.z = self.motionManager.deviceMotion.userAcceleration.z + self.motionManager.deviceMotion.gravity.z;
-            accelerometerFunc(self.glfmDisplay, event);
+    CMDeviceMotion *deviceMotion = self.motionManager.deviceMotion;
+    if (!deviceMotion) {
+        // No readings yet
+        return;
+    }
+    GLFMSensorFunc accelerometerFunc = self.glfmDisplay->sensorFuncs[GLFMSensorAccelerometer];
+    if (accelerometerFunc) {
+        GLFMSensorEvent event = { 0 };
+        event.sensor = GLFMSensorAccelerometer;
+        event.vector.x = deviceMotion.userAcceleration.x + deviceMotion.gravity.x;
+        event.vector.y = deviceMotion.userAcceleration.y + deviceMotion.gravity.y;
+        event.vector.z = deviceMotion.userAcceleration.z + deviceMotion.gravity.z;
+        accelerometerFunc(self.glfmDisplay, event);
+    }
+    
+    GLFMSensorFunc magnetometerFunc = self.glfmDisplay->sensorFuncs[GLFMSensorMagnetometer];
+    if (magnetometerFunc) {
+        GLFMSensorEvent event = { 0 };
+        event.sensor = GLFMSensorMagnetometer;
+        event.vector.x = deviceMotion.magneticField.field.x;
+        event.vector.y = deviceMotion.magneticField.field.y;
+        event.vector.z = deviceMotion.magneticField.field.z;
+        magnetometerFunc(self.glfmDisplay, event);
+    }
+    
+    GLFMSensorFunc gyroscopeFunc = self.glfmDisplay->sensorFuncs[GLFMSensorGyroscope];
+    if (gyroscopeFunc) {
+        GLFMSensorEvent event = { 0 };
+        event.sensor = GLFMSensorGyroscope;
+        event.vector.x = deviceMotion.rotationRate.x;
+        event.vector.y = deviceMotion.rotationRate.y;
+        event.vector.z = deviceMotion.rotationRate.z;
+        gyroscopeFunc(self.glfmDisplay, event);
+    }
+    
+    GLFMSensorFunc rotationFunc = self.glfmDisplay->sensorFuncs[GLFMSensorRotationMatrix];
+    if (rotationFunc) {
+        GLFMSensorEvent event = { 0 };
+        event.sensor = GLFMSensorRotationMatrix;
+        CMRotationMatrix matrix = deviceMotion.attitude.rotationMatrix;
+        event.matrix.m00 = matrix.m11; event.matrix.m01 = matrix.m12; event.matrix.m02 = matrix.m13;
+        event.matrix.m10 = matrix.m21; event.matrix.m11 = matrix.m22; event.matrix.m12 = matrix.m23;
+        event.matrix.m20 = matrix.m31; event.matrix.m21 = matrix.m32; event.matrix.m22 = matrix.m33;
+        rotationFunc(self.glfmDisplay, event);
+    }
+}
+
+- (void)updateMotionManagerActiveState {
+    BOOL enable = NO;
+    GLFMAppDelegate *delegate = UIApplication.sharedApplication.delegate;
+    if (delegate.active) {
+        for (int i = 0; i < GLFM_NUM_SENSORS; i++) {
+            if (self.glfmDisplay->sensorFuncs[i] != NULL) {
+                enable = YES;
+                break;
+            }
         }
-        
-        GLFMSensorFunc magnetometerFunc = self.glfmDisplay->sensorFuncs[GLFMSensorMagnetometer];
-        if (magnetometerFunc) {
-            GLFMSensorEvent event = { 0 };
-            event.sensor = GLFMSensorMagnetometer;
-            event.vector.x = self.motionManager.deviceMotion.magneticField.field.x;
-            event.vector.y = self.motionManager.deviceMotion.magneticField.field.y;
-            event.vector.z = self.motionManager.deviceMotion.magneticField.field.z;
-            magnetometerFunc(self.glfmDisplay, event);
-        }
-        
-        GLFMSensorFunc gyroscopeFunc = self.glfmDisplay->sensorFuncs[GLFMSensorGyroscope];
-        if (gyroscopeFunc) {
-            GLFMSensorEvent event = { 0 };
-            event.sensor = GLFMSensorGyroscope;
-            event.vector.x = self.motionManager.deviceMotion.rotationRate.x;
-            event.vector.y = self.motionManager.deviceMotion.rotationRate.y;
-            event.vector.z = self.motionManager.deviceMotion.rotationRate.z;
-            gyroscopeFunc(self.glfmDisplay, event);
-        }
-        
-        GLFMSensorFunc rotationFunc = self.glfmDisplay->sensorFuncs[GLFMSensorRotationMatrix];
-        if (rotationFunc) {
-            GLFMSensorEvent event = { 0 };
-            event.sensor = GLFMSensorRotationMatrix;
-            CMRotationMatrix matrix = self.motionManager.deviceMotion.attitude.rotationMatrix;
-            event.matrix.m00 = matrix.m11; event.matrix.m01 = matrix.m12; event.matrix.m02 = matrix.m13;
-            event.matrix.m10 = matrix.m21; event.matrix.m11 = matrix.m22; event.matrix.m12 = matrix.m23;
-            event.matrix.m20 = matrix.m31; event.matrix.m21 = matrix.m32; event.matrix.m22 = matrix.m33;
-            rotationFunc(self.glfmDisplay, event);
-        }
+    }
+    
+    if (enable && !self.motionManager.deviceMotionActive) {
+        [self.motionManager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXArbitraryCorrectedZVertical];
+    } else if (!enable && self.isMotionManagerLoaded && self.motionManager.deviceMotionActive) {
+        [self.motionManager stopDeviceMotionUpdates];
     }
 }
 
@@ -1064,6 +1086,9 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
             }
             vc.glfmView.animating = active;
         }
+        if (vc.isMotionManagerLoaded) {
+            [vc updateMotionManagerActiveState];
+        }
         [vc clearTouches];
     }
 }
@@ -1306,19 +1331,7 @@ bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
 void _glfmSensorFuncUpdated(GLFMDisplay *display, GLFMSensor sensor, GLFMSensorFunc sensorFunc) {
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        bool enable = false;
-        for (int i = 0; i < GLFM_NUM_SENSORS; i++) {
-            if (display->sensorFuncs[i] != NULL) {
-                enable = true;
-                break;
-            }
-        }
-        
-        if (enable && !vc.motionManager.deviceMotionActive) {
-            [vc.motionManager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXArbitraryCorrectedZVertical];
-        } else if (!enable && vc.motionManager.deviceMotionActive) {
-            [vc.motionManager stopDeviceMotionUpdates];
-        }
+        [vc updateMotionManagerActiveState];
     }
 }
 
