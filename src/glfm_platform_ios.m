@@ -792,7 +792,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     }
     
     if (enable && !self.motionManager.deviceMotionActive) {
-        [self.motionManager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXArbitraryCorrectedZVertical];
+        [self.motionManager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXMagneticNorthZVertical];
     } else if (!enable && self.isMotionManagerLoaded && self.motionManager.deviceMotionActive) {
         [self.motionManager stopDeviceMotionUpdates];
     }

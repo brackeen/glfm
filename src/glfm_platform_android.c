@@ -1582,10 +1582,10 @@ static bool _glfmGetRotationMatrix(GLFMSensorEvent *out,
     double by = magnetY;
     double bz = magnetZ;
 
-    // Cross product (b x a)
-    double cx = by * az - bz * ay;
-    double cy = bz * ax - bx * az;
-    double cz = bx * ay - by * ax;
+    // Cross product (a x b)
+    double cx = ay * bz - az * by;
+    double cy = az * bx - ax * bz;
+    double cz = ax * by - ay * bx;
 
     // Cross product (c x a)
     double dx = cy * az - cz * ay;
