@@ -792,7 +792,18 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     }
     
     if (enable && !self.motionManager.deviceMotionActive) {
-        [self.motionManager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXMagneticNorthZVertical];
+        CMAttitudeReferenceFrame referenceFrame;
+        CMAttitudeReferenceFrame availableReferenceFrames = [CMMotionManager availableAttitudeReferenceFrames];
+        if (availableReferenceFrames & CMAttitudeReferenceFrameXTrueNorthZVertical) {
+            referenceFrame = CMAttitudeReferenceFrameXTrueNorthZVertical;
+        } else if (availableReferenceFrames & CMAttitudeReferenceFrameXMagneticNorthZVertical) {
+            referenceFrame = CMAttitudeReferenceFrameXMagneticNorthZVertical;
+        } else if (availableReferenceFrames & CMAttitudeReferenceFrameXArbitraryCorrectedZVertical) {
+            referenceFrame = CMAttitudeReferenceFrameXArbitraryCorrectedZVertical;
+        } else {
+            referenceFrame = CMAttitudeReferenceFrameXArbitraryZVertical;
+        }
+        [self.motionManager startDeviceMotionUpdatesUsingReferenceFrame:referenceFrame];
     } else if (!enable && self.isMotionManagerLoaded && self.motionManager.deviceMotionActive) {
         [self.motionManager stopDeviceMotionUpdates];
     }
