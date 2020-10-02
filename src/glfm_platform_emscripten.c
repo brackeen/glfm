@@ -201,13 +201,27 @@ GLFMProc glfmGetProcAddress(const char *functionName) {
     return eglGetProcAddress(functionName);
 }
 
+bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
+    (void)display;
+    (void)sensor;
+    // TODO: Sensors
+    return false;
+}
+
+void _glfmSensorFuncUpdated(GLFMDisplay *display) {
+    (void)display;
+    // TODO: Sensors
+}
+
 // MARK: Platform-specific functions
 
 bool glfmIsMetalSupported(GLFMDisplay *display) {
+    (void)display;
     return false;
 }
 
 void *glfmGetMetalView(GLFMDisplay *display) {
+    (void)display;
     return NULL;
 }
 

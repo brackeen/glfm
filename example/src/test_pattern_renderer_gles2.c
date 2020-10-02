@@ -1,6 +1,7 @@
 #include "test_pattern_renderer.h"
 
 #include <stdlib.h>
+#include <stddef.h>
 #include "glfm.h"
 #define FILE_COMPAT_ANDROID_ACTIVITY glfmAndroidGetActivity()
 #include "file_compat.h"
