@@ -72,9 +72,6 @@ static struct timespec _glfmTimeSubstract(struct timespec a, struct timespec b) 
 #define SENSOR_UPDATE_INTERVAL_MICROS ((int)(0.01 * 1000000))
 
 static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
-static bool _glfmGetRotationMatrix(GLFMSensorEvent *out,
-                                   double accelX, double accelY, double accelZ,
-                                   double magnetX, double magnetY, double magnetZ);
 
 typedef struct {
     struct android_app *app;
@@ -1337,25 +1334,45 @@ void android_main(struct android_app *app) {
                         sensorEvent->vector.z = (double)event.vector.z;
                         sensorEventReceived[GLFMSensorGyroscope] = true;
                         platformData->sensorEventValid[GLFMSensorGyroscope] = true;
-                    }
-                }
+                    } else if (event.type == ASENSOR_TYPE_ROTATION_VECTOR) {
+                        GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorRotationMatrix];
+                        sensorEvent->sensor = GLFMSensorRotationMatrix;
+                        sensorEvent->timestamp = event.timestamp / 1000000000.0;
 
-                // Create rotation matrix if needed
-                bool newRotationComponentReceived = (sensorEventReceived[GLFMSensorAccelerometer] ||
-                                                     sensorEventReceived[GLFMSensorMagnetometer] ||
-                                                     sensorEventReceived[GLFMSensorGyroscope]);
-                bool hasMinimumRotationComponents = (platformData->sensorEventValid[GLFMSensorAccelerometer] &&
-                                                     platformData->sensorEventValid[GLFMSensorMagnetometer]);
-                if (platformData->display->sensorFuncs[GLFMSensorRotationMatrix] &&
-                    newRotationComponentReceived && hasMinimumRotationComponents) {
-                    GLFMSensorEvent *a = &platformData->sensorEvent[GLFMSensorAccelerometer];
-                    GLFMSensorEvent *m = &platformData->sensorEvent[GLFMSensorMagnetometer];
-                    GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorRotationMatrix];
-                    sensorEvent->sensor = GLFMSensorRotationMatrix;
-                    if (_glfmGetRotationMatrix(sensorEvent,
-                            a->vector.x, a->vector.y, a->vector.z,
-                            m->vector.x, m->vector.y, m->vector.z)) {
-                        sensorEvent->timestamp = (a->timestamp > m->timestamp ? a->timestamp : m->timestamp);
+                        // Convert unit quaternion to rotation matrix
+                        double qx = (double)event.vector.x;
+                        double qy = (double)event.vector.y;
+                        double qz = (double)event.vector.z;
+                        double qw;
+
+                        const int SDK_INT = platformData->app->activity->sdkVersion;
+                        if (SDK_INT >= 18 && event.data[3] != 0.0f) {
+                            qw = (double)event.data[3];
+                        } else {
+                            qw = 1 - (qx * qx + qy * qy + qz * qz);
+                            qw = (qw > 0) ? sqrt(qw) : 0;
+                        }
+
+                        double qxx2 = qx * qx * 2;
+                        double qxy2 = qx * qy * 2;
+                        double qxz2 = qx * qz * 2;
+                        double qxw2 = qx * qw * 2;
+                        double qyy2 = qy * qy * 2;
+                        double qyz2 = qy * qz * 2;
+                        double qyw2 = qy * qw * 2;
+                        double qzz2 = qz * qz * 2;
+                        double qzw2 = qz * qw * 2;
+
+                        sensorEvent->matrix.m00 = 1 - qyy2 - qzz2;
+                        sensorEvent->matrix.m10 = qxy2 - qzw2;
+                        sensorEvent->matrix.m20 = qxz2 + qyw2;
+                        sensorEvent->matrix.m01 = qxy2 + qzw2;
+                        sensorEvent->matrix.m11 = 1 - qxx2 - qzz2;
+                        sensorEvent->matrix.m21 = qyz2 - qxw2;
+                        sensorEvent->matrix.m02 = qxz2 - qyw2;
+                        sensorEvent->matrix.m12 = qyz2 + qxw2;
+                        sensorEvent->matrix.m22 = 1 - qxx2 - qyy2;
+
                         sensorEventReceived[GLFMSensorRotationMatrix] = true;
                         platformData->sensorEventValid[GLFMSensorRotationMatrix] = true;
                     }
@@ -1570,46 +1587,9 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
 
 // MARK: Sensors
 
-static bool _glfmGetRotationMatrix(GLFMSensorEvent *out,
-        double accelX, double accelY, double accelZ,
-        double magnetX, double magnetY, double magnetZ) {
-
-    double ax = -accelX;
-    double ay = -accelY;
-    double az = -accelZ;
-
-    double bx = magnetX;
-    double by = magnetY;
-    double bz = magnetZ;
-
-    // Cross product (a x b)
-    double cx = ay * bz - az * by;
-    double cy = az * bx - ax * bz;
-    double cz = ax * by - ay * bx;
-
-    // Cross product (c x a)
-    double dx = cy * az - cz * ay;
-    double dy = cz * ax - cx * az;
-    double dz = cx * ay - cy * ax;
-
-    double aLen = sqrt(ax * ax + ay * ay + az * az);
-    double cLen = sqrt(cx * cx + cy * cy + cz * cz);
-    double dLen = sqrt(dx * dx + dy * dy + dz * dz);
-
-    if (aLen < 0.01 || cLen < 0.01 || dLen < 0.01) {
-        return false;
-    }
-    out->matrix.m00 = dx / dLen; out->matrix.m10 = dy / dLen; out->matrix.m20 = dz / dLen;
-    out->matrix.m01 = cx / cLen; out->matrix.m11 = cy / cLen; out->matrix.m21 = cz / cLen;
-    out->matrix.m02 = ax / aLen; out->matrix.m12 = ay / aLen; out->matrix.m22 = az / aLen;
-    return true;
-}
-
 static const ASensor *_glfmGetDeviceSensor(GLFMSensor sensor) {
     ASensorManager *sensorManager = ASensorManager_getInstance();
     switch (sensor) {
-        default:
-            return NULL;
         case GLFMSensorAccelerometer:
             return ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_ACCELEROMETER);
         case GLFMSensorMagnetometer:
@@ -1617,7 +1597,8 @@ static const ASensor *_glfmGetDeviceSensor(GLFMSensor sensor) {
         case GLFMSensorGyroscope:
             return ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_GYROSCOPE);
         case GLFMSensorRotationMatrix:
-            // Rotation has no device sensor, its value is from accelerometer and magnetic field
+            return ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_ROTATION_VECTOR);
+        default:
             return NULL;
     }
 }
@@ -1627,13 +1608,10 @@ static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable
         return;
     }
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    bool rotationRequestedAndAvailable = (display->sensorFuncs[GLFMSensorRotationMatrix] != NULL &&
-                                          glfmIsSensorAvailable(display, GLFMSensorRotationMatrix));
     for (int i = 0; i < GLFM_NUM_SENSORS; i++) {
         GLFMSensor sensor = (GLFMSensor)i;
         const ASensor *deviceSensor = _glfmGetDeviceSensor(sensor);
-        bool isRotationComponent = (sensor == GLFMSensorAccelerometer || sensor == GLFMSensorMagnetometer || sensor == GLFMSensorGyroscope);
-        bool isNeededEnabled = (display->sensorFuncs[i] != NULL || (isRotationComponent && rotationRequestedAndAvailable));
+        bool isNeededEnabled = display->sensorFuncs[i] != NULL;
         bool shouldEnable = enabledGlobally && isNeededEnabled;
         bool isEnabled = platformData->deviceSensorEnabled[i];
         if (!shouldEnable) {
@@ -1673,13 +1651,7 @@ static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable
 
 bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
     (void)display;
-    if (sensor == GLFMSensorRotationMatrix) {
-        // Requires accelerometer and magnetometer, gyroscope optional
-        return (_glfmGetDeviceSensor(GLFMSensorAccelerometer) != NULL &&
-                _glfmGetDeviceSensor(GLFMSensorMagnetometer) != NULL);
-    } else {
-        return _glfmGetDeviceSensor(sensor) != NULL;
-    }
+    return _glfmGetDeviceSensor(sensor) != NULL;
 }
 
 void _glfmSensorFuncUpdated(GLFMDisplay *display) {
