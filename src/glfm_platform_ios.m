@@ -794,9 +794,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     if (enable && !self.motionManager.deviceMotionActive) {
         CMAttitudeReferenceFrame referenceFrame;
         CMAttitudeReferenceFrame availableReferenceFrames = [CMMotionManager availableAttitudeReferenceFrames];
-        if (availableReferenceFrames & CMAttitudeReferenceFrameXTrueNorthZVertical) {
-            referenceFrame = CMAttitudeReferenceFrameXTrueNorthZVertical;
-        } else if (availableReferenceFrames & CMAttitudeReferenceFrameXMagneticNorthZVertical) {
+        if (availableReferenceFrames & CMAttitudeReferenceFrameXMagneticNorthZVertical) {
             referenceFrame = CMAttitudeReferenceFrameXMagneticNorthZVertical;
         } else if (availableReferenceFrames & CMAttitudeReferenceFrameXArbitraryCorrectedZVertical) {
             referenceFrame = CMAttitudeReferenceFrameXArbitraryCorrectedZVertical;
@@ -1338,7 +1336,8 @@ bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
             case GLFMSensorGyroscope:
                 return vc.motionManager.deviceMotionAvailable && vc.motionManager.gyroAvailable;
             case GLFMSensorRotationMatrix:
-                return vc.motionManager.deviceMotionAvailable;
+                return (vc.motionManager.deviceMotionAvailable &&
+                        ([CMMotionManager availableAttitudeReferenceFrames] & CMAttitudeReferenceFrameXMagneticNorthZVertical));
         }
     }
     return false;
