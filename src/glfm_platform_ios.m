@@ -204,15 +204,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 #pragma mark - GLFMOpenGLView
 
-@interface GLFMOpenGLView : UIView <GLFMView> {
-    GLint _drawableWidth;
-    GLint _drawableHeight;
-    GLuint _defaultFramebuffer;
-    GLuint _colorRenderbuffer;
-    GLuint _attachmentRenderbuffer;
-    GLuint _msaaFramebuffer;
-    GLuint _msaaRenderbuffer;
-}
+@interface GLFMOpenGLView : UIView <GLFMView>
 
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
 @property(nonatomic, assign) GLFMRenderingAPI renderingAPI;
@@ -228,7 +220,15 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 @end
 
-@implementation GLFMOpenGLView
+@implementation GLFMOpenGLView {
+    GLint _drawableWidth;
+    GLint _drawableHeight;
+    GLuint _defaultFramebuffer;
+    GLuint _colorRenderbuffer;
+    GLuint _attachmentRenderbuffer;
+    GLuint _msaaFramebuffer;
+    GLuint _msaaRenderbuffer;
+}
 
 @synthesize preRenderCallback = _preRenderCallback;
 @dynamic drawableWidth, drawableHeight, animating;
@@ -591,9 +591,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 #pragma mark - GLFMViewController
 
-@interface GLFMViewController : UIViewController<UIKeyInput, UITextInputTraits> {
-    const void *activeTouches[MAX_SIMULTANEOUS_TOUCHES];
-}
+@interface GLFMViewController : UIViewController<UIKeyInput, UITextInputTraits>
 
 #if GLFM_INCLUDE_METAL
 @property(nonatomic, strong) id<MTLDevice> metalDevice;
@@ -606,7 +604,9 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 @end
 
-@implementation GLFMViewController
+@implementation GLFMViewController {
+    const void *activeTouches[MAX_SIMULTANEOUS_TOUCHES];
+}
 
 - (id)init {
     if ((self = [super init])) {
@@ -1206,6 +1206,7 @@ void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
 }
 
 double glfmGetDisplayScale(GLFMDisplay *display) {
+    (void)display;
     return [UIScreen mainScreen].nativeScale;
 }
 
@@ -1276,10 +1277,13 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
 }
 
 bool glfmHasTouch(GLFMDisplay *display) {
+    (void)display;
     return true;
 }
 
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
+    (void)display;
+    (void)mouseCursor;
     // Do nothing
 }
 
