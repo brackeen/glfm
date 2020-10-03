@@ -30,7 +30,7 @@ source_group(include FILES ${GLFM_HEADERS})
 source_group(src FILES ${GLFM_SRC})
 
 if (CMAKE_C_COMPILER_ID MATCHES "Clang")
-    set_target_properties(glfm PROPERTIES COMPILE_FLAGS "-Weverything -Wwrite-strings -Wno-padded -Wno-covered-switch-default ${GLFM_COMPILE_FLAGS}")
+    set_target_properties(glfm PROPERTIES COMPILE_FLAGS "-Weverything -Wwrite-strings -Wno-padded -Wno-covered-switch-default -Wno-auto-import ${GLFM_COMPILE_FLAGS}")
 elseif (CMAKE_C_COMPILER_ID MATCHES "GNU")
     set_target_properties(glfm PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Wwrite-strings ${GLFM_COMPILE_FLAGS}")
 elseif (CMAKE_C_COMPILER_ID MATCHES "MSVC")
@@ -47,7 +47,6 @@ if (CMAKE_SYSTEM_NAME MATCHES "Android")
     set_target_properties(glfm PROPERTIES
         C_STANDARD 99)
 elseif (IOS)
-    target_link_libraries(glfm "-framework Foundation -framework CoreGraphics -framework UIKit -framework OpenGLES -framework QuartzCore -framework Metal -framework MetalKit -framework CoreMotion")
     target_compile_definitions(glfm PRIVATE GLES_SILENCE_DEPRECATION)
     set_target_properties(glfm PROPERTIES
         ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/GLFM.build/lib # For Archiving
@@ -55,6 +54,7 @@ elseif (IOS)
         XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 9.0
         XCODE_ATTRIBUTE_TVOS_DEPLOYMENT_TARGET 9.0
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
+        XCODE_ATTRIBUTE_CLANG_ENABLE_MODULES YES # Automatically import frameworks
     )
 endif()
 

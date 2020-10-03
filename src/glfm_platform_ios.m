@@ -27,7 +27,9 @@
 #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
 
 #import <UIKit/UIKit.h>
+#if TARGET_OS_IOS
 #import <CoreMotion/CoreMotion.h>
+#endif
 #if GLFM_INCLUDE_METAL
 #import <MetalKit/MetalKit.h>
 #endif
@@ -596,7 +598,9 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 #if GLFM_INCLUDE_METAL
 @property(nonatomic, strong) id<MTLDevice> metalDevice;
 #endif
+#if TARGET_OS_IOS
 @property(nonatomic, strong) CMMotionManager *motionManager;
+#endif
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
 @property(nonatomic, assign) BOOL multipleTouchEnabled;
 @property(nonatomic, assign) BOOL keyboardRequested;
@@ -626,6 +630,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 }
 #endif
 
+#if TARGET_OS_IOS
 - (BOOL)prefersStatusBarHidden {
     return _glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
 }
@@ -633,6 +638,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 - (UIRectEdge)preferredScreenEdgesDeferringSystemGestures {
     return _glfmDisplay->uiChrome == GLFMUserInterfaceChromeFullscreen ? UIRectEdgeBottom : UIRectEdgeNone;
 }
+#endif
 
 - (UIView<GLFMView> *)glfmView {
     return (UIView<GLFMView> *)self.view;
@@ -661,7 +667,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     }
     GLFM_WEAK __typeof(self) weakSelf = self;
     glfmView.preRenderCallback = ^{
-        [weakSelf handleMotionEvents];
+        [weakSelf preRenderCallback];
     };
     self.view = glfmView;
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
@@ -684,6 +690,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 #endif
 }
 
+#if TARGET_OS_IOS
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
     BOOL isTablet = [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad;
     GLFMUserInterfaceOrientation uiOrientations = _glfmDisplay->allowedOrientations;
@@ -704,6 +711,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         return UIInterfaceOrientationMaskLandscape;
     }
 }
+#endif
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
@@ -711,6 +719,14 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         _glfmDisplay->lowMemoryFunc(_glfmDisplay);
     }
 }
+
+- (void)preRenderCallback {
+#if TARGET_OS_IOS
+    [self handleMotionEvents];
+#endif
+}
+
+#if TARGET_OS_IOS
 
 - (CMMotionManager *)motionManager {
     if (!_motionManager) {
@@ -806,6 +822,8 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         [self.motionManager stopDeviceMotionUpdates];
     }
 }
+
+#endif
 
 - (void)dealloc {
     if (_glfmDisplay->surfaceDestroyedFunc) {
@@ -1100,9 +1118,11 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
             }
             vc.glfmView.animating = active;
         }
+#if TARGET_OS_IOS
         if (vc.isMotionManagerLoaded) {
             [vc updateMotionManagerActiveState];
         }
+#endif
         [vc clearTouches];
     }
 }
@@ -1288,15 +1308,18 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
 }
 
 void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
-    if (display) {
 #if TARGET_OS_IOS
+    if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         vc.multipleTouchEnabled = (BOOL)multitouchEnabled;
         if (vc.isViewLoaded) {
             vc.view.multipleTouchEnabled = (BOOL)multitouchEnabled;
         }
-#endif
     }
+#else
+    (void)display;
+    (void)multitouchEnabled;
+#endif
 }
 
 bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
@@ -1330,6 +1353,7 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
 }
 
 bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
+#if TARGET_OS_IOS
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         switch (sensor) {
@@ -1345,13 +1369,22 @@ bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
         }
     }
     return false;
+#else
+    (void)display;
+    (void)sensor;
+    return false;
+#endif
 }
 
 void _glfmSensorFuncUpdated(GLFMDisplay *display) {
+#if TARGET_OS_IOS
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         [vc updateMotionManagerActiveState];
     }
+#else
+    (void)display;
+#endif
 }
 
 // MARK: Platform-specific functions
