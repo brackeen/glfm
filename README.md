@@ -11,6 +11,7 @@ Additionally, GLFM provides Metal support on iOS and tvOS.
 * OpenGL ES 2, OpenGL ES 3, and Metal display setup.
 * Retina / high-DPI support.
 * Touch and keyboard events.
+* Accelerometer, magnetometer, gyroscope, and device rotation (iOS/Android only)
 * Events for application state and context loss.
 
 ## Non-goals
@@ -147,7 +148,7 @@ mkdir -p build/emscripten && cd build/emscripten
 cmake -DGLFM_BUILD_EXAMPLE=ON -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN_ROOT_PATH/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../..
 cmake --build .
 ```
-If you're opening files locally in Chrome, you may need to [enable local file access](http://stackoverflow.com/a/18587027). Instead, you could use Firefox, which doesn't have this restriction.
+If you're opening files locally in Chrome, you may need to [enable local file access](http://stackoverflow.com/a/18587027).
 
 ### Android Studio
 There is no CMake generator for Android Studio projects, but you can include `CMakeLists.txt` in a new or existing project.
@@ -218,10 +219,6 @@ android {
     }
 }
 ```
-
-## Future ideas
-* Accelerometer and gyroscope input.
-* Gamepad / MFi controller input.
 
 ## Caveats
 * OpenGL ES 3.1 and 3.2 support is only available in Android.
