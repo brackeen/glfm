@@ -25,6 +25,13 @@ GLFM is limited in scope, and isn't designed to provide everything needed for an
 
 Instead, GLFM can be used with other cross-platform libraries that provide what an app needs.
 
+## Use GLFM
+A `CMakeLists.txt` file is provided for convenience, although CMake is not required.
+
+Without CMake:
+1. Add the GLFM source files (in `include` and `src`) to your project.
+2. Include a `void glfmMain(GLFMDisplay *display)` function in a C/C++ file.
+
 ## Example
 This example initializes the display in `glfmMain()` and draws a triangle in `onFrame()`. A more detailed example is available [here](example/src/main.c).
 
@@ -120,18 +127,9 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
 ## API
 See [glfm.h](include/glfm.h)
 
-## Use GLFM in an existing project
+## Build the GLFM examples with Xcode 12
 
-1. Remove the project's existing `void main()` function, if any.
-2. Add the GLFM source files (in `include` and `src`).
-3. Include a `void glfmMain(GLFMDisplay *display)` function in a C/C++ file.
-
-## Build the example GLFM projects
-Use the `CMakeLists.txt` file with the `-DGLFM_BUILD_EXAMPLE=ON` option to build the example projects.
-
-### Xcode
-
-Xcode 12 requires CMake 3.18
+Requires CMake 3.18.
 
 ```Shell
 mkdir -p build/ios && cd build/ios && cmake -DGLFM_BUILD_EXAMPLE=ON -G Xcode ../..
@@ -139,9 +137,7 @@ open GLFM.xcodeproj
 ```
 Switch to the `glfm_example` target and run on the simulator or a device.
 
-By default, Metal support is included, which requires linking to the Metal and MetalKit modules. If you do not need Metal support, add `GLFM_INCLUDE_METAL=0` to the "Preprocessor Macros" section of your project's Build Settings.
-
-### Emscripten
+## Build the GLFM examples with Emscripten
 Assuming `EMSCRIPTEN_ROOT_PATH` points to active installed version of Emscripten.
 ```Shell
 mkdir -p build/emscripten && cd build/emscripten
@@ -150,7 +146,7 @@ cmake --build .
 ```
 If you're opening files locally in Chrome, you may need to [enable local file access](http://stackoverflow.com/a/18587027).
 
-### Android Studio
+## Build the GLFM examples with Android Studio 4
 There is no CMake generator for Android Studio projects, but you can include `CMakeLists.txt` in a new or existing project.
 
 For a new project, create a "No Activity" project.
