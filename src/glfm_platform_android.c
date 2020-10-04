@@ -42,26 +42,32 @@
 
 // MARK: Time utils
 
-static struct timespec _glfmTimeNow() {
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t);
-    return t;
-}
+static double _glfmGetTime() {
+    enum ClockSource {
+        CLOCK_SOURCE_UNINITIALIZED,
+        CLOCK_SOURCE_MONOTONIC_RAW,
+        CLOCK_SOURCE_WALL_TIME,
+    };
+    static enum ClockSource clockSource = CLOCK_SOURCE_UNINITIALIZED;
+    struct timespec time;
+    struct timeval timeOfDay;
 
-static double _glfmTimeSeconds(struct timespec t) {
-    return t.tv_sec + (double)t.tv_nsec / 1e9;
-}
-
-static struct timespec _glfmTimeSubstract(struct timespec a, struct timespec b) {
-    struct timespec result;
-    if (b.tv_nsec > a.tv_nsec) {
-        result.tv_sec = a.tv_sec - b.tv_sec - 1;
-        result.tv_nsec = 1000000000 - b.tv_nsec + a.tv_nsec;
+    if (clockSource == CLOCK_SOURCE_MONOTONIC_RAW) {
+        clock_gettime(CLOCK_MONOTONIC_RAW, &time);
+        return time.tv_sec + (double) time.tv_nsec / 1e9;
+    } else if (clockSource == CLOCK_SOURCE_WALL_TIME) {
+        gettimeofday(&timeOfDay, NULL);
+        return timeOfDay.tv_sec + (double) timeOfDay.tv_usec / 1e6;
     } else {
-        result.tv_sec = a.tv_sec - b.tv_sec;
-        result.tv_nsec = a.tv_nsec - b.tv_nsec;
+        if (clock_gettime(CLOCK_MONOTONIC_RAW, &time) == 0) {
+            clockSource = CLOCK_SOURCE_MONOTONIC_RAW;
+            return time.tv_sec + (double) time.tv_nsec / 1e9;
+        } else {
+            clockSource = CLOCK_SOURCE_WALL_TIME;
+            gettimeofday(&timeOfDay, NULL);
+            return timeOfDay.tv_sec + (double) timeOfDay.tv_usec / 1e6;
+        }
     }
-    return result;
 }
 
 // MARK: Platform data (global singleton)
@@ -81,7 +87,6 @@ typedef struct {
     ARect keyboardFrame;
     bool keyboardVisible;
 
-    struct timespec initTime;
     bool animating;
     bool hasInited;
 
@@ -795,9 +800,7 @@ static void _glfmDrawFrame(GLFMPlatformData *platformData) {
 
     // Tick and draw
     if (platformData->display && platformData->display->mainLoopFunc) {
-        const double frameTime = _glfmTimeSeconds(
-                _glfmTimeSubstract(_glfmTimeNow(), platformData->initTime));
-        platformData->display->mainLoopFunc(platformData->display, frameTime);
+        platformData->display->mainLoopFunc(platformData->display, _glfmGetTime());
     } else {
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -904,14 +907,10 @@ static void _glfmUpdateKeyboardVisibility(GLFMPlatformData *platformData) {
 
 static void _glfmSetAnimating(GLFMPlatformData *platformData, bool animating) {
     if (platformData->animating != animating) {
-        bool sendAppEvent = true;
+        platformData->animating = animating;
         if (!platformData->hasInited && animating) {
             platformData->hasInited = true;
-            platformData->initTime = _glfmTimeNow();
-            sendAppEvent = false;
-        }
-        platformData->animating = animating;
-        if (sendAppEvent && platformData->display && platformData->display->focusFunc) {
+        } else if (platformData->display && platformData->display->focusFunc) {
             platformData->display->focusFunc(platformData->display, animating);
         }
         _glfmSetAllRequestedSensorsEnabled(platformData->display, animating);
