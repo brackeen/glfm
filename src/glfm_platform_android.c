@@ -48,6 +48,7 @@
 #define SENSOR_UPDATE_INTERVAL_MICROS ((int)(0.01 * 1000000))
 
 static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
+static void _glfmReportOrientationChangeIfNeeded(GLFMDisplay *display);
 
 typedef struct {
     struct android_app *app;
@@ -77,6 +78,8 @@ typedef struct {
     GLFMSensorEvent sensorEvent[GLFM_NUM_SENSORS];
     bool sensorEventValid[GLFM_NUM_SENSORS];
     bool deviceSensorEnabled[GLFM_NUM_SENSORS];
+
+    GLFMInterfaceOrientation orientation;
 
     JNIEnv *jniEnv;
 } GLFMPlatformData;
@@ -763,6 +766,7 @@ static void _glfmDrawFrame(GLFMPlatformData *platformData) {
         LOG_LIFECYCLE("Resize: %i x %i", width, height);
         platformData->width = width;
         platformData->height = height;
+        _glfmReportOrientationChangeIfNeeded(platformData->display);
         if (platformData->display && platformData->display->surfaceResizedFunc) {
             platformData->display->surfaceResizedFunc(platformData->display, width, height);
         }
@@ -938,6 +942,7 @@ static void _glfmOnAppCmd(struct android_app *app, int32_t cmd) {
             _glfmResetContentRect(platformData);
             pthread_cond_broadcast(&app->cond);
             pthread_mutex_unlock(&app->mutex);
+            _glfmReportOrientationChangeIfNeeded(platformData->display);
             _glfmUpdateKeyboardVisibility(platformData);
             break;
         }
@@ -1212,6 +1217,7 @@ void android_main(struct android_app *app) {
         platformData->display->platformData = platformData;
         platformData->display->supportedOrientations = GLFMInterfaceOrientationAll;
         platformData->display->swapBehavior = GLFMSwapBehaviorPlatformDefault;
+        platformData->orientation = glfmGetInterfaceOrientation(platformData->display);
         glfmMain(platformData->display);
     }
 
@@ -1412,6 +1418,17 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
         display->supportedOrientations = supportedOrientations;
         GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
         _glfmSetOrientation(platformData->app);
+    }
+}
+
+static void _glfmReportOrientationChangeIfNeeded(GLFMDisplay *display) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    GLFMInterfaceOrientation orientation = glfmGetInterfaceOrientation(display);
+    if (platformData->orientation != orientation) {
+        platformData->orientation = orientation;
+        if (display->orientationChangedFunc) {
+            display->orientationChangedFunc(display, orientation);
+        }
     }
 }
 

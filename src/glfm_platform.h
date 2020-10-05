@@ -54,6 +54,7 @@ struct GLFMDisplay {
     GLFMSurfaceResizedFunc surfaceResizedFunc;
     GLFMSurfaceDestroyedFunc surfaceDestroyedFunc;
     GLFMKeyboardVisibilityChangedFunc keyboardVisibilityChangedFunc;
+    GLFMOrientationChangedFunc orientationChangedFunc;
     GLFMMemoryWarningFunc lowMemoryFunc;
     GLFMAppFocusFunc focusFunc;
     GLFMSensorFunc sensorFuncs[GLFM_NUM_SENSORS];
@@ -174,6 +175,16 @@ GLFMKeyboardVisibilityChangedFunc glfmSetKeyboardVisibilityChangedFunc(GLFMDispl
     if (display) {
         previous = display->keyboardVisibilityChangedFunc;
         display->keyboardVisibilityChangedFunc = func;
+    }
+    return previous;
+}
+
+GLFMOrientationChangedFunc glfmSetOrientationChangedFunc(GLFMDisplay *display,
+                                                         GLFMOrientationChangedFunc func) {
+    GLFMOrientationChangedFunc previous = NULL;
+    if (display) {
+        previous = display->orientationChangedFunc;
+        display->orientationChangedFunc = func;
     }
     return previous;
 }

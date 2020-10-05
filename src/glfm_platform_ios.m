@@ -595,16 +595,17 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 @interface GLFMViewController : UIViewController<UIKeyInput, UITextInputTraits>
 
+@property(nonatomic, assign) GLFMDisplay *glfmDisplay;
+@property(nonatomic, assign) BOOL multipleTouchEnabled;
+@property(nonatomic, assign) BOOL keyboardRequested;
+@property(nonatomic, assign) BOOL keyboardVisible;
 #if GLFM_INCLUDE_METAL
 @property(nonatomic, strong) id<MTLDevice> metalDevice;
 #endif
 #if TARGET_OS_IOS
 @property(nonatomic, strong) CMMotionManager *motionManager;
+@property(nonatomic, assign) UIInterfaceOrientation orientation;
 #endif
-@property(nonatomic, assign) GLFMDisplay *glfmDisplay;
-@property(nonatomic, assign) BOOL multipleTouchEnabled;
-@property(nonatomic, assign) BOOL keyboardRequested;
-@property(nonatomic, assign) BOOL keyboardVisible;
 
 @end
 
@@ -682,16 +683,22 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     
 #if TARGET_OS_IOS
     self.view.multipleTouchEnabled = self.multipleTouchEnabled;
+    self.orientation = [[UIApplication sharedApplication] statusBarOrientation];
 
     [self setNeedsStatusBarAppearanceUpdate];
 
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(keyboardFrameChanged:)
                                                name:UIKeyboardWillChangeFrameNotification
                                              object:self.view.window];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(deviceOrientationChanged:)
+                                               name:UIDeviceOrientationDidChangeNotification
+                                             object:self.view.window];
 #endif
 }
 
 #if TARGET_OS_IOS
+
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
     GLFMInterfaceOrientation orientations = _glfmDisplay->supportedOrientations;
     BOOL portraitRequested = (orientations & (GLFMInterfaceOrientationPortrait | GLFMInterfaceOrientationPortraitUpsideDown));
@@ -714,6 +721,18 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         }
     }
 }
+
+- (void)deviceOrientationChanged:(NSNotification *)notification {
+    UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
+    if (self.orientation != orientation) {
+        self.orientation = orientation;
+        if (_glfmDisplay->orientationChangedFunc) {
+            _glfmDisplay->orientationChangedFunc(_glfmDisplay,
+                                                 glfmGetInterfaceOrientation(_glfmDisplay));
+        }
+    }
+}
+
 #endif
 
 - (void)didReceiveMemoryWarning {
@@ -1200,6 +1219,7 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
 }
 
 GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
+#if TARGET_OS_IOS
     UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
     switch (orientation) {
         case UIInterfaceOrientationPortrait:
@@ -1213,6 +1233,9 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
         case UIInterfaceOrientationUnknown: default:
             return GLFMInterfaceOrientationUnknown;
     }
+#else
+    return GLFMInterfaceOrientationUnknown;
+#endif
 }
 
 static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor, int *width, int *height) {

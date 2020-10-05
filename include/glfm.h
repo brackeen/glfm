@@ -260,6 +260,9 @@ typedef void (*GLFMCharFunc)(GLFMDisplay *display, const char *utf8, int modifie
 typedef void (*GLFMKeyboardVisibilityChangedFunc)(GLFMDisplay *display, bool visible,
                                                   double x, double y, double width, double height);
 
+typedef void (*GLFMOrientationChangedFunc)(GLFMDisplay *display,
+                                           GLFMInterfaceOrientation orientation);
+
 /// Callback when the surface could not be created.
 typedef void (*GLFMSurfaceErrorFunc)(GLFMDisplay *display, const char *message);
 
@@ -429,6 +432,9 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display);
 GLFMKeyboardVisibilityChangedFunc
 glfmSetKeyboardVisibilityChangedFunc(GLFMDisplay *display,
                                      GLFMKeyboardVisibilityChangedFunc visibilityChangedFunc);
+
+GLFMOrientationChangedFunc glfmSetOrientationChangedFunc(GLFMDisplay *display,
+                                                         GLFMOrientationChangedFunc orientationChangedFunc);
 
 /// Sets the function to call when a mouse or touch event occurs.
 GLFMTouchFunc glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc);

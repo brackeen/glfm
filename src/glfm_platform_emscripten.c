@@ -51,6 +51,8 @@ typedef struct {
 
     bool active;
     bool isFullscreen;
+    
+    GLFMInterfaceOrientation orientation;
 } GLFMPlatformData;
 
 static void _glfmClearActiveTouches(GLFMPlatformData *platformData);
@@ -352,6 +354,23 @@ static EM_BOOL _glfmVisibilityChangeCallback(int eventType,
     return 1;
 }
 
+static EM_BOOL _glfmOrientationChangeCallback(int eventType,
+                                              const EmscriptenDeviceOrientationEvent *deviceOrientationEvent,
+                                              void *userData) {
+    (void)eventType;
+    (void)deviceOrientationEvent;
+    GLFMDisplay *display = userData;
+    GLFMPlatformData *platformData = display->platformData;
+    GLFMInterfaceOrientation orientation = glfmGetInterfaceOrientation(display);
+    if (platformData->orientation != orientation) {
+        platformData->orientation = orientation;
+        if (display->orientationChangedFunc) {
+            display->orientationChangedFunc(display, orientation);
+        }
+    }
+    return 1;
+}
+
 static EM_BOOL _glfmKeyCallback(int eventType, const EmscriptenKeyboardEvent *e, void *userData) {
     GLFMDisplay *display = userData;
     if (eventType == EMSCRIPTEN_EVENT_KEYPRESS) {
@@ -518,6 +537,7 @@ int main() {
     GLFMPlatformData *platformData = calloc(1, sizeof(GLFMPlatformData));
     glfmDisplay->platformData = platformData;
     glfmDisplay->supportedOrientations = GLFMInterfaceOrientationAll;
+    platformData->orientation = glfmGetInterfaceOrientation(glfmDisplay);
     platformData->active = true;
     _glfmClearActiveTouches(platformData);
 
@@ -595,6 +615,7 @@ int main() {
     emscripten_set_webglcontextlost_callback(0, glfmDisplay, 1, _glfmWebGLContextCallback);
     emscripten_set_webglcontextrestored_callback(0, glfmDisplay, 1, _glfmWebGLContextCallback);
     emscripten_set_visibilitychange_callback(glfmDisplay, 1, _glfmVisibilityChangeCallback);
+    emscripten_set_deviceorientation_callback(glfmDisplay, 1, _glfmOrientationChangeCallback);
     return 0;
 }
 
