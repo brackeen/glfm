@@ -40,33 +40,6 @@
 //#define LOG_LIFECYCLE(...) __android_log_print(ANDROID_LOG_INFO, "GLFM", __VA_ARGS__)
 #define LOG_LIFECYCLE(...) do { } while (0)
 
-// MARK: Time utils
-
-static double _glfmGetTime() {
-    static int clockID;
-    static time_t initTime;
-    static bool initialized = false;
-
-    struct timespec time;
-
-    if (!initialized) {
-        if (clock_gettime(CLOCK_MONOTONIC_RAW, &time) == 0) {
-            clockID = CLOCK_MONOTONIC_RAW;
-        } else if (clock_gettime(CLOCK_MONOTONIC, &time) == 0) {
-            clockID = CLOCK_MONOTONIC;
-        } else {
-            clock_gettime(CLOCK_REALTIME, &time);
-            clockID = CLOCK_REALTIME;
-        }
-        initTime = time.tv_sec;
-        initialized = true;
-    } else {
-        clock_gettime(clockID, &time);
-    }
-    // Subtract by initTime to ensure that conversion to double keeps nanosecond accuracy
-    return (time.tv_sec - initTime) + (double)time.tv_nsec / 1e9;
-}
-
 // MARK: Platform data (global singleton)
 
 #define MAX_SIMULTANEOUS_TOUCHES 5
@@ -797,7 +770,7 @@ static void _glfmDrawFrame(GLFMPlatformData *platformData) {
 
     // Tick and draw
     if (platformData->display && platformData->display->mainLoopFunc) {
-        platformData->display->mainLoopFunc(platformData->display, _glfmGetTime());
+        platformData->display->mainLoopFunc(platformData->display, glfmGetTime());
     } else {
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -1407,6 +1380,31 @@ void android_main(struct android_app *app) {
 }
 
 // MARK: GLFM implementation
+
+double glfmGetTime() {
+    static int clockID;
+    static time_t initTime;
+    static bool initialized = false;
+
+    struct timespec time;
+
+    if (!initialized) {
+        if (clock_gettime(CLOCK_MONOTONIC_RAW, &time) == 0) {
+            clockID = CLOCK_MONOTONIC_RAW;
+        } else if (clock_gettime(CLOCK_MONOTONIC, &time) == 0) {
+            clockID = CLOCK_MONOTONIC;
+        } else {
+            clock_gettime(CLOCK_REALTIME, &time);
+            clockID = CLOCK_REALTIME;
+        }
+        initTime = time.tv_sec;
+        initialized = true;
+    } else {
+        clock_gettime(clockID, &time);
+    }
+    // Subtract by initTime to ensure that conversion to double keeps nanosecond accuracy
+    return (time.tv_sec - initTime) + (double)time.tv_nsec / 1e9;
+}
 
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
                                      GLFMUserInterfaceOrientation allowedOrientations) {

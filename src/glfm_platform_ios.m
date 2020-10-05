@@ -1166,6 +1166,10 @@ int main(int argc, char *argv[]) {
 
 #pragma mark - GLFM implementation
 
+double glfmGetTime() {
+    return CACurrentMediaTime();
+}
+
 GLFMProc glfmGetProcAddress(const char *functionName) {
     static void *handle = NULL;
     if (!handle) {

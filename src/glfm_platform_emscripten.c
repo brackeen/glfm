@@ -57,6 +57,10 @@ static void _glfmClearActiveTouches(GLFMPlatformData *platformData);
 
 // MARK: GLFM implementation
 
+double glfmGetTime() {
+    return emscripten_get_now() / 1000.0;
+}
+
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
                                      GLFMUserInterfaceOrientation allowedOrientations) {
     if (display->allowedOrientations != allowedOrientations) {

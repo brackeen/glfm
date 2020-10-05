@@ -338,6 +338,10 @@ bool glfmExtensionSupported(const char *extension);
 /// Gets the address of the specified function.
 GLFMProc glfmGetProcAddress(const char *functionName);
 
+/// Gets the value of the highest precision time available, in seconds.
+/// The time should not be considered related to wall-clock time.
+double glfmGetTime(void);
+
 // MARK: - Callback functions
 
 /// Sets the function to call before each frame is displayed.
