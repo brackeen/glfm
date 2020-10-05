@@ -43,31 +43,28 @@
 // MARK: Time utils
 
 static double _glfmGetTime() {
-    enum ClockSource {
-        CLOCK_SOURCE_UNINITIALIZED,
-        CLOCK_SOURCE_MONOTONIC_RAW,
-        CLOCK_SOURCE_WALL_TIME,
-    };
-    static enum ClockSource clockSource = CLOCK_SOURCE_UNINITIALIZED;
-    struct timespec time;
-    struct timeval timeOfDay;
+    static int clockID;
+    static time_t initTime;
+    static bool initialized = false;
 
-    if (clockSource == CLOCK_SOURCE_MONOTONIC_RAW) {
-        clock_gettime(CLOCK_MONOTONIC_RAW, &time);
-        return time.tv_sec + (double) time.tv_nsec / 1e9;
-    } else if (clockSource == CLOCK_SOURCE_WALL_TIME) {
-        gettimeofday(&timeOfDay, NULL);
-        return timeOfDay.tv_sec + (double) timeOfDay.tv_usec / 1e6;
-    } else {
+    struct timespec time;
+
+    if (!initialized) {
         if (clock_gettime(CLOCK_MONOTONIC_RAW, &time) == 0) {
-            clockSource = CLOCK_SOURCE_MONOTONIC_RAW;
-            return time.tv_sec + (double) time.tv_nsec / 1e9;
+            clockID = CLOCK_MONOTONIC_RAW;
+        } else if (clock_gettime(CLOCK_MONOTONIC, &time) == 0) {
+            clockID = CLOCK_MONOTONIC;
         } else {
-            clockSource = CLOCK_SOURCE_WALL_TIME;
-            gettimeofday(&timeOfDay, NULL);
-            return timeOfDay.tv_sec + (double) timeOfDay.tv_usec / 1e6;
+            clock_gettime(CLOCK_REALTIME, &time);
+            clockID = CLOCK_REALTIME;
         }
+        initTime = time.tv_sec;
+        initialized = true;
+    } else {
+        clock_gettime(clockID, &time);
     }
+    // Subtract by initTime to ensure that conversion to double keeps nanosecond accuracy
+    return (time.tv_sec - initTime) + (double)time.tv_nsec / 1e9;
 }
 
 // MARK: Platform data (global singleton)
