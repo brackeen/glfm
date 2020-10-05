@@ -175,9 +175,9 @@ typedef enum {
 } GLFMInterfaceOrientation;
 
 typedef enum {
-    GLFMUserInterfaceOrientationAny = GLFMInterfaceOrientationAll,
-    GLFMUserInterfaceOrientationPortrait = GLFMInterfaceOrientationPortrait,
-    GLFMUserInterfaceOrientationLandscape = GLFMInterfaceOrientationLandscape,
+    GLFMUserInterfaceOrientationAny GLFM_DEPRECATED = GLFMInterfaceOrientationAll,
+    GLFMUserInterfaceOrientationPortrait GLFM_DEPRECATED = GLFMInterfaceOrientationPortrait,
+    GLFMUserInterfaceOrientationLandscape GLFM_DEPRECATED = GLFMInterfaceOrientationLandscape,
 } GLFMUserInterfaceOrientation GLFM_DEPRECATED;
 
 typedef enum {
@@ -327,13 +327,18 @@ GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *displa
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
                                      GLFMUserInterfaceOrientation supportedOrientations) GLFM_DEPRECATED;
 
-/// Returns the supported user interface orientations
+/// Returns the supported user interface orientations. Default is GLFMInterfaceOrientationAll.
+/// Actualy support may be limited by the device or platform.
 GLFMInterfaceOrientation glfmGetSupportedInterfaceOrientation(GLFMDisplay *display);
 
-/// Sets the supported user interface orientations
+/// Sets the supported user interface orientations. Typical values are GLFMInterfaceOrientationAll,
+/// GLFMInterfaceOrientationPortrait, or GLFMInterfaceOrientationLandscape.
+/// Actualy support may be limited by the device or platform.
 void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOrientation supportedOrientations);
 
-/// Gets the current user interface orientation
+/// Gets the current user interface orientation. Returns either GLFMInterfaceOrientationPortrait,
+/// GLFMInterfaceOrientationPortraitUpsideDown, GLFMInterfaceOrientationLandscapeRight,
+/// GLFMInterfaceOrientationLandscapeLeft, or GLFMInterfaceOrientationUnknown.
 GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display);
 
 /// Gets the display size, in pixels.
