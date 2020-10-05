@@ -8,6 +8,7 @@
 typedef struct {
     Renderer *renderer;
     Texture texture;
+    bool textureNeedsUpdate;
 } TestPatternApp;
 
 static Texture createTestPatternTexture(GLFMDisplay *display, uint32_t width, uint32_t height) {
@@ -74,13 +75,17 @@ static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
         app->renderer = createRendererGLES2();
         printf("Hello from GLES2!\n");
     }
-    app->texture = createTestPatternTexture(display, width, height);
+    app->textureNeedsUpdate = true;
 }
 
 static void onSurfaceResized(GLFMDisplay *display, int width, int height) {
     TestPatternApp *app = glfmGetUserData(display);
-    app->renderer->textureDestroy(app->renderer, app->texture);
-    app->texture = createTestPatternTexture(display, width, height);
+    app->textureNeedsUpdate = true;
+}
+
+static void onOrientationChange(GLFMDisplay *display, GLFMInterfaceOrientation orientation) {
+    TestPatternApp *app = glfmGetUserData(display);
+    app->textureNeedsUpdate = true; // Insets may have changed
 }
 
 static void onSurfaceDestroyed(GLFMDisplay *display) {
@@ -96,6 +101,16 @@ static void onFrame(GLFMDisplay *display, double frameTime) {
     
     int width, height;
     glfmGetDisplaySize(display, &width, &height);
+
+    if (app->textureNeedsUpdate && app->texture != NULL_TEXTURE) {
+        app->renderer->textureDestroy(app->renderer, app->texture);
+        app->texture = NULL_TEXTURE;
+    }
+    if (app->texture == NULL_TEXTURE) {
+        app->texture = createTestPatternTexture(display, width, height);
+        app->textureNeedsUpdate = false;
+    }
+
     app->renderer->drawFrameStart(app->renderer, width, height);
     
     const Vertex vertices[4] = {
@@ -124,5 +139,6 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
     glfmSetSurfaceResizedFunc(display, onSurfaceResized);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
+    glfmSetOrientationChangedFunc(display, onOrientationChange);
     glfmSetMainLoopFunc(display, onFrame);
 }
