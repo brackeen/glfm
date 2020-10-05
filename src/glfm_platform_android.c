@@ -46,9 +46,11 @@
 #define LOOPER_ID_SENSOR_EVENT_QUEUE 0xdb2a20
 // Same as iOS
 #define SENSOR_UPDATE_INTERVAL_MICROS ((int)(0.01 * 1000000))
+#define RESIZE_EVENT_MAX_WAIT_FRAMES 5
 
 static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
 static void _glfmReportOrientationChangeIfNeeded(GLFMDisplay *display);
+static void _glfmUpdateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force);
 
 typedef struct {
     struct android_app *app;
@@ -70,6 +72,7 @@ typedef struct {
     int32_t width;
     int32_t height;
     double scale;
+    int resizeEventWaitFrames;
 
     GLFMDisplay *display;
     GLFMRenderingAPI renderingAPI;
@@ -758,19 +761,7 @@ static void _glfmDrawFrame(GLFMPlatformData *platformData) {
     }
 
     // Check for resize (or rotate)
-    int32_t width;
-    int32_t height;
-    eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_WIDTH, &width);
-    eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_HEIGHT, &height);
-    if (width != platformData->width || height != platformData->height) {
-        LOG_LIFECYCLE("Resize: %i x %i", width, height);
-        platformData->width = width;
-        platformData->height = height;
-        _glfmReportOrientationChangeIfNeeded(platformData->display);
-        if (platformData->display && platformData->display->surfaceResizedFunc) {
-            platformData->display->surfaceResizedFunc(platformData->display, width, height);
-        }
-    }
+    _glfmUpdateSurfaceSizeIfNeeded(platformData->display, false);
 
     // Tick and draw
     if (platformData->display && platformData->display->mainLoopFunc) {
@@ -942,6 +933,7 @@ static void _glfmOnAppCmd(struct android_app *app, int32_t cmd) {
             _glfmResetContentRect(platformData);
             pthread_cond_broadcast(&app->cond);
             pthread_mutex_unlock(&app->mutex);
+            _glfmUpdateSurfaceSizeIfNeeded(platformData->display, true);
             _glfmReportOrientationChangeIfNeeded(platformData->display);
             _glfmUpdateKeyboardVisibility(platformData);
             break;
@@ -1218,6 +1210,7 @@ void android_main(struct android_app *app) {
         platformData->display->supportedOrientations = GLFMInterfaceOrientationAll;
         platformData->display->swapBehavior = GLFMSwapBehaviorPlatformDefault;
         platformData->orientation = glfmGetInterfaceOrientation(platformData->display);
+        platformData->resizeEventWaitFrames = RESIZE_EVENT_MAX_WAIT_FRAMES;
         glfmMain(platformData->display);
     }
 
@@ -1418,6 +1411,29 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
         display->supportedOrientations = supportedOrientations;
         GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
         _glfmSetOrientation(platformData->app);
+    }
+}
+
+static void _glfmUpdateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    int32_t width;
+    int32_t height;
+    eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_WIDTH, &width);
+    eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_HEIGHT, &height);
+    if (width != platformData->width || height != platformData->height) {
+        if (force || platformData->resizeEventWaitFrames <= 0) {
+            LOG_LIFECYCLE("Resize: %i x %i", width, height);
+            platformData->resizeEventWaitFrames = RESIZE_EVENT_MAX_WAIT_FRAMES;
+            platformData->width = width;
+            platformData->height = height;
+            _glfmReportOrientationChangeIfNeeded(platformData->display);
+            if (platformData->display && platformData->display->surfaceResizedFunc) {
+                platformData->display->surfaceResizedFunc(platformData->display, width, height);
+            }
+        } else {
+            // Prefer to wait until after content rect changed, if possible
+            platformData->resizeEventWaitFrames--;
+        }
     }
 }
 
