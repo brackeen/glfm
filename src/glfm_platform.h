@@ -40,7 +40,7 @@ struct GLFMDisplay {
     GLFMDepthFormat depthFormat;
     GLFMStencilFormat stencilFormat;
     GLFMMultisample multisample;
-    GLFMUserInterfaceOrientation allowedOrientations;
+    GLFMInterfaceOrientation supportedOrientations;
     GLFMUserInterfaceChrome uiChrome;
     GLFMSwapBehavior swapBehavior;
 
@@ -95,8 +95,17 @@ void glfmSetDisplayConfig(GLFMDisplay *display,
     }
 }
 
+GLFMInterfaceOrientation glfmGetSupportedInterfaceOrientation(GLFMDisplay *display) {
+    return display ? display->supportedOrientations : GLFMInterfaceOrientationAll;
+}
+
 GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *display) {
-    return display ? display->allowedOrientations : GLFMUserInterfaceOrientationAny;
+    return (GLFMUserInterfaceOrientation)glfmGetSupportedInterfaceOrientation(display);
+}
+
+void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
+                                     GLFMUserInterfaceOrientation supportedOrientations) {
+    glfmSetSupportedInterfaceOrientation(display, (GLFMInterfaceOrientation)supportedOrientations);
 }
 
 void glfmSetUserData(GLFMDisplay *display, void *userData) {

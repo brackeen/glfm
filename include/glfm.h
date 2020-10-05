@@ -89,6 +89,12 @@
   #endif
 #endif
 
+#ifdef __GNUC__
+#define GLFM_DEPRECATED __attribute__ ((deprecated))
+#else
+#define GLFM_DEPRECATED
+#endif
+
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -152,10 +158,27 @@ typedef enum {
 } GLFMUserInterfaceChrome;
 
 typedef enum {
-    GLFMUserInterfaceOrientationAny,
-    GLFMUserInterfaceOrientationPortrait,
-    GLFMUserInterfaceOrientationLandscape,
-} GLFMUserInterfaceOrientation;
+    GLFMInterfaceOrientationUnknown = 0,
+    GLFMInterfaceOrientationPortrait = (1 << 0),
+    GLFMInterfaceOrientationPortraitUpsideDown = (1 << 1),
+    GLFMInterfaceOrientationLandscapeLeft = (1 << 2),
+    GLFMInterfaceOrientationLandscapeRight = (1 << 3),
+    GLFMInterfaceOrientationLandscape = (GLFMInterfaceOrientationLandscapeLeft |
+                                         GLFMInterfaceOrientationLandscapeRight),
+    GLFMInterfaceOrientationAll = (GLFMInterfaceOrientationPortrait |
+                                   GLFMInterfaceOrientationPortraitUpsideDown |
+                                   GLFMInterfaceOrientationLandscapeLeft |
+                                   GLFMInterfaceOrientationLandscapeRight),
+    GLFMInterfaceOrientationAllButUpsideDown = (GLFMInterfaceOrientationPortrait |
+                                                GLFMInterfaceOrientationLandscapeLeft |
+                                                GLFMInterfaceOrientationLandscapeRight),
+} GLFMInterfaceOrientation;
+
+typedef enum {
+    GLFMUserInterfaceOrientationAny = GLFMInterfaceOrientationAll,
+    GLFMUserInterfaceOrientationPortrait = GLFMInterfaceOrientationPortrait,
+    GLFMUserInterfaceOrientationLandscape = GLFMInterfaceOrientationLandscape,
+} GLFMUserInterfaceOrientation GLFM_DEPRECATED;
 
 typedef enum {
     GLFMTouchPhaseHover,
@@ -294,12 +317,21 @@ void glfmSetUserData(GLFMDisplay *display, void *userData);
 
 void *glfmGetUserData(GLFMDisplay *display);
 
-/// Sets the allowed user interface orientations
-void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
-                                     GLFMUserInterfaceOrientation allowedOrientations);
+/// Deprecated. Use glfmGetSupportedInterfaceOrientation
+GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *display) GLFM_DEPRECATED;
 
-/// Returns the allowed user interface orientations
-GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *display);
+/// Deprecated. Use glfmSetSupportedInterfaceOrientation
+void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
+                                     GLFMUserInterfaceOrientation supportedOrientations) GLFM_DEPRECATED;
+
+/// Returns the supported user interface orientations
+GLFMInterfaceOrientation glfmGetSupportedInterfaceOrientation(GLFMDisplay *display);
+
+/// Sets the supported user interface orientations
+void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOrientation supportedOrientations);
+
+/// Gets the current user interface orientation
+GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display);
 
 /// Gets the display size, in pixels.
 void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height);

@@ -617,6 +617,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         [self clearTouches];
         _glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         _glfmDisplay->platformData = (__bridge void *)self;
+        _glfmDisplay->supportedOrientations = GLFMInterfaceOrientationAll;
     }
     return self;
 }
@@ -692,23 +693,25 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 #if TARGET_OS_IOS
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    GLFMInterfaceOrientation orientations = _glfmDisplay->supportedOrientations;
+    BOOL portraitRequested = (orientations & (GLFMInterfaceOrientationPortrait | GLFMInterfaceOrientationPortraitUpsideDown));
+    BOOL landscapeRequested = (orientations & GLFMInterfaceOrientationLandscape);
     BOOL isTablet = [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad;
-    GLFMUserInterfaceOrientation uiOrientations = _glfmDisplay->allowedOrientations;
-    if (uiOrientations == GLFMUserInterfaceOrientationAny) {
+    if (portraitRequested && landscapeRequested) {
         if (isTablet) {
             return UIInterfaceOrientationMaskAll;
         } else {
             return UIInterfaceOrientationMaskAllButUpsideDown;
         }
-    } else if (uiOrientations == GLFMUserInterfaceOrientationPortrait) {
+    } else if (landscapeRequested) {
+        return UIInterfaceOrientationMaskLandscape;
+    } else {
         if (isTablet) {
             return (UIInterfaceOrientationMask)(UIInterfaceOrientationMaskPortrait |
                     UIInterfaceOrientationMaskPortraitUpsideDown);
         } else {
             return UIInterfaceOrientationMaskPortrait;
         }
-    } else {
-        return UIInterfaceOrientationMaskLandscape;
     }
 }
 #endif
@@ -1178,11 +1181,10 @@ GLFMProc glfmGetProcAddress(const char *functionName) {
     return handle ? (GLFMProc)dlsym(handle, functionName) : NULL;
 }
 
-void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
-                                     GLFMUserInterfaceOrientation allowedOrientations) {
+void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOrientation supportedOrientations) {
     if (display) {
-        if (display->allowedOrientations != allowedOrientations) {
-            display->allowedOrientations = allowedOrientations;
+        if (display->supportedOrientations != supportedOrientations) {
+            display->supportedOrientations = supportedOrientations;
 
             // HACK: Notify that the value of supportedInterfaceOrientations has changed
             GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
@@ -1194,6 +1196,22 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
                 }];
             }
         }
+    }
+}
+
+GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
+    UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
+    switch (orientation) {
+        case UIInterfaceOrientationPortrait:
+            return GLFMInterfaceOrientationPortrait;
+        case UIInterfaceOrientationPortraitUpsideDown:
+            return GLFMInterfaceOrientationPortraitUpsideDown;
+        case UIInterfaceOrientationLandscapeLeft:
+            return GLFMInterfaceOrientationLandscapeLeft;
+        case UIInterfaceOrientationLandscapeRight:
+            return GLFMInterfaceOrientationLandscapeRight;
+        case UIInterfaceOrientationUnknown: default:
+            return GLFMInterfaceOrientationUnknown;
     }
 }
 

@@ -148,18 +148,18 @@ static void _glfmSetOrientation(struct android_app *app) {
     static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT = 0x00000007;
 
     GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
+    GLFMInterfaceOrientation orientations = platformData->display->supportedOrientations;
+    bool portraitRequested = (
+            ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationPortrait) ||
+            ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationPortraitUpsideDown));
+    bool landscapeRequested = ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationLandscape);
     int orientation;
-    switch (platformData->display->allowedOrientations) {
-        case GLFMUserInterfaceOrientationPortrait:
-            orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT;
-            break;
-        case GLFMUserInterfaceOrientationLandscape:
-            orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
-            break;
-        case GLFMUserInterfaceOrientationAny:
-        default:
-            orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
-            break;
+    if (portraitRequested && landscapeRequested) {
+        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
+    } else if (landscapeRequested) {
+        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
+    } else {
+        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT;
     }
 
     JNIEnv *jni = platformData->jniEnv;
@@ -1210,6 +1210,7 @@ void android_main(struct android_app *app) {
         // This should call glfmInit()
         platformData->display = calloc(1, sizeof(GLFMDisplay));
         platformData->display->platformData = platformData;
+        platformData->display->supportedOrientations = GLFMInterfaceOrientationAll;
         platformData->display->swapBehavior = GLFMSwapBehaviorPlatformDefault;
         glfmMain(platformData->display);
     }
@@ -1406,12 +1407,54 @@ double glfmGetTime() {
     return (time.tv_sec - initTime) + (double)time.tv_nsec / 1e9;
 }
 
-void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
-                                     GLFMUserInterfaceOrientation allowedOrientations) {
-    if (display->allowedOrientations != allowedOrientations) {
-        display->allowedOrientations = allowedOrientations;
+void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOrientation supportedOrientations) {
+    if (display && display->supportedOrientations != supportedOrientations) {
+        display->supportedOrientations = supportedOrientations;
         GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
         _glfmSetOrientation(platformData->app);
+    }
+}
+
+GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
+    static const int Surface_ROTATION_0 = 0;
+    static const int Surface_ROTATION_90 = 1;
+    static const int Surface_ROTATION_180 = 2;
+    static const int Surface_ROTATION_270 = 3;
+
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    JNIEnv *jni = platformData->jniEnv;
+    jobject activity = platformData->app->activity->clazz;
+    _glfmClearJavaException()
+    jobject window = _glfmCallJavaMethod(jni, activity, "getWindow", "()Landroid/view/Window;", Object);
+    if (!window || _glfmWasJavaExceptionThrown()) {
+        return GLFMInterfaceOrientationUnknown;
+    }
+    jobject windowManager = _glfmCallJavaMethod(jni, window, "getWindowManager", "()Landroid/view/WindowManager;", Object);
+    (*jni)->DeleteLocalRef(jni, window);
+    if (!windowManager || _glfmWasJavaExceptionThrown()) {
+        return GLFMInterfaceOrientationUnknown;
+    }
+    jobject windowDisplay = _glfmCallJavaMethod(jni, windowManager, "getDefaultDisplay", "()Landroid/view/Display;", Object);
+    (*jni)->DeleteLocalRef(jni, windowManager);
+    if (!windowDisplay || _glfmWasJavaExceptionThrown()) {
+        return GLFMInterfaceOrientationUnknown;
+    }
+    int rotation = _glfmCallJavaMethod(jni, windowDisplay, "getRotation","()I", Int);
+    (*jni)->DeleteLocalRef(jni, windowDisplay);
+    if (_glfmWasJavaExceptionThrown()) {
+        return GLFMInterfaceOrientationUnknown;
+    }
+
+    if (rotation == Surface_ROTATION_0) {
+        return GLFMInterfaceOrientationPortrait;
+    } else if (rotation == Surface_ROTATION_90) {
+        return GLFMInterfaceOrientationLandscapeRight;
+    } else if (rotation == Surface_ROTATION_180) {
+        return GLFMInterfaceOrientationPortraitUpsideDown;
+    } else if (rotation == Surface_ROTATION_270) {
+        return GLFMInterfaceOrientationLandscapeLeft;
+    } else {
+        return GLFMInterfaceOrientationUnknown;
     }
 }
 

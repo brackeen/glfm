@@ -61,27 +61,55 @@ double glfmGetTime() {
     return emscripten_get_now() / 1000.0;
 }
 
-void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
-                                     GLFMUserInterfaceOrientation allowedOrientations) {
-    if (display->allowedOrientations != allowedOrientations) {
-        display->allowedOrientations = allowedOrientations;
+void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display,
+                                          GLFMInterfaceOrientation supportedOrientations) {
+    if (display->supportedOrientations != supportedOrientations) {
+        display->supportedOrientations = supportedOrientations;
 
-        // Lock orientation
-        // NOTE: I'm not sure this works anywhere yet
-        if (allowedOrientations == GLFMUserInterfaceOrientationPortrait) {
-            emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY |
-                                        EMSCRIPTEN_ORIENTATION_PORTRAIT_SECONDARY);
-        } else if (allowedOrientations == GLFMUserInterfaceOrientationLandscape) {
-            emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_LANDSCAPE_PRIMARY |
-                                        EMSCRIPTEN_ORIENTATION_LANDSCAPE_SECONDARY);
-        } else {
+        bool portraitRequested = (supportedOrientations & (GLFMInterfaceOrientationPortrait | GLFMInterfaceOrientationPortraitUpsideDown));
+        bool landscapeRequested = (supportedOrientations & GLFMInterfaceOrientationLandscape);
+        if (portraitRequested && landscapeRequested) {
             emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY |
                                         EMSCRIPTEN_ORIENTATION_PORTRAIT_SECONDARY |
                                         EMSCRIPTEN_ORIENTATION_LANDSCAPE_PRIMARY |
                                         EMSCRIPTEN_ORIENTATION_LANDSCAPE_SECONDARY);
+        } else if (landscapeRequested) {
+            emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_LANDSCAPE_PRIMARY |
+                                        EMSCRIPTEN_ORIENTATION_LANDSCAPE_SECONDARY);
+        } else {
+            emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY |
+                                        EMSCRIPTEN_ORIENTATION_PORTRAIT_SECONDARY);
         }
     }
 }
+
+GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
+    (void)display;
+    
+    EmscriptenOrientationChangeEvent orientationStatus;
+    emscripten_get_orientation_status(&orientationStatus);
+    int orientation = orientationStatus.orientationIndex;
+    int angle = orientationStatus.orientationAngle;
+    
+    if (orientation == EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY) {
+        return GLFMInterfaceOrientationPortrait;
+    } else if (orientation == EMSCRIPTEN_ORIENTATION_PORTRAIT_SECONDARY) {
+        return GLFMInterfaceOrientationPortraitUpsideDown;
+    } else if (orientation == EMSCRIPTEN_ORIENTATION_LANDSCAPE_PRIMARY ||
+               orientation == EMSCRIPTEN_ORIENTATION_LANDSCAPE_SECONDARY) {
+        if (angle == 0 || angle == 90) {
+            return GLFMInterfaceOrientationLandscapeRight;
+        } else if (angle == 180 || angle == 270) {
+            return GLFMInterfaceOrientationLandscapeLeft;
+        } else {
+            return GLFMInterfaceOrientationUnknown;
+        }
+    } else {
+        return GLFMInterfaceOrientationUnknown;
+    }
+}
+
+extern EMSCRIPTEN_RESULT emscripten_get_orientation_status(EmscriptenOrientationChangeEvent *orientationStatus);
 
 void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
     GLFMPlatformData *platformData = display->platformData;
@@ -489,6 +517,7 @@ int main() {
     GLFMDisplay *glfmDisplay = calloc(1, sizeof(GLFMDisplay));
     GLFMPlatformData *platformData = calloc(1, sizeof(GLFMPlatformData));
     glfmDisplay->platformData = platformData;
+    glfmDisplay->supportedOrientations = GLFMInterfaceOrientationAll;
     platformData->active = true;
     _glfmClearActiveTouches(platformData);
 
