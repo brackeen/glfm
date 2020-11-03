@@ -8,6 +8,7 @@ set(GLFM_HEADERS include/glfm.h)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     set(GLFM_SRC src/glfm_platform.h src/glfm_platform_emscripten.c)
+    set(GLFM_COMPILE_FLAGS "-Wno-gnu-zero-variadic-macro-arguments")
 elseif (CMAKE_SYSTEM_NAME MATCHES "Android")
     set(GLFM_SRC src/glfm_platform.h src/glfm_platform_android.c ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
     # Set NDEBUG for android_native_app_glue to remove some superfluous logging

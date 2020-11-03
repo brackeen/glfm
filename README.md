@@ -3,7 +3,7 @@ Write OpenGL ES code in C/C++ without writing platform-specific code.
 
 GLFM is an OpenGL ES layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](https://github.com/glfw/glfw).
 
-GLFM is written in C and runs on iOS 9, tvOS 9, Android 2.3.3 (API 10), and WebGL 1.0 (via [Emscripten](https://github.com/kripken/emscripten)).
+GLFM is written in C and runs on iOS 9, tvOS 9, Android 2.3.3 (API 10), and WebGL 1.0 (via [Emscripten](https://github.com/emscripten-core/emscripten)).
 
 Additionally, GLFM provides Metal support on iOS and tvOS.
 
@@ -138,10 +138,12 @@ open GLFM.xcodeproj
 Switch to the `glfm_example` target and run on the simulator or a device.
 
 ## Build the GLFM examples with Emscripten
-Assuming `EMSCRIPTEN_ROOT_PATH` points to active installed version of Emscripten.
+Tested with [Emscripten 2.0.8](https://emscripten.org/docs/getting_started/downloads.html).
+
+Make sure `EMSDK` is set. 
 ```Shell
 mkdir -p build/emscripten && cd build/emscripten
-cmake -DGLFM_BUILD_EXAMPLE=ON -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN_ROOT_PATH/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../..
+cmake -DGLFM_BUILD_EXAMPLE=ON -DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../..
 cmake --build .
 ```
 If you're opening files locally in Chrome, you may need to [enable local file access](http://stackoverflow.com/a/18587027).

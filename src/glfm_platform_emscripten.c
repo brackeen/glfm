@@ -445,8 +445,8 @@ static EM_BOOL _glfmMouseCallback(int eventType, const EmscriptenMouseEvent *e, 
                 break;
         }
         return display->touchFunc(display, e->button, touchPhase,
-                                  platformData->scale * (double)e->canvasX,
-                                  platformData->scale * (double)e->canvasY);
+                                  platformData->scale * (double)e->targetX,
+                                  platformData->scale * (double)e->targetY);
     } else {
         return 0;
     }
@@ -514,8 +514,8 @@ static EM_BOOL _glfmTouchCallback(int eventType, const EmscriptenTouchEvent *e, 
                 if (identifier >= 0) {
                     if ((platformData->multitouchEnabled || identifier == 0)) {
                         handled |= display->touchFunc(display, identifier, touchPhase,
-                                                      platformData->scale * (double)t->canvasX,
-                                                      platformData->scale * (double)t->canvasY);
+                                                      platformData->scale * (double)t->targetX,
+                                                      platformData->scale * (double)t->targetY);
                     }
 
                     if (touchPhase == GLFMTouchPhaseEnded || touchPhase == GLFMTouchPhaseCancelled) {
@@ -564,16 +564,17 @@ int main() {
     attribs.antialias = glfmDisplay->multisample != GLFMMultisampleNone;
     attribs.premultipliedAlpha = 1;
     attribs.preserveDrawingBuffer = 0;
-    attribs.preferLowPowerToHighPerformance = 0;
+    attribs.powerPreference = EM_WEBGL_POWER_PREFERENCE_HIGH_PERFORMANCE;
     attribs.failIfMajorPerformanceCaveat = 0;
     attribs.enableExtensionsByDefault = 0;
 
+    const char *webGLTarget = "#canvas";
     int contextHandle = 0;
     if (glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
         // OpenGL ES 3.0 / WebGL 2.0
         attribs.majorVersion = 2;
         attribs.minorVersion = 0;
-        contextHandle = emscripten_webgl_create_context(NULL, &attribs);
+        contextHandle = emscripten_webgl_create_context(webGLTarget, &attribs);
         if (contextHandle) {
             platformData->renderingAPI = GLFMRenderingAPIOpenGLES3;
         }
@@ -582,7 +583,7 @@ int main() {
         // OpenGL ES 2.0 / WebGL 1.0
         attribs.majorVersion = 1;
         attribs.minorVersion = 0;
-        contextHandle = emscripten_webgl_create_context(NULL, &attribs);
+        contextHandle = emscripten_webgl_create_context(webGLTarget, &attribs);
         if (contextHandle) {
             platformData->renderingAPI = GLFMRenderingAPIOpenGLES2;
         }
@@ -600,20 +601,20 @@ int main() {
 
     // Setup callbacks
     emscripten_set_main_loop_arg(_glfmMainLoopFunc, glfmDisplay, 0, 0);
-    emscripten_set_touchstart_callback(0, glfmDisplay, 1, _glfmTouchCallback);
-    emscripten_set_touchend_callback(0, glfmDisplay, 1, _glfmTouchCallback);
-    emscripten_set_touchmove_callback(0, glfmDisplay, 1, _glfmTouchCallback);
-    emscripten_set_touchcancel_callback(0, glfmDisplay, 1, _glfmTouchCallback);
-    emscripten_set_mousedown_callback(0, glfmDisplay, 1, _glfmMouseCallback);
-    emscripten_set_mouseup_callback(0, glfmDisplay, 1, _glfmMouseCallback);
-    emscripten_set_mousemove_callback(0, glfmDisplay, 1, _glfmMouseCallback);
-    //emscripten_set_click_callback(0, 0, 1, mouse_callback);
-    //emscripten_set_dblclick_callback(0, 0, 1, mouse_callback);
-    emscripten_set_keypress_callback(0, glfmDisplay, 1, _glfmKeyCallback);
-    emscripten_set_keydown_callback(0, glfmDisplay, 1, _glfmKeyCallback);
-    emscripten_set_keyup_callback(0, glfmDisplay, 1, _glfmKeyCallback);
-    emscripten_set_webglcontextlost_callback(0, glfmDisplay, 1, _glfmWebGLContextCallback);
-    emscripten_set_webglcontextrestored_callback(0, glfmDisplay, 1, _glfmWebGLContextCallback);
+    emscripten_set_touchstart_callback(webGLTarget, glfmDisplay, 1, _glfmTouchCallback);
+    emscripten_set_touchend_callback(webGLTarget, glfmDisplay, 1, _glfmTouchCallback);
+    emscripten_set_touchmove_callback(webGLTarget, glfmDisplay, 1, _glfmTouchCallback);
+    emscripten_set_touchcancel_callback(webGLTarget, glfmDisplay, 1, _glfmTouchCallback);
+    emscripten_set_mousedown_callback(webGLTarget, glfmDisplay, 1, _glfmMouseCallback);
+    emscripten_set_mouseup_callback(webGLTarget, glfmDisplay, 1, _glfmMouseCallback);
+    emscripten_set_mousemove_callback(webGLTarget, glfmDisplay, 1, _glfmMouseCallback);
+    //emscripten_set_click_callback(webGLTarget, glfmDisplay, 1, _glfmMouseCallback);
+    //emscripten_set_dblclick_callback(webGLTarget, glfmDisplay, 1, _glfmMouseCallback);
+    emscripten_set_keypress_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, glfmDisplay, 1, _glfmKeyCallback);
+    emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, glfmDisplay, 1, _glfmKeyCallback);
+    emscripten_set_keyup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, glfmDisplay, 1, _glfmKeyCallback);
+    emscripten_set_webglcontextlost_callback(webGLTarget, glfmDisplay, 1, _glfmWebGLContextCallback);
+    emscripten_set_webglcontextrestored_callback(webGLTarget, glfmDisplay, 1, _glfmWebGLContextCallback);
     emscripten_set_visibilitychange_callback(glfmDisplay, 1, _glfmVisibilityChangeCallback);
     emscripten_set_deviceorientation_callback(glfmDisplay, 1, _glfmOrientationChangeCallback);
     return 0;
