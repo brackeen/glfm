@@ -140,13 +140,17 @@ Switch to the `glfm_example` target and run on the simulator or a device.
 ## Build the GLFM examples with Emscripten
 Tested with [Emscripten 2.0.8](https://emscripten.org/docs/getting_started/downloads.html).
 
-Make sure `EMSDK` is set. 
+Make sure `EMSDK` is set, and build:
 ```Shell
 mkdir -p build/emscripten && cd build/emscripten
 cmake -DGLFM_BUILD_EXAMPLE=ON -DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../..
 cmake --build .
 ```
-If you're opening files locally in Chrome, you may need to [enable local file access](http://stackoverflow.com/a/18587027).
+
+Then run locally:
+```Shell
+emrun example/glfm_example.html
+```
 
 ## Build the GLFM examples with Android Studio 4
 There is no CMake generator for Android Studio projects, but you can include `CMakeLists.txt` in a new or existing project.
