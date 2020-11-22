@@ -1219,6 +1219,7 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
 }
 
 GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
+    (void)display;
 #if TARGET_OS_IOS
     UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
     switch (orientation) {
