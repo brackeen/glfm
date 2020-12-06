@@ -467,6 +467,13 @@ bool glfmIsMetalSupported(GLFMDisplay *display);
 /// This will only return a valid reference after the surface was created.
 void *glfmGetMetalView(GLFMDisplay *display);
 
+#if defined(__APPLE__)
+
+/// Returns the (UIViewController *) instance used to display content.
+void *glfmGetUIViewController(GLFMDisplay *display);
+
+#endif
+
 #if defined(GLFM_PLATFORM_ANDROID)
 
 #include <android/native_activity.h>
