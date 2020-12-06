@@ -155,9 +155,10 @@ emrun example/glfm_example.html
 ## Build the GLFM examples with Android Studio 4
 There is no CMake generator for Android Studio projects, but you can include `CMakeLists.txt` in a new or existing project.
 
-For a new project, create a "No Activity" project.
-
-In `AndroidManifest.xml`, add the main `<activity>` like so:
+1. Select "Start a new Android Studio project".
+2. Select "No Activity".
+3. In "Save location", enter `[path to glfm]/build/android` and press "Finish".
+4. In `AndroidManifest.xml`, add the main `<activity>` like so:
 ```XML
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -186,9 +187,7 @@ In `AndroidManifest.xml`, add the main `<activity>` like so:
 
 </manifest>
 ```
-
-In `app/build.gradle`, add the `externalNativeBuild` and `sourceSets.main` sections like so:
-
+5. In `app/build.gradle`, add the `externalNativeBuild` and `sourceSets.main` sections like so:
 ```Gradle
 apply plugin: 'com.android.application'
 
@@ -212,15 +211,16 @@ android {
     
     // Add sourceSets.main and externalNativeBuild (2/2)
     sourceSets.main {
-        assets.srcDirs = ["../../../../example/assets"]
+        assets.srcDirs = ["../../../example/assets"]
     }
     externalNativeBuild {
         cmake {
-            path "../../../../CMakeLists.txt"
+            path "../../../CMakeLists.txt"
         }
     }
 }
 ```
+6. Press "Sync Now" and "Run 'app'"
 
 ## Caveats
 * OpenGL ES 3.1 and 3.2 support is only available in Android.
