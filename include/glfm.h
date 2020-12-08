@@ -198,6 +198,12 @@ typedef enum {
 } GLFMMouseCursor;
 
 typedef enum {
+    GLFMMouseWheelDeltaPixel,
+    GLFMMouseWheelDeltaLine,
+    GLFMMouseWheelDeltaPage
+} GLFMMouseWheelDeltaType;
+
+typedef enum {
     GLFMKeyBackspace = 0x08,
     GLFMKeyTab = 0x09,
     GLFMKeyEnter = 0x0d,
@@ -255,6 +261,12 @@ typedef bool (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction
 
 /// Callback function for character input events.
 typedef void (*GLFMCharFunc)(GLFMDisplay *display, const char *utf8, int modifiers);
+
+/// Callback function for mouse wheel input events. The viewport (x,y) values are in pixels.
+/// The function should return true if the event was handled, and false otherwise.
+typedef bool (*GLFMMouseWheelFunc)(GLFMDisplay *display, double x, double y,
+                                   GLFMMouseWheelDeltaType deltaType,
+                                   double deltaX, double deltaY, double deltaZ);
 
 /// Callback function for keyboard visibility, in pixels.
 typedef void (*GLFMKeyboardVisibilityChangedFunc)(GLFMDisplay *display, bool visible,
@@ -451,6 +463,10 @@ GLFMKeyFunc glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
 
 /// Sets the function to call when character input events occur.
 GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
+
+/// Sets the function to call when the mouse wheel is moved.
+/// Only enabled on Emscripten.
+GLFMMouseWheelFunc glfmSetMouseWheelFunc(GLFMDisplay *display, GLFMMouseWheelFunc mouseWheelFunc);
 
 /// Sets the function to call when the sensor events occur for a particular sensor.
 /// If the sensor is not available, this function does nothing.

@@ -49,6 +49,7 @@ struct GLFMDisplay {
     GLFMTouchFunc touchFunc;
     GLFMKeyFunc keyFunc;
     GLFMCharFunc charFunc;
+    GLFMMouseWheelFunc mouseWheelFunc;
     GLFMSurfaceErrorFunc surfaceErrorFunc;
     GLFMSurfaceCreatedFunc surfaceCreatedFunc;
     GLFMSurfaceResizedFunc surfaceResizedFunc;
@@ -212,6 +213,15 @@ GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc) {
     if (display) {
         previous = display->charFunc;
         display->charFunc = charFunc;
+    }
+    return previous;
+}
+
+GLFMMouseWheelFunc glfmSetMouseWheelFunc(GLFMDisplay *display, GLFMMouseWheelFunc mouseWheelFunc) {
+    GLFMMouseWheelFunc previous = NULL;
+    if (display) {
+        previous = display->mouseWheelFunc;
+        display->mouseWheelFunc = mouseWheelFunc;
     }
     return previous;
 }

@@ -452,6 +452,31 @@ static EM_BOOL _glfmMouseCallback(int eventType, const EmscriptenMouseEvent *e, 
     }
 }
 
+static EM_BOOL _glfmMouseWheelCallback(int eventType, const EmscriptenWheelEvent *wheelEvent, void *userData) {
+    GLFMDisplay *display = userData;
+    if (display->mouseWheelFunc) {
+        GLFMPlatformData *platformData = display->platformData;
+        GLFMMouseWheelDeltaType deltaType;
+        switch (wheelEvent->deltaMode) {
+            case DOM_DELTA_PIXEL: default:
+                deltaType = GLFMMouseWheelDeltaPixel;
+                break;
+            case DOM_DELTA_LINE:
+                deltaType = GLFMMouseWheelDeltaLine;
+                break;
+            case DOM_DELTA_PAGE:
+                deltaType = GLFMMouseWheelDeltaPage;
+                break;
+        }
+        return display->mouseWheelFunc(display,
+                                       platformData->scale * (double)wheelEvent->mouse.targetX,
+                                       platformData->scale * (double)wheelEvent->mouse.targetY,
+                                       deltaType, wheelEvent->deltaX, wheelEvent->deltaY, wheelEvent->deltaZ);
+    } else {
+        return 0;
+    }
+}
+
 static void _glfmClearActiveTouches(GLFMPlatformData *platformData) {
     for (int i = 0; i < MAX_ACTIVE_TOUCHES; i++) {
         platformData->activeTouches[i].active = false;
@@ -608,6 +633,7 @@ int main() {
     emscripten_set_mousedown_callback(webGLTarget, glfmDisplay, 1, _glfmMouseCallback);
     emscripten_set_mouseup_callback(webGLTarget, glfmDisplay, 1, _glfmMouseCallback);
     emscripten_set_mousemove_callback(webGLTarget, glfmDisplay, 1, _glfmMouseCallback);
+    emscripten_set_wheel_callback(webGLTarget, glfmDisplay, 1, _glfmMouseWheelCallback);
     //emscripten_set_click_callback(webGLTarget, glfmDisplay, 1, _glfmMouseCallback);
     //emscripten_set_dblclick_callback(webGLTarget, glfmDisplay, 1, _glfmMouseCallback);
     emscripten_set_keypress_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, glfmDisplay, 1, _glfmKeyCallback);
