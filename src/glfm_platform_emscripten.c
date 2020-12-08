@@ -396,7 +396,6 @@ static EM_BOOL _glfmKeyCallback(int eventType, const EmscriptenKeyboardEvent *e,
         }
 
         /*
-         TODO: Modifiers
          For now just send e->keyCode as is. It is identical to the defined values:
          GLFMKeyBackspace = 0x08,
          GLFMKeyTab       = 0x09,
@@ -408,8 +407,22 @@ static EM_BOOL _glfmKeyCallback(int eventType, const EmscriptenKeyboardEvent *e,
          GLFMKeyRight     = 0x27,
          GLFMKeyDown      = 0x28,
          */
+        
+        int modifiers = 0;
+        if (e->shiftKey) {
+            modifiers |= GLFMKeyModifierShift;
+        }
+        if (e->ctrlKey) {
+            modifiers |= GLFMKeyModifierCtrl;
+        }
+        if (e->altKey) {
+            modifiers |= GLFMKeyModifierAlt;
+        }
+        if (e->metaKey) {
+            modifiers |= GLFMKeyModifierMeta;
+        }
 
-        return display->keyFunc(display, e->keyCode, action, 0) || handled;
+        return display->keyFunc(display, e->keyCode, action, modifiers) || handled;
     } else {
         return handled;
     }
