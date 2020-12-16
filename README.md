@@ -3,7 +3,7 @@ Write OpenGL ES code in C/C++ without writing platform-specific code.
 
 GLFM is an OpenGL ES layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](https://github.com/glfw/glfw).
 
-GLFM is written in C and runs on iOS 9, tvOS 9, Android 2.3.3 (API 10), and WebGL 1.0 (via [Emscripten](https://github.com/emscripten-core/emscripten)).
+GLFM is written in C and runs on iOS 9, tvOS 9, Android 4.1 (API 16), and WebGL 1.0 (via [Emscripten](https://github.com/emscripten-core/emscripten)).
 
 Additionally, GLFM provides Metal support on iOS and tvOS.
 
@@ -42,8 +42,8 @@ This example initializes the display in `glfmMain()` and draws a triangle in `on
 static GLint program = 0;
 static GLuint vertexBuffer = 0;
 
-static void onFrame(GLFMDisplay *display, const double frameTime);
-static void onSurfaceCreated(GLFMDisplay *display, const int width, const int height);
+static void onFrame(GLFMDisplay *display);
+static void onSurfaceCreated(GLFMDisplay *display, int width, int height);
 static void onSurfaceDestroyed(GLFMDisplay *display);
 
 void glfmMain(GLFMDisplay *display) {
@@ -56,10 +56,10 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
     glfmSetSurfaceResizedFunc(display, onSurfaceCreated);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
-    glfmSetMainLoopFunc(display, onFrame);
+    glfmSetRenderFunc(display, onFrame);
 }
 
-static void onSurfaceCreated(GLFMDisplay *display, const int width, const int height) {
+static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
@@ -77,7 +77,7 @@ static GLuint compileShader(const GLenum type, const GLchar *shaderString) {
     return shader;
 }
 
-static void onFrame(GLFMDisplay *display, const double frameTime) {
+static void onFrame(GLFMDisplay *display) {
     if (program == 0) {
         const GLchar *vertexShader =
             "attribute highp vec4 position;\n"
@@ -122,6 +122,8 @@ static void onFrame(GLFMDisplay *display, const double frameTime) {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glDrawArrays(GL_TRIANGLES, 0, 3);
+    
+    glfmSwapBuffers(display);
 }
 ```
 ## API
@@ -157,7 +159,7 @@ There is no CMake generator for Android Studio projects, but you can include `CM
 
 1. Select "Start a new Android Studio project".
 2. Select "No Activity".
-3. In "Save location", enter `[path to glfm]/build/android` and press "Finish".
+3. In "Save location", enter `[path/to/glfm]/build/android` and press "Finish".
 4. In `AndroidManifest.xml`, add the main `<activity>` like so:
 ```XML
 <?xml version="1.0" encoding="utf-8"?>
