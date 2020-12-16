@@ -51,6 +51,7 @@ typedef struct {
 
     bool active;
     bool isFullscreen;
+    bool refreshRequested;
     
     GLFMInterfaceOrientation orientation;
 } GLFMPlatformData;
@@ -61,6 +62,11 @@ static void _glfmClearActiveTouches(GLFMPlatformData *platformData);
 
 double glfmGetTime() {
     return emscripten_get_now() / 1000.0;
+}
+
+void glfmSwapBuffers(GLFMDisplay *display) {
+    (void)display;
+    // Do nothing; swap is implicit
 }
 
 void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display,
@@ -283,6 +289,7 @@ static void _glfmSetActive(GLFMDisplay *display, bool active) {
     GLFMPlatformData *platformData = display->platformData;
     if (platformData->active != active) {
         platformData->active = active;
+        platformData->refreshRequested = true;
         _glfmClearActiveTouches(platformData);
         if (display->focusFunc) {
             display->focusFunc(display, active);
@@ -293,6 +300,8 @@ static void _glfmSetActive(GLFMDisplay *display, bool active) {
 static void _glfmMainLoopFunc(void *userData) {
     GLFMDisplay *display = userData;
     if (display) {
+        GLFMPlatformData *platformData = display->platformData;
+        
         // Check if canvas size has changed
         int displayChanged = EM_ASM_INT_V({
             var canvas = Module['canvas'];
@@ -308,7 +317,7 @@ static void _glfmMainLoopFunc(void *userData) {
             }
         });
         if (displayChanged) {
-            GLFMPlatformData *platformData = display->platformData;
+            platformData->refreshRequested = true;
             platformData->width = _glfmGetDisplayWidth(display);
             platformData->height = _glfmGetDisplayHeight(display);
             platformData->scale = emscripten_get_device_pixel_ratio();
@@ -318,10 +327,14 @@ static void _glfmMainLoopFunc(void *userData) {
         }
 
         // Tick
-        if (display->mainLoopFunc) {
-            // NOTE: The JavaScript requestAnimationFrame callback sends the frame time as a
-            // parameter, but Emscripten include send it.
-            display->mainLoopFunc(display, emscripten_get_now() / 1000.0);
+        if (platformData->refreshRequested) {
+            platformData->refreshRequested = false;
+            if (display->surfaceRefreshFunc) {
+                display->surfaceRefreshFunc(display);
+            }
+        }
+        if (display->renderFunc) {
+            display->renderFunc(display);
         }
     }
 }
@@ -329,13 +342,14 @@ static void _glfmMainLoopFunc(void *userData) {
 static EM_BOOL _glfmWebGLContextCallback(int eventType, const void *reserved, void *userData) {
     (void)reserved;
     GLFMDisplay *display = userData;
+    GLFMPlatformData *platformData = display->platformData;
+    platformData->refreshRequested = true;
     if (eventType == EMSCRIPTEN_EVENT_WEBGLCONTEXTLOST) {
         if (display->surfaceDestroyedFunc) {
             display->surfaceDestroyedFunc(display);
         }
         return 1;
     } else if (eventType == EMSCRIPTEN_EVENT_WEBGLCONTEXTRESTORED) {
-        GLFMPlatformData *platformData = display->platformData;
         if (display->surfaceCreatedFunc) {
             display->surfaceCreatedFunc(display, platformData->width, platformData->height);
         }
@@ -364,6 +378,7 @@ static EM_BOOL _glfmOrientationChangeCallback(int eventType,
     GLFMInterfaceOrientation orientation = glfmGetInterfaceOrientation(display);
     if (platformData->orientation != orientation) {
         platformData->orientation = orientation;
+        platformData->refreshRequested = true;
         if (display->orientationChangedFunc) {
             display->orientationChangedFunc(display, orientation);
         }
@@ -466,6 +481,7 @@ static EM_BOOL _glfmMouseCallback(int eventType, const EmscriptenMouseEvent *e, 
 }
 
 static EM_BOOL _glfmMouseWheelCallback(int eventType, const EmscriptenWheelEvent *wheelEvent, void *userData) {
+    (void)eventType;
     GLFMDisplay *display = userData;
     if (display->mouseWheelFunc) {
         GLFMPlatformData *platformData = display->platformData;
@@ -577,6 +593,7 @@ int main() {
     glfmDisplay->supportedOrientations = GLFMInterfaceOrientationAll;
     platformData->orientation = glfmGetInterfaceOrientation(glfmDisplay);
     platformData->active = true;
+    platformData->refreshRequested = true;
     _glfmClearActiveTouches(platformData);
 
     // Main entry

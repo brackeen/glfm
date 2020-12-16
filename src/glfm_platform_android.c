@@ -51,6 +51,7 @@
 static void _glfmSetAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
 static void _glfmReportOrientationChangeIfNeeded(GLFMDisplay *display);
 static void _glfmUpdateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force);
+static float _glfmGetRefreshRate(GLFMDisplay *display);
 
 typedef struct {
     struct android_app *app;
@@ -62,6 +63,9 @@ typedef struct {
 
     bool animating;
     bool hasInited;
+    bool refreshRequested;
+    bool swapCalled;
+    double lastSwapTime;
 
     EGLDisplay eglDisplay;
     EGLSurface eglSurface;
@@ -764,16 +768,14 @@ static void _glfmDrawFrame(GLFMPlatformData *platformData) {
     _glfmUpdateSurfaceSizeIfNeeded(platformData->display, false);
 
     // Tick and draw
-    if (platformData->display && platformData->display->mainLoopFunc) {
-        platformData->display->mainLoopFunc(platformData->display, glfmGetTime());
-    } else {
-        glClearColor(0.0, 0.0, 0.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
+    if (platformData->refreshRequested) {
+        platformData->refreshRequested = false;
+        if (platformData->display && platformData->display->surfaceRefreshFunc) {
+            platformData->display->surfaceRefreshFunc(platformData->display);
+        }
     }
-
-    // Swap
-    if (!eglSwapBuffers(platformData->eglDisplay, platformData->eglSurface)) {
-        _glfmEGLCheckError(platformData);
+    if (platformData->display && platformData->display->renderFunc) {
+        platformData->display->renderFunc(platformData->display);
     }
 }
 
@@ -855,6 +857,7 @@ static void _glfmUpdateKeyboardVisibility(GLFMPlatformData *platformData) {
                 !ARectsEqual(platformData->keyboardFrame, keyboardFrame)) {
             platformData->keyboardVisible = keyboardVisible;
             platformData->keyboardFrame = keyboardFrame;
+            platformData->refreshRequested = true;
             if (platformData->display->keyboardVisibilityChangedFunc) {
                 double x = keyboardFrame.left;
                 double y = keyboardFrame.top;
@@ -873,6 +876,7 @@ static void _glfmUpdateKeyboardVisibility(GLFMPlatformData *platformData) {
 static void _glfmSetAnimating(GLFMPlatformData *platformData, bool animating) {
     if (platformData->animating != animating) {
         platformData->animating = animating;
+        platformData->refreshRequested = true;
         if (!platformData->hasInited && animating) {
             platformData->hasInited = true;
         } else if (platformData->display && platformData->display->focusFunc) {
@@ -895,6 +899,7 @@ static void _glfmOnAppCmd(struct android_app *app, int32_t cmd) {
             if (!success) {
                 _glfmEGLCheckError(platformData);
             }
+            platformData->refreshRequested = true;
             _glfmDrawFrame(platformData);
             break;
         }
@@ -910,7 +915,7 @@ static void _glfmOnAppCmd(struct android_app *app, int32_t cmd) {
         }
         case APP_CMD_WINDOW_REDRAW_NEEDED: {
             LOG_LIFECYCLE("APP_CMD_WINDOW_REDRAW_NEEDED");
-            _glfmDrawFrame(platformData);
+            platformData->refreshRequested = true;
             break;
         }
         case APP_CMD_GAINED_FOCUS: {
@@ -921,6 +926,7 @@ static void _glfmOnAppCmd(struct android_app *app, int32_t cmd) {
         case APP_CMD_LOST_FOCUS: {
             LOG_LIFECYCLE("APP_CMD_LOST_FOCUS");
             if (platformData->animating) {
+                platformData->refreshRequested = true;
                 _glfmDrawFrame(platformData);
                 _glfmSetAnimating(platformData, false);
             }
@@ -928,6 +934,7 @@ static void _glfmOnAppCmd(struct android_app *app, int32_t cmd) {
         }
         case APP_CMD_CONTENT_RECT_CHANGED: {
             LOG_LIFECYCLE("APP_CMD_CONTENT_RECT_CHANGED");
+            platformData->refreshRequested = true;
             pthread_mutex_lock(&app->mutex);
             app->contentRect = app->pendingContentRect;
             _glfmResetContentRect(platformData);
@@ -1186,6 +1193,8 @@ void android_main(struct android_app *app) {
     app->onInputEvent = _glfmOnInputEvent;
     app->activity->callbacks->onContentRectChanged = _glfmOnContentRectChanged;
     platformData->app = app;
+    platformData->refreshRequested = true;
+    platformData->lastSwapTime = glfmGetTime();
 
     // Init java env
     JavaVM *vm = app->activity->vm;
@@ -1374,7 +1383,30 @@ void android_main(struct android_app *app) {
         }
 
         if (platformData->animating && platformData->display) {
+            platformData->swapCalled = false;
             _glfmDrawFrame(platformData);
+            if (!platformData->swapCalled) {
+                // Sleep until next swap time (1/60 second after last swap time)
+                const float refreshRate = _glfmGetRefreshRate(platformData->display);
+                const double sleepUntilTime = platformData->lastSwapTime + 1.0 / (double)refreshRate;
+                double now = glfmGetTime();
+                if (now >= sleepUntilTime) {
+                    platformData->lastSwapTime = now;
+                } else {
+                    // Sleep until 500 microseconds before deadline
+                    const double offset = 0.0005;
+                    while (true) {
+                        double sleepDuration = sleepUntilTime - now - offset;
+                        if (sleepDuration <= 0) {
+                            platformData->lastSwapTime = sleepUntilTime;
+                            break;
+                        }
+                        useconds_t sleepDurationMicroseconds = (useconds_t) (sleepDuration * 1000000);
+                        usleep(sleepDurationMicroseconds);
+                        now = glfmGetTime();
+                    }
+                }
+            }
         }
     }
 }
@@ -1406,6 +1438,45 @@ double glfmGetTime() {
     return (time.tv_sec - initTime) + (double)time.tv_nsec / 1e9;
 }
 
+void glfmSwapBuffers(GLFMDisplay *display) {
+    if (display) {
+        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+        EGLBoolean result = eglSwapBuffers(platformData->eglDisplay, platformData->eglSurface);
+        platformData->swapCalled = true;
+        platformData->lastSwapTime = glfmGetTime();
+        if (!result) {
+            _glfmEGLCheckError(platformData);
+        }
+    }
+}
+
+static float _glfmGetRefreshRate(GLFMDisplay *display) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    JNIEnv *jni = platformData->jniEnv;
+    jobject activity = platformData->app->activity->clazz;
+    _glfmClearJavaException()
+    jobject window = _glfmCallJavaMethod(jni, activity, "getWindow", "()Landroid/view/Window;", Object);
+    if (!window || _glfmWasJavaExceptionThrown()) {
+        return 60;
+    }
+    jobject windowManager = _glfmCallJavaMethod(jni, window, "getWindowManager", "()Landroid/view/WindowManager;", Object);
+    (*jni)->DeleteLocalRef(jni, window);
+    if (!windowManager || _glfmWasJavaExceptionThrown()) {
+        return 60;
+    }
+    jobject windowDisplay = _glfmCallJavaMethod(jni, windowManager, "getDefaultDisplay", "()Landroid/view/Display;", Object);
+    (*jni)->DeleteLocalRef(jni, windowManager);
+    if (!windowDisplay || _glfmWasJavaExceptionThrown()) {
+        return 60;
+    }
+    float refreshRate = _glfmCallJavaMethod(jni, windowDisplay, "getRefreshRate","()F", Float);
+    (*jni)->DeleteLocalRef(jni, windowDisplay);
+    if (_glfmWasJavaExceptionThrown() || refreshRate <= 0) {
+        return 60;
+    }
+    return refreshRate;
+}
+
 void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOrientation supportedOrientations) {
     if (display && display->supportedOrientations != supportedOrientations) {
         display->supportedOrientations = supportedOrientations;
@@ -1424,6 +1495,7 @@ static void _glfmUpdateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
         if (force || platformData->resizeEventWaitFrames <= 0) {
             LOG_LIFECYCLE("Resize: %i x %i", width, height);
             platformData->resizeEventWaitFrames = RESIZE_EVENT_MAX_WAIT_FRAMES;
+            platformData->refreshRequested = true;
             platformData->width = width;
             platformData->height = height;
             _glfmReportOrientationChangeIfNeeded(platformData->display);
@@ -1442,6 +1514,7 @@ static void _glfmReportOrientationChangeIfNeeded(GLFMDisplay *display) {
     GLFMInterfaceOrientation orientation = glfmGetInterfaceOrientation(display);
     if (platformData->orientation != orientation) {
         platformData->orientation = orientation;
+        platformData->refreshRequested = true;
         if (display->orientationChangedFunc) {
             display->orientationChangedFunc(display, orientation);
         }

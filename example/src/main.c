@@ -15,10 +15,13 @@ typedef struct {
 
     double offsetX;
     double offsetY;
+
+    bool needsRedraw;
 } ExampleApp;
 
-static void onFrame(GLFMDisplay *display, double frameTime);
+static void onFrame(GLFMDisplay *display);
 static void onSurfaceCreated(GLFMDisplay *display, int width, int height);
+static void onSurfaceRefresh(GLFMDisplay *display);
 static void onSurfaceDestroyed(GLFMDisplay *display);
 static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, double x, double y);
 static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, int modifiers);
@@ -35,9 +38,9 @@ void glfmMain(GLFMDisplay *display) {
                          GLFMMultisampleNone);
     glfmSetUserData(display, app);
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
-    glfmSetSurfaceResizedFunc(display, onSurfaceCreated);
+    glfmSetSurfaceRefreshFunc(display, onSurfaceRefresh);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
-    glfmSetMainLoopFunc(display, onFrame);
+    glfmSetRenderFunc(display, onFrame);
     glfmSetTouchFunc(display, onTouch);
     glfmSetKeyFunc(display, onKey);
 }
@@ -47,6 +50,7 @@ static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, doubl
         return false;
     }
     ExampleApp *app = glfmGetUserData(display);
+    app->needsRedraw = true;
     if (phase != GLFMTouchPhaseBegan) {
         int width, height;
         glfmGetDisplaySize(display, &width, &height);
@@ -62,6 +66,7 @@ static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, i
     bool handled = false;
     if (action == GLFMKeyActionPressed) {
         ExampleApp *app = glfmGetUserData(display);
+        app->needsRedraw = true;
         switch (keyCode) {
             case GLFMKeyLeft:
                 app->offsetX -= 0.1f;
@@ -87,13 +92,16 @@ static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, i
 }
 
 static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
-    glViewport(0, 0, width, height);
-
     GLFMRenderingAPI api = glfmGetRenderingAPI(display);
     printf("Hello from GLFM! Using OpenGL %s\n",
            api == GLFMRenderingAPIOpenGLES32 ? "ES 3.2" :
            api == GLFMRenderingAPIOpenGLES31 ? "ES 3.1" :
            api == GLFMRenderingAPIOpenGLES3 ? "ES 3.0" : "ES 2.0");
+}
+
+static void onSurfaceRefresh(GLFMDisplay *display) {
+    ExampleApp *app = glfmGetUserData(display);
+    app->needsRedraw = true;
 }
 
 static void onSurfaceDestroyed(GLFMDisplay *display) {
@@ -156,19 +164,12 @@ static GLuint compileShader(GLenum type, const char *shaderName) {
     return shader;
 }
 
-static void onFrame(GLFMDisplay *display, double frameTime) {
-    ExampleApp *app = glfmGetUserData(display);
-
-    // Draw background
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    // Draw triangle
+static void draw(ExampleApp *app, int width, int height) {
+    // Create shader
     if (app->program == 0) {
         GLuint vertShader = compileShader(GL_VERTEX_SHADER, "simple.vert");
         GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, "simple.frag");
         if (vertShader == 0 || fragShader == 0) {
-            glfmSetMainLoopFunc(display, NULL);
             return;
         }
         app->program = glCreateProgram();
@@ -184,6 +185,13 @@ static void onFrame(GLFMDisplay *display, double frameTime) {
         glDeleteShader(vertShader);
         glDeleteShader(fragShader);
     }
+    
+    // Draw background
+    glViewport(0, 0, width, height);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    // Draw triangle
     glUseProgram(app->program);
     if (app->vertexBuffer == 0) {
         glGenBuffers(1, &app->vertexBuffer);
@@ -204,4 +212,16 @@ static void onFrame(GLFMDisplay *display, double frameTime) {
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
+static void onFrame(GLFMDisplay *display) {
+    ExampleApp *app = glfmGetUserData(display);
+    if (app->needsRedraw) {
+        app->needsRedraw = false;
+        
+        int width, height;
+        glfmGetDisplaySize(display, &width, &height);
+        draw(app, width,  height);
+        glfmSwapBuffers(display);
+    }
 }

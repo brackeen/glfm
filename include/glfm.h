@@ -246,8 +246,11 @@ typedef struct GLFMDisplay GLFMDisplay;
 /// Function pointer returned from glfmGetProcAddress
 typedef void (*GLFMProc)(void);
 
-/// Main loop callback function. The frame time is in seconds, and is not related to wall time.
-typedef void (*GLFMMainLoopFunc)(GLFMDisplay *display, double frameTime);
+/// Render callback function.
+typedef void (*GLFMRenderFunc)(GLFMDisplay *display);
+
+/// Deprecated. Use GLFMRenderFunc
+typedef void (*GLFMMainLoopFunc)(GLFMDisplay *display, double frameTime) GLFM_DEPRECATED;
 
 /// Callback function for mouse or touch events. The (x,y) values are in pixels.
 /// The function should return true if the event was handled, and false otherwise.
@@ -283,6 +286,9 @@ typedef void (*GLFMSurfaceCreatedFunc)(GLFMDisplay *display, int width, int heig
 
 /// Callback function when the OpenGL surface is resized (or rotated).
 typedef void (*GLFMSurfaceResizedFunc)(GLFMDisplay *display, int width, int height);
+
+/// Callback function to notify that the surface needs to be redrawn.
+typedef void (*GLFMSurfaceRefreshFunc)(GLFMDisplay *display);
 
 /// Callback function when the OpenGL surface is destroyed.
 typedef void (*GLFMSurfaceDestroyedFunc)(GLFMDisplay *display);
@@ -331,6 +337,14 @@ void glfmSetDisplayConfig(GLFMDisplay *display,
 void glfmSetUserData(GLFMDisplay *display, void *userData);
 
 void *glfmGetUserData(GLFMDisplay *display);
+
+/// Swap buffers. This function should be called at the end of the GLFMRenderFunc if any
+/// content was rendered.
+/// On Emscripten, this function does nothing. Buffer swapping happens automatically if any
+/// OpenGL calls were made.
+/// When using the Metal rendering API, this function does nothing. Presenting the Metal drawable
+/// must happen in application code.
+void glfmSwapBuffers(GLFMDisplay *display);
 
 /// Deprecated. Use glfmGetSupportedInterfaceOrientation
 GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *display) GLFM_DEPRECATED;
@@ -397,7 +411,15 @@ double glfmGetTime(void);
 // MARK: - Callback functions
 
 /// Sets the function to call before each frame is displayed.
-GLFMMainLoopFunc glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc);
+/// This function is called at regular intervals (typically 60fps).
+/// Applications will typically render in this callback. If the application rendered any content,
+/// the application should call glfmSwapBuffers() before returning. If the application did
+/// not render content, it should return without calling glfmSwapBuffers().
+GLFMRenderFunc glfmSetRenderFunc(GLFMDisplay *display, GLFMRenderFunc renderFunc);
+
+/// Deprecated. Use glfmSetRenderFunc.
+/// If this function is set, glfmSwapBuffers() is always called after calling the GLFMMainLoopFunc.
+GLFMMainLoopFunc glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc) GLFM_DEPRECATED;
 
 /// Sets the function to call when the surface could not be created.
 /// For example, the browser does not support WebGL.
@@ -411,6 +433,12 @@ GLFMSurfaceCreatedFunc glfmSetSurfaceCreatedFunc(GLFMDisplay *display,
 /// Sets the function to call when the surface was resized (or rotated).
 GLFMSurfaceResizedFunc glfmSetSurfaceResizedFunc(GLFMDisplay *display,
                                                  GLFMSurfaceResizedFunc surfaceResizedFunc);
+
+/// Sets the function to call to notify that the surface needs to be redrawn (for example,
+/// when returning from the background, or when the device was rotated).
+/// This callback is called immediately before calling the GLFMRenderFunc.
+GLFMSurfaceRefreshFunc glfmSetSurfaceRefreshFunc(GLFMDisplay *display,
+                                                 GLFMSurfaceRefreshFunc surfaceRefreshFunc);
 
 /// Sets the function to call when the surface was destroyed. For example, OpenGL context loss.
 /// All OpenGL resources should be deleted in this call.

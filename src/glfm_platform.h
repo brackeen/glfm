@@ -33,6 +33,17 @@ extern "C" {
 
 #define GLFM_NUM_SENSORS 4
 
+#if defined(__GNUC__) && __STDC_VERSION__ >= 199901
+#define GLFM_IGNORE_DEPRECATIONS_START \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#define GLFM_IGNORE_DEPRECATIONS_END \
+   _Pragma("GCC diagnostic pop")
+#else
+#define GLFM_IGNORE_DEPRECATIONS_START
+#define GLFM_IGNORE_DEPRECATIONS_END
+#endif
+
 struct GLFMDisplay {
     // Config
     GLFMRenderingAPI preferredAPI;
@@ -45,7 +56,10 @@ struct GLFMDisplay {
     GLFMSwapBehavior swapBehavior;
 
     // Callbacks
-    GLFMMainLoopFunc mainLoopFunc;
+    GLFM_IGNORE_DEPRECATIONS_START
+    GLFMMainLoopFunc deprecatedMainLoopFunc;
+    GLFM_IGNORE_DEPRECATIONS_END
+    GLFMRenderFunc renderFunc;
     GLFMTouchFunc touchFunc;
     GLFMKeyFunc keyFunc;
     GLFMCharFunc charFunc;
@@ -53,6 +67,7 @@ struct GLFMDisplay {
     GLFMSurfaceErrorFunc surfaceErrorFunc;
     GLFMSurfaceCreatedFunc surfaceCreatedFunc;
     GLFMSurfaceResizedFunc surfaceResizedFunc;
+    GLFMSurfaceRefreshFunc surfaceRefreshFunc;
     GLFMSurfaceDestroyedFunc surfaceDestroyedFunc;
     GLFMKeyboardVisibilityChangedFunc keyboardVisibilityChangedFunc;
     GLFMOrientationChangedFunc orientationChangedFunc;
@@ -131,11 +146,29 @@ void glfmSetDisplayChrome(GLFMDisplay *display, GLFMUserInterfaceChrome uiChrome
     }
 }
 
+GLFMRenderFunc glfmSetRenderFunc(GLFMDisplay *display, GLFMRenderFunc renderFunc) {
+    GLFMRenderFunc previous = NULL;
+    if (display) {
+        previous = display->renderFunc;
+        display->renderFunc = renderFunc;
+    }
+    return previous;
+}
+
+static void _glfmDeprecatedMainLoopRenderAdapter(GLFMDisplay *display) {
+    if (display && display->deprecatedMainLoopFunc) {
+        // Mimic the behavior of the deprecated "MainLoop" callback
+        display->deprecatedMainLoopFunc(display, glfmGetTime());
+        glfmSwapBuffers(display);
+    }
+}
+
 GLFMMainLoopFunc glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc) {
     GLFMMainLoopFunc previous = NULL;
     if (display) {
-        previous = display->mainLoopFunc;
-        display->mainLoopFunc = mainLoopFunc;
+        previous = display->deprecatedMainLoopFunc;
+        display->deprecatedMainLoopFunc = mainLoopFunc;
+        glfmSetRenderFunc(display, mainLoopFunc ? _glfmDeprecatedMainLoopRenderAdapter : NULL);
     }
     return previous;
 }
@@ -156,6 +189,16 @@ GLFMSurfaceResizedFunc glfmSetSurfaceResizedFunc(GLFMDisplay *display,
     if (display) {
         previous = display->surfaceResizedFunc;
         display->surfaceResizedFunc = surfaceResizedFunc;
+    }
+    return previous;
+}
+
+GLFMSurfaceRefreshFunc glfmSetSurfaceRefreshFunc(GLFMDisplay *display,
+                                                 GLFMSurfaceRefreshFunc surfaceRefreshFunc) {
+    GLFMSurfaceRefreshFunc previous = NULL;
+    if (display) {
+        previous = display->surfaceRefreshFunc;
+        display->surfaceRefreshFunc = surfaceRefreshFunc;
     }
     return previous;
 }

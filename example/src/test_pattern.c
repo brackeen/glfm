@@ -9,6 +9,7 @@ typedef struct {
     Renderer *renderer;
     Texture texture;
     bool textureNeedsUpdate;
+    bool needsRedraw;
 } TestPatternApp;
 
 static Texture createTestPatternTexture(GLFMDisplay *display, uint32_t width, uint32_t height) {
@@ -76,11 +77,17 @@ static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
         printf("Hello from GLES2!\n");
     }
     app->textureNeedsUpdate = true;
+    app->needsRedraw = true;
 }
 
 static void onSurfaceResized(GLFMDisplay *display, int width, int height) {
     TestPatternApp *app = glfmGetUserData(display);
     app->textureNeedsUpdate = true;
+}
+
+static void onSurfaceRefresh(GLFMDisplay *display) {
+    TestPatternApp *app = glfmGetUserData(display);
+    app->needsRedraw = true;
 }
 
 static void onOrientationChange(GLFMDisplay *display, GLFMInterfaceOrientation orientation) {
@@ -96,8 +103,11 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
     app->renderer = NULL;
 }
 
-static void onFrame(GLFMDisplay *display, double frameTime) {
+static void onFrame(GLFMDisplay *display) {
     TestPatternApp *app = glfmGetUserData(display);
+    if (!app->textureNeedsUpdate && !app->needsRedraw) {
+        return;
+    }
     
     int width, height;
     glfmGetDisplaySize(display, &width, &height);
@@ -122,6 +132,8 @@ static void onFrame(GLFMDisplay *display, double frameTime) {
     
     app->renderer->drawQuad(app->renderer, app->texture, &vertices);
     app->renderer->drawFrameEnd(app->renderer);
+    glfmSwapBuffers(display);
+    app->needsRedraw = false;
 }
 
 void glfmMain(GLFMDisplay *display) {
@@ -138,7 +150,8 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetUserData(display, app);
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
     glfmSetSurfaceResizedFunc(display, onSurfaceResized);
+    glfmSetSurfaceRefreshFunc(display, onSurfaceRefresh);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
     glfmSetOrientationChangedFunc(display, onOrientationChange);
-    glfmSetMainLoopFunc(display, onFrame);
+    glfmSetRenderFunc(display, onFrame);
 }

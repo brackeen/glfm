@@ -77,6 +77,8 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 @property(nonatomic, copy, nullable) void (^preRenderCallback)(void);
 
 - (void)draw;
+- (void)swapBuffers;
+- (void)requestRefresh;
 
 @end
 
@@ -90,6 +92,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 @property(nonatomic, assign) int drawableWidth;
 @property(nonatomic, assign) int drawableHeight;
 @property(nonatomic, assign) BOOL surfaceCreatedNotified;
+@property(nonatomic, assign) BOOL refreshRequested;
 
 @end
 
@@ -106,6 +109,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         self.glfmDisplay = glfmDisplay;
         self.drawableWidth = (int)self.drawableSize.width;
         self.drawableHeight = (int)self.drawableSize.height;
+        [self requestRefresh];
 
         switch (glfmDisplay->colorFormat) {
             case GLFMColorFormatRGB565:
@@ -151,7 +155,10 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 }
 
 - (void)setAnimating:(BOOL)animating {
-    self.paused = !animating;
+    if (self.animating != animating) {
+        self.paused = !animating;
+        [self requestRefresh];
+    }
 }
 
 - (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size {
@@ -163,6 +170,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     int newDrawableHeight = (int)self.drawableSize.height;
     if (!self.surfaceCreatedNotified) {
         self.surfaceCreatedNotified = YES;
+        [self requestRefresh];
 
         self.drawableWidth = newDrawableWidth;
         self.drawableHeight = newDrawableHeight;
@@ -170,6 +178,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
             _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, self.drawableWidth, self.drawableHeight);
         }
     } else if (newDrawableWidth != self.drawableWidth || newDrawableHeight != self.drawableHeight) {
+        [self requestRefresh];
         self.drawableWidth = newDrawableWidth;
         self.drawableHeight = newDrawableHeight;
         if (_glfmDisplay->surfaceResizedFunc) {
@@ -181,14 +190,30 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         _preRenderCallback();
     }
     
-    if (_glfmDisplay->mainLoopFunc) {
-        _glfmDisplay->mainLoopFunc(_glfmDisplay, CACurrentMediaTime());
+    if (self.refreshRequested) {
+        self.refreshRequested = NO;
+        if (_glfmDisplay->surfaceRefreshFunc) {
+            _glfmDisplay->surfaceRefreshFunc(_glfmDisplay);
+        }
     }
+    
+    if (_glfmDisplay->renderFunc) {
+        _glfmDisplay->renderFunc(_glfmDisplay);
+    }
+}
+
+- (void)swapBuffers {
+    // Do nothing
+}
+
+- (void)requestRefresh {
+    self.refreshRequested = YES;
 }
 
 - (void)layoutSubviews {
     // First render as soon as safeAreaInsets are set
     if (!self.surfaceCreatedNotified) {
+        [self requestRefresh];
         [self draw];
     }
 }
@@ -219,6 +244,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 @property(nonatomic, assign) BOOL multisampling;
 @property(nonatomic, assign) BOOL surfaceCreatedNotified;
 @property(nonatomic, assign) BOOL surfaceSizeChanged;
+@property(nonatomic, assign) BOOL refreshRequested;
 
 @end
 
@@ -245,6 +271,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         
         self.contentScaleFactor = contentScaleFactor;
         self.glfmDisplay = glfmDisplay;
+        [self requestRefresh];
         
         if (glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
             self.context = GLFM_AUTORELEASE([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3]);
@@ -329,6 +356,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 - (void)setAnimating:(BOOL)animating {
     if (self.animating != animating) {
+        [self requestRefresh];
         if (!animating) {
             [self.displayLink invalidate];
             self.displayLink = nil;
@@ -536,6 +564,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 - (void)render:(CADisplayLink *)displayLink {
     if (!self.surfaceCreatedNotified) {
         self.surfaceCreatedNotified = YES;
+        [self requestRefresh];
 
         if (_glfmDisplay->surfaceCreatedFunc) {
             _glfmDisplay->surfaceCreatedFunc(_glfmDisplay, self.drawableWidth, self.drawableHeight);
@@ -544,6 +573,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     
     if (self.surfaceSizeChanged) {
         self.surfaceSizeChanged  = NO;
+        [self requestRefresh];
         if (_glfmDisplay->surfaceResizedFunc) {
             _glfmDisplay->surfaceResizedFunc(_glfmDisplay, self.drawableWidth, self.drawableHeight);
         }
@@ -554,14 +584,18 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     }
     
     [self prepareRender];
-    if (_glfmDisplay->mainLoopFunc) {
-        CFTimeInterval timestamp = displayLink.timestamp;
-        if (timestamp <= 0) {
-            // First render from layoutSubviews
-            timestamp = CACurrentMediaTime();
+    if (self.refreshRequested) {
+        self.refreshRequested = NO;
+        if (_glfmDisplay->surfaceRefreshFunc) {
+            _glfmDisplay->surfaceRefreshFunc(_glfmDisplay);
         }
-        _glfmDisplay->mainLoopFunc(_glfmDisplay, timestamp);
     }
+    if (_glfmDisplay->renderFunc) {
+        _glfmDisplay->renderFunc(_glfmDisplay);
+    }
+}
+
+- (void)swapBuffers {
     [self finishRender];
 }
 
@@ -569,6 +603,10 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     if (self.displayLink) {
         [self render:self.displayLink];
     }
+}
+
+- (void)requestRefresh {
+    self.refreshRequested = YES;
 }
 
 - (void)layoutSubviews {
@@ -585,6 +623,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     
     // First render as soon as safeAreaInsets are set
     if (!self.surfaceCreatedNotified) {
+        [self requestRefresh];
         [self draw];
     }
 }
@@ -726,6 +765,9 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
     UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
     if (self.orientation != orientation) {
         self.orientation = orientation;
+        if (self.isViewLoaded) {
+            [self.glfmView requestRefresh];
+        }
         if (_glfmDisplay->orientationChangedFunc) {
             _glfmDisplay->orientationChangedFunc(_glfmDisplay,
                                                  glfmGetInterfaceOrientation(_glfmDisplay));
@@ -1007,6 +1049,10 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         CGRect keyboardFrame = [nsValue CGRectValue];
 
         self.keyboardVisible = CGRectIntersectsRect(self.view.window.frame, keyboardFrame);
+        
+        if (self.isViewLoaded) {
+            [self.glfmView requestRefresh];
+        }
 
         if (_glfmDisplay->keyboardVisibilityChangedFunc) {
             // Convert to view coordinates
@@ -1136,6 +1182,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         if (vc.isViewLoaded) {
             if (!active) {
                 // Draw once when entering the background so that a game can show "paused" state.
+                [vc.glfmView requestRefresh];
                 [vc.glfmView draw];
             }
             vc.glfmView.animating = active;
@@ -1200,6 +1247,15 @@ GLFMProc glfmGetProcAddress(const char *functionName) {
     return handle ? (GLFMProc)dlsym(handle, functionName) : NULL;
 }
 
+void glfmSwapBuffers(GLFMDisplay *display) {
+    if (display && display->platformData) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        if (vc.isViewLoaded) {
+            [vc.glfmView swapBuffers];
+        }
+    }
+}
+
 void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOrientation supportedOrientations) {
     if (display) {
         if (display->supportedOrientations != supportedOrientations) {
@@ -1208,6 +1264,7 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
             // HACK: Notify that the value of supportedInterfaceOrientations has changed
             GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
             if (vc.isViewLoaded && vc.view.window) {
+                [vc.glfmView requestRefresh];
                 UIViewController *dummyVC = GLFM_AUTORELEASE([[UIViewController alloc] init]);
                 dummyVC.view = GLFM_AUTORELEASE([[UIView alloc] init]);
                 [vc presentViewController:dummyVC animated:NO completion:^{
@@ -1321,6 +1378,9 @@ void _glfmDisplayChromeUpdated(GLFMDisplay *display) {
     if (display && display->platformData) {
 #if TARGET_OS_IOS
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        if (vc.isViewLoaded) {
+            [vc.glfmView requestRefresh];
+        }
         [vc setNeedsStatusBarAppearanceUpdate];
         if (@available(iOS 11, *)) {
             [vc setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
