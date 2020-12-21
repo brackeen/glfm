@@ -293,7 +293,7 @@ typedef void (*GLFMSurfaceRefreshFunc)(GLFMDisplay *display);
 /// Callback function when the OpenGL surface is destroyed.
 typedef void (*GLFMSurfaceDestroyedFunc)(GLFMDisplay *display);
 
-/// Callback function when the system recieves a low memory warning.
+/// Callback function when the system receives a low memory warning.
 typedef void (*GLFMMemoryWarningFunc)(GLFMDisplay *display);
 
 typedef void (*GLFMAppFocusFunc)(GLFMDisplay *display, bool focused);
