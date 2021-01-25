@@ -368,6 +368,14 @@ static EM_BOOL _glfmVisibilityChangeCallback(int eventType,
     return 1;
 }
 
+static const char *_glfmBeforeUnloadCallback(int eventType, const void *reserved, void *userData) {
+    (void)eventType;
+    (void)reserved;
+    GLFMDisplay *display = userData;
+    _glfmSetActive(display, false);
+    return NULL;
+}
+
 static EM_BOOL _glfmOrientationChangeCallback(int eventType,
                                               const EmscriptenDeviceOrientationEvent *deviceOrientationEvent,
                                               void *userData) {
@@ -672,6 +680,7 @@ int main() {
     emscripten_set_webglcontextlost_callback(webGLTarget, glfmDisplay, 1, _glfmWebGLContextCallback);
     emscripten_set_webglcontextrestored_callback(webGLTarget, glfmDisplay, 1, _glfmWebGLContextCallback);
     emscripten_set_visibilitychange_callback(glfmDisplay, 1, _glfmVisibilityChangeCallback);
+    emscripten_set_beforeunload_callback(glfmDisplay, _glfmBeforeUnloadCallback);
     emscripten_set_deviceorientation_callback(glfmDisplay, 1, _glfmOrientationChangeCallback);
     return 0;
 }

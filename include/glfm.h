@@ -447,6 +447,9 @@ GLFMSurfaceDestroyedFunc glfmSetSurfaceDestroyedFunc(GLFMDisplay *display,
 
 GLFMMemoryWarningFunc glfmSetMemoryWarningFunc(GLFMDisplay *display, GLFMMemoryWarningFunc lowMemoryFunc);
 
+/// Sets the function to call when the app loses or gains focus (goes into the background or returns
+/// from the background). On Emscripten, this function is called when switching browser tabs and
+/// before the page is unloaded.
 GLFMAppFocusFunc glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focusFunc);
 
 // MARK: - Input functions
