@@ -740,8 +740,8 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
     GLFMInterfaceOrientation orientations = _glfmDisplay->supportedOrientations;
-    BOOL portraitRequested = (orientations & (GLFMInterfaceOrientationPortrait | GLFMInterfaceOrientationPortraitUpsideDown));
-    BOOL landscapeRequested = (orientations & GLFMInterfaceOrientationLandscape);
+    BOOL portraitRequested = (orientations & (GLFMInterfaceOrientationPortrait | GLFMInterfaceOrientationPortraitUpsideDown)) != 0;
+    BOOL landscapeRequested = (orientations & GLFMInterfaceOrientationLandscape) != 0;
     BOOL isTablet = [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad;
     if (portraitRequested && landscapeRequested) {
         if (isTablet) {
