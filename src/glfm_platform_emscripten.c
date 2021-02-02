@@ -463,10 +463,10 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
             "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20",
             "Soft5", "Soft6", "Soft7", "Soft8", "Soft9", "Soft10",
         };
-        int length = strlen(e->key);
+        size_t length = strlen(e->key);
         int isChar = length > 0;
         if (length > 1) {
-            for (int i = 0; i < sizeof(PREDEFINED_KEYS) / sizeof(*PREDEFINED_KEYS); i++) {
+            for (size_t i = 0; i < sizeof(PREDEFINED_KEYS) / sizeof(*PREDEFINED_KEYS); i++) {
                 if (strcmp(e->key, PREDEFINED_KEYS[i]) == 0) {
                     isChar = 0;
                     break;
@@ -493,7 +493,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         }
         
         // NOTE: e->keyCode is deprecated. Only e->key or e->code should be used.
-        int keyCode = e->keyCode;
+        GLFMKey keyCode = (GLFMKey)e->keyCode;
         if (strlen(e->key) > 1) {
             if (strcmp("Backspace", e->key) == 0) {
                 keyCode = GLFMKeyBackspace;
