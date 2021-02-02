@@ -65,8 +65,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 
 #pragma mark - GLFMView
 
-static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor,
-                                       int *width, int *height);
+static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor, int *width, int *height);
 
 @protocol GLFMView
 
@@ -283,7 +282,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
         }
         
         if (!self.context) {
-            _glfmReportSurfaceError(glfmDisplay, "Failed to create ES context");
+            glfm__reportSurfaceError(glfmDisplay, "Failed to create ES context");
             GLFM_RELEASE(self);
             return nil;
         }
@@ -612,8 +611,7 @@ static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor
 - (void)layoutSubviews {
     int newDrawableWidth;
     int newDrawableHeight;
-    _glfmPreferredDrawableSize(self.bounds, self.contentScaleFactor,
-                               &newDrawableWidth, &newDrawableHeight);
+    glfm__preferredDrawableSize(self.bounds, self.contentScaleFactor, &newDrawableWidth, &newDrawableHeight);
 
     if (self.drawableWidth != newDrawableWidth || self.drawableHeight != newDrawableHeight) {
         [self deleteDrawable];
@@ -1296,7 +1294,7 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
 #endif
 }
 
-static void _glfmPreferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor, int *width, int *height) {
+static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor, int *width, int *height) {
     int newDrawableWidth = (int)(bounds.size.width * contentScaleFactor);
     int newDrawableHeight = (int)(bounds.size.height * contentScaleFactor);
 
@@ -1319,8 +1317,7 @@ void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
             *width = vc.glfmView.drawableWidth;
             *height = vc.glfmView.drawableHeight;
         } else {
-            _glfmPreferredDrawableSize(UIScreen.mainScreen.bounds, UIScreen.mainScreen.nativeScale,
-                                       width, height);
+            glfm__preferredDrawableSize(UIScreen.mainScreen.bounds, UIScreen.mainScreen.nativeScale, width, height);
         }
     } else {
         *width = 0;
@@ -1374,7 +1371,7 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
     }
 }
 
-void _glfmDisplayChromeUpdated(GLFMDisplay *display) {
+void glfm__displayChromeUpdated(GLFMDisplay *display) {
     if (display && display->platformData) {
 #if TARGET_OS_IOS
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
@@ -1482,7 +1479,7 @@ bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
 #endif
 }
 
-void _glfmSensorFuncUpdated(GLFMDisplay *display) {
+void glfm__sensorFuncUpdated(GLFMDisplay *display) {
 #if TARGET_OS_IOS
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;

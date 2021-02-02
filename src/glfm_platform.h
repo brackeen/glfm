@@ -82,8 +82,8 @@ struct GLFMDisplay {
 
 // MARK: - Notification functions
 
-void _glfmDisplayChromeUpdated(GLFMDisplay *display);
-void _glfmSensorFuncUpdated(GLFMDisplay *display);
+void glfm__displayChromeUpdated(GLFMDisplay *display);
+void glfm__sensorFuncUpdated(GLFMDisplay *display);
 
 // MARK: - Setters
 
@@ -142,7 +142,7 @@ GLFMUserInterfaceChrome glfmGetDisplayChrome(GLFMDisplay *display) {
 void glfmSetDisplayChrome(GLFMDisplay *display, GLFMUserInterfaceChrome uiChrome) {
     if (display) {
         display->uiChrome = uiChrome;
-        _glfmDisplayChromeUpdated(display);
+        glfm__displayChromeUpdated(display);
     }
 }
 
@@ -155,7 +155,7 @@ GLFMRenderFunc glfmSetRenderFunc(GLFMDisplay *display, GLFMRenderFunc renderFunc
     return previous;
 }
 
-static void _glfmDeprecatedMainLoopRenderAdapter(GLFMDisplay *display) {
+static void glfm__deprecatedMainLoopRenderAdapter(GLFMDisplay *display) {
     if (display && display->deprecatedMainLoopFunc) {
         // Mimic the behavior of the deprecated "MainLoop" callback
         display->deprecatedMainLoopFunc(display, glfmGetTime());
@@ -168,7 +168,7 @@ GLFMMainLoopFunc glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc main
     if (display) {
         previous = display->deprecatedMainLoopFunc;
         display->deprecatedMainLoopFunc = mainLoopFunc;
-        glfmSetRenderFunc(display, mainLoopFunc ? _glfmDeprecatedMainLoopRenderAdapter : NULL);
+        glfmSetRenderFunc(display, mainLoopFunc ? glfm__deprecatedMainLoopRenderAdapter : NULL);
     }
     return previous;
 }
@@ -275,7 +275,7 @@ GLFMSensorFunc glfmSetSensorFunc(GLFMDisplay *display, GLFMSensor sensor, GLFMSe
     if (display && index >= 0 && index < GLFM_NUM_SENSORS) {
         previous = display->sensorFuncs[index];
         display->sensorFuncs[index] = sensorFunc;
-        _glfmSensorFuncUpdated(display);
+        glfm__sensorFuncUpdated(display);
     }
     return previous;
 }
@@ -314,7 +314,7 @@ GLFMSwapBehavior glfmGetSwapBehavior(GLFMDisplay *display) {
 
 // MARK: - Helper functions
 
-static void _glfmReportSurfaceError(GLFMDisplay *display, const char *errorMessage) {
+static void glfm__reportSurfaceError(GLFMDisplay *display, const char *errorMessage) {
     if (display->surfaceErrorFunc && errorMessage) {
         display->surfaceErrorFunc(display, errorMessage);
     }
