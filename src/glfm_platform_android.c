@@ -1279,7 +1279,7 @@ void android_main(struct android_app *app) {
                         // Convert to iOS format
                         GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorAccelerometer];
                         sensorEvent->sensor = GLFMSensorAccelerometer;
-                        sensorEvent->timestamp = event.timestamp / 1000000000.0;
+                        sensorEvent->timestamp = (double)event.timestamp / 1000000000.0;
                         sensorEvent->vector.x = (double)event.acceleration.x / -G;
                         sensorEvent->vector.y = (double)event.acceleration.y / -G;
                         sensorEvent->vector.z = (double)event.acceleration.z / -G;
@@ -1288,7 +1288,7 @@ void android_main(struct android_app *app) {
                     } else if (event.type == ASENSOR_TYPE_MAGNETIC_FIELD) {
                         GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorMagnetometer];
                         sensorEvent->sensor = GLFMSensorMagnetometer;
-                        sensorEvent->timestamp = event.timestamp / 1000000000.0;
+                        sensorEvent->timestamp = (double)event.timestamp / 1000000000.0;
                         sensorEvent->vector.x = (double)event.magnetic.x;
                         sensorEvent->vector.y = (double)event.magnetic.y;
                         sensorEvent->vector.z = (double)event.magnetic.z;
@@ -1297,7 +1297,7 @@ void android_main(struct android_app *app) {
                     } else if (event.type == ASENSOR_TYPE_GYROSCOPE) {
                         GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorGyroscope];
                         sensorEvent->sensor = GLFMSensorGyroscope;
-                        sensorEvent->timestamp = event.timestamp / 1000000000.0;
+                        sensorEvent->timestamp = (double)event.timestamp / 1000000000.0;
                         sensorEvent->vector.x = (double)event.vector.x;
                         sensorEvent->vector.y = (double)event.vector.y;
                         sensorEvent->vector.z = (double)event.vector.z;
@@ -1306,7 +1306,7 @@ void android_main(struct android_app *app) {
                     } else if (event.type == ASENSOR_TYPE_ROTATION_VECTOR) {
                         GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorRotationMatrix];
                         sensorEvent->sensor = GLFMSensorRotationMatrix;
-                        sensorEvent->timestamp = event.timestamp / 1000000000.0;
+                        sensorEvent->timestamp = (double)event.timestamp / 1000000000.0;
 
                         // Convert unit quaternion to rotation matrix
                         double qx = (double)event.vector.x;
