@@ -213,6 +213,7 @@ typedef enum {
     GLFMKeyUp = 0x26,
     GLFMKeyRight = 0x27,
     GLFMKeyDown = 0x28,
+    GLFMKeyDelete = 0x2E,
     GLFMKeyNavBack = 0x1000,
     GLFMKeyNavMenu = 0x1001,
     GLFMKeyNavSelect = 0x1002,

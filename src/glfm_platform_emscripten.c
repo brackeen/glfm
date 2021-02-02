@@ -396,15 +396,93 @@ static EM_BOOL _glfmOrientationChangeCallback(int eventType,
 
 static EM_BOOL _glfmKeyCallback(int eventType, const EmscriptenKeyboardEvent *e, void *userData) {
     GLFMDisplay *display = userData;
-    if (eventType == EMSCRIPTEN_EVENT_KEYPRESS) {
-        if (display->charFunc && e->charCode >= ' ') {
-            display->charFunc(display, e->key, 0);
-        }
-        return 1;
+    EM_BOOL handled = 0;
+    int modifiers = 0;
+    
+    // Modifiers
+    if (e->shiftKey) {
+        modifiers |= GLFMKeyModifierShift;
     }
-    // Prevent change of focus via tab key
-    EM_BOOL handled = e->keyCode == '\t';
-    if (display->keyFunc) {
+    if (e->ctrlKey) {
+        modifiers |= GLFMKeyModifierCtrl;
+    }
+    if (e->altKey) {
+        modifiers |= GLFMKeyModifierAlt;
+    }
+    if (e->metaKey) {
+        modifiers |= GLFMKeyModifierMeta;
+    }
+    
+    // Character input
+    if (display->charFunc && eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
+        // It appears the only way to detect printable character input is to check if the "key" value is
+        // not one of the pre-defined key values.
+        // This list of pre-defined key values is from https://www.w3.org/TR/uievents-key/
+        // (Added functions keys F13-F20 and Soft5-Soft10)
+        // egrep -o '<code class="key" id="key-.*?</code>' uievents-key.html | sort | awk -F"[><]" '{print $3}' | awk 1 ORS=', '
+        static const char *PREDEFINED_KEYS[] = {
+            "AVRInput", "AVRPower", "Accept", "Again", "AllCandidates", "Alphanumeric", "Alt", "AltGraph", "AppSwitch",
+            "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp", "Attn", "AudioBalanceLeft", "AudioBalanceRight",
+            "AudioBassBoostDown", "AudioBassBoostToggle", "AudioBassBoostUp", "AudioFaderFront", "AudioFaderRear",
+            "AudioSurroundModeNext", "AudioTrebleDown", "AudioTrebleUp", "AudioVolumeDown", "AudioVolumeMute",
+            "AudioVolumeUp", "Backspace", "BrightnessDown", "BrightnessUp", "BrowserBack", "BrowserFavorites",
+            "BrowserForward", "BrowserHome", "BrowserRefresh", "BrowserSearch", "BrowserStop", "Call", "Camera",
+            "CameraFocus", "Cancel", "CapsLock", "ChannelDown", "ChannelUp", "Clear", "Close", "ClosedCaptionToggle",
+            "CodeInput", "ColorF0Red", "ColorF1Green", "ColorF2Yellow", "ColorF3Blue", "ColorF4Grey", "ColorF5Brown",
+            "Compose", "ContextMenu", "Control", "Convert", "Copy", "CrSel", "Cut", "DVR", "Dead", "Delete", "Dimmer",
+            "DisplaySwap", "Eisu", "Eject", "End", "EndCall", "Enter", "EraseEof", "Escape", "ExSel", "Execute", "Exit",
+            "F1", "F10", "F11", "F12", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "FavoriteClear0",
+            "FavoriteClear1", "FavoriteClear2", "FavoriteClear3", "FavoriteRecall0", "FavoriteRecall1",
+            "FavoriteRecall2", "FavoriteRecall3", "FavoriteStore0", "FavoriteStore1", "FavoriteStore2",
+            "FavoriteStore3", "FinalMode", "Find", "Fn", "FnLock", "GoBack", "GoHome", "GroupFirst", "GroupLast",
+            "GroupNext", "GroupPrevious", "Guide", "GuideNextDay", "GuidePreviousDay", "HangulMode", "HanjaMode",
+            "Hankaku", "HeadsetHook", "Help", "Hibernate", "Hiragana", "HiraganaKatakana", "Home", "Hyper", "Info",
+            "Insert", "InstantReplay", "JunjaMode", "KanaMode", "KanjiMode", "Katakana", "Key11", "Key12",
+            "LastNumberRedial", "LaunchApplication1", "LaunchApplication2", "LaunchCalendar", "LaunchContacts",
+            "LaunchMail", "LaunchMediaPlayer", "LaunchMusicPlayer", "LaunchPhone", "LaunchScreenSaver",
+            "LaunchSpreadsheet", "LaunchWebBrowser", "LaunchWebCam", "LaunchWordProcessor", "Link", "ListProgram",
+            "LiveContent", "Lock", "LogOff", "MailForward", "MailReply", "MailSend", "MannerMode", "MediaApps",
+            "MediaAudioTrack", "MediaClose", "MediaFastForward", "MediaLast", "MediaPause", "MediaPlay",
+            "MediaPlayPause", "MediaRecord", "MediaRewind", "MediaSkipBackward", "MediaSkipForward",
+            "MediaStepBackward", "MediaStepForward", "MediaStop", "MediaTopMenu", "MediaTrackNext",
+            "MediaTrackPrevious", "Meta", "MicrophoneToggle", "MicrophoneVolumeDown", "MicrophoneVolumeMute",
+            "MicrophoneVolumeUp", "ModeChange", "NavigateIn", "NavigateNext", "NavigateOut", "NavigatePrevious", "New",
+            "NextCandidate", "NextFavoriteChannel", "NextUserProfile", "NonConvert", "Notification", "NumLock",
+            "OnDemand", "Open", "PageDown", "PageUp", "Pairing", "Paste", "Pause", "PinPDown", "PinPMove", "PinPToggle",
+            "PinPUp", "Play", "PlaySpeedDown", "PlaySpeedReset", "PlaySpeedUp", "Power", "PowerOff",
+            "PreviousCandidate", "Print", "PrintScreen", "Process", "Props", "RandomToggle", "RcLowBattery",
+            "RecordSpeedNext", "Redo", "RfBypass", "Romaji", "STBInput", "STBPower", "Save", "ScanChannelsToggle",
+            "ScreenModeNext", "ScrollLock", "Select", "Settings", "Shift", "SingleCandidate", "Soft1", "Soft2", "Soft3",
+            "Soft4", "SpeechCorrectionList", "SpeechInputToggle", "SpellCheck", "SplitScreenToggle", "Standby",
+            "Subtitle", "Super", "Symbol", "SymbolLock", "TV", "TV3DMode", "TVAntennaCable", "TVAudioDescription",
+            "TVAudioDescriptionMixDown", "TVAudioDescriptionMixUp", "TVContentsMenu", "TVDataService", "TVInput",
+            "TVInputComponent1", "TVInputComponent2", "TVInputComposite1", "TVInputComposite2", "TVInputHDMI1",
+            "TVInputHDMI2", "TVInputHDMI3", "TVInputHDMI4", "TVInputVGA1", "TVMediaContext", "TVNetwork",
+            "TVNumberEntry", "TVPower", "TVRadioService", "TVSatellite", "TVSatelliteBS", "TVSatelliteCS",
+            "TVSatelliteToggle", "TVTerrestrialAnalog", "TVTerrestrialDigital", "TVTimer", "Tab", "Teletext",
+            "Undo", "Unidentified", "VideoModeNext", "VoiceDial", "WakeUp", "Wink", "Zenkaku", "ZenkakuHankaku",
+            "ZoomIn", "ZoomOut", "ZoomToggle",
+            "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20",
+            "Soft5", "Soft6", "Soft7", "Soft8", "Soft9", "Soft10",
+        };
+        int length = strlen(e->key);
+        int isChar = length > 0;
+        if (length > 1) {
+            for (int i = 0; i < sizeof(PREDEFINED_KEYS) / sizeof(*PREDEFINED_KEYS); i++) {
+                if (strcmp(e->key, PREDEFINED_KEYS[i]) == 0) {
+                    isChar = 0;
+                    break;
+                }
+            }
+        }
+        if (isChar) {
+            display->charFunc(display, e->key, modifiers);
+            handled = 1;
+        }
+    }
+    
+    // Key input
+    if (display->keyFunc && (eventType == EMSCRIPTEN_EVENT_KEYDOWN || eventType == EMSCRIPTEN_EVENT_KEYUP)) {
         GLFMKeyAction action;
         if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
             if (e->repeat) {
@@ -412,43 +490,37 @@ static EM_BOOL _glfmKeyCallback(int eventType, const EmscriptenKeyboardEvent *e,
             } else {
                 action = GLFMKeyActionPressed;
             }
-        } else if (eventType == EMSCRIPTEN_EVENT_KEYUP) {
-            action = GLFMKeyActionReleased;
         } else {
-            return 0;
+            action = GLFMKeyActionReleased;
         }
-
-        /*
-         For now just send e->keyCode as is. It is identical to the defined values:
-         GLFMKeyBackspace = 0x08,
-         GLFMKeyTab       = 0x09,
-         GLFMKeyEnter     = 0x0d,
-         GLFMKeyEscape    = 0x1b,
-         GLFMKeySpace     = 0x20,
-         GLFMKeyLeft      = 0x25,
-         GLFMKeyUp        = 0x26,
-         GLFMKeyRight     = 0x27,
-         GLFMKeyDown      = 0x28,
-         */
         
-        int modifiers = 0;
-        if (e->shiftKey) {
-            modifiers |= GLFMKeyModifierShift;
+        // NOTE: e->keyCode is deprecated. Only e->key or e->code should be used.
+        int keyCode = e->keyCode;
+        if (strlen(e->key) > 1) {
+            if (strcmp("Backspace", e->key) == 0) {
+                keyCode = GLFMKeyBackspace;
+            } else if (strcmp("Delete", e->key) == 0) {
+                keyCode = GLFMKeyDelete;
+            } else if (strcmp("Tab", e->key) == 0) {
+                keyCode = GLFMKeyTab;
+            } else if (strcmp("Enter", e->key) == 0) {
+                keyCode = GLFMKeyEnter;
+            } else if (strcmp("Escape", e->key) == 0) {
+                keyCode = GLFMKeyEscape;
+            } else if (strcmp("Left", e->key) == 0) {
+                keyCode = GLFMKeyLeft;
+            } else if (strcmp("Up", e->key) == 0) {
+                keyCode = GLFMKeyUp;
+            } else if (strcmp("Right", e->key) == 0) {
+                keyCode = GLFMKeyRight;
+            } else if (strcmp("Down", e->key) == 0) {
+                keyCode = GLFMKeyDown;
+            }
         }
-        if (e->ctrlKey) {
-            modifiers |= GLFMKeyModifierCtrl;
-        }
-        if (e->altKey) {
-            modifiers |= GLFMKeyModifierAlt;
-        }
-        if (e->metaKey) {
-            modifiers |= GLFMKeyModifierMeta;
-        }
-
-        return display->keyFunc(display, e->keyCode, action, modifiers) || handled;
-    } else {
-        return handled;
+        handled = display->keyFunc(display, keyCode, action, modifiers) || handled;
     }
+    
+    return handled;
 }
 
 static EM_BOOL _glfmMouseCallback(int eventType, const EmscriptenMouseEvent *e, void *userData) {
