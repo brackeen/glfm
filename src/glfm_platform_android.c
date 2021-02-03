@@ -423,7 +423,7 @@ static uint32_t glfm__getUnicodeChar(GLFMPlatformData *platformData, AInputEvent
 
 // MARK: EGL
 
-static bool glfm__EGLContextInit(GLFMPlatformData *platformData) {
+static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
 
     // Available in eglext.h in API 18
     static const int EGL_CONTEXT_MAJOR_VERSION_KHR = 0x3098;
@@ -518,14 +518,14 @@ static bool glfm__EGLContextInit(GLFMPlatformData *platformData) {
     }
 }
 
-static void glfm__EGLContextDisable(GLFMPlatformData *platformData) {
+static void glfm__eglContextDisable(GLFMPlatformData *platformData) {
     if (platformData->eglDisplay != EGL_NO_DISPLAY) {
         eglMakeCurrent(platformData->eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     }
     platformData->eglContextCurrent = false;
 }
 
-static void glfm__EGLSurfaceInit(GLFMPlatformData *platformData) {
+static void glfm__eglSurfaceInit(GLFMPlatformData *platformData) {
     if (platformData->eglSurface == EGL_NO_SURFACE) {
         platformData->eglSurface = eglCreateWindowSurface(platformData->eglDisplay,
                                                           platformData->eglConfig,
@@ -544,7 +544,7 @@ static void glfm__EGLSurfaceInit(GLFMPlatformData *platformData) {
     }
 }
 
-static void glfm__EGLLogConfig(GLFMPlatformData *platformData, EGLConfig config) {
+static void glfm__eglLogConfig(GLFMPlatformData *platformData, EGLConfig config) {
     LOG_DEBUG("Config: %p", config);
     EGLint value;
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_RENDERABLE_TYPE, &value);
@@ -569,10 +569,10 @@ static void glfm__EGLLogConfig(GLFMPlatformData *platformData, EGLConfig config)
     LOG_DEBUG("  EGL_SAMPLES         %i", value);
 }
 
-static bool glfm__EGLInit(GLFMPlatformData *platformData) {
+static bool glfm__eglInit(GLFMPlatformData *platformData) {
     if (platformData->eglDisplay != EGL_NO_DISPLAY) {
-        glfm__EGLSurfaceInit(platformData);
-        return glfm__EGLContextInit(platformData);
+        glfm__eglSurfaceInit(platformData);
+        return glfm__eglContextInit(platformData);
     }
     int rBits, gBits, bBits, aBits;
     int depthBits, stencilBits, samples;
@@ -647,7 +647,7 @@ static bool glfm__EGLInit(GLFMPlatformData *platformData) {
         eglChooseConfig(platformData->eglDisplay, attribs, &platformData->eglConfig, 1, &numConfigs);
         if (numConfigs) {
             // Found!
-            //glfm__EGLLogConfig(platformData, platformData->eglConfig);
+            //glfm__eglLogConfig(platformData, platformData->eglConfig);
             break;
         } else if (samples > 0) {
             // Try 2x multisampling or no multisampling
@@ -667,7 +667,7 @@ static bool glfm__EGLInit(GLFMPlatformData *platformData) {
                     LOG_DEBUG("Num available configs: %i", numTotalConfigs);
                     int i;
                     for (i = 0; i < numTotalConfigs; i++) {
-                        glfm__EGLLogConfig(platformData, configs[i]);
+                        glfm__eglLogConfig(platformData, configs[i]);
                     }
                 } else {
                     LOG_DEBUG("Couldn't get any EGL configs");
@@ -681,7 +681,7 @@ static bool glfm__EGLInit(GLFMPlatformData *platformData) {
         }
     }
 
-    glfm__EGLSurfaceInit(platformData);
+    glfm__eglSurfaceInit(platformData);
 
     eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_WIDTH,
                     &platformData->width);
@@ -692,18 +692,18 @@ static bool glfm__EGLInit(GLFMPlatformData *platformData) {
 
     ANativeWindow_setBuffersGeometry(platformData->app->window, 0, 0, format);
 
-    return glfm__EGLContextInit(platformData);
+    return glfm__eglContextInit(platformData);
 }
 
-static void glfm__EGLSurfaceDestroy(GLFMPlatformData *platformData) {
+static void glfm__eglSurfaceDestroy(GLFMPlatformData *platformData) {
     if (platformData->eglSurface != EGL_NO_SURFACE) {
         eglDestroySurface(platformData->eglDisplay, platformData->eglSurface);
         platformData->eglSurface = EGL_NO_SURFACE;
     }
-    glfm__EGLContextDisable(platformData);
+    glfm__eglContextDisable(platformData);
 }
 
-static void glfm__EGLDestroy(GLFMPlatformData *platformData) {
+static void glfm__eglDestroy(GLFMPlatformData *platformData) {
     if (platformData->eglDisplay != EGL_NO_DISPLAY) {
         eglMakeCurrent(platformData->eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         if (platformData->eglContext != EGL_NO_CONTEXT) {
@@ -726,11 +726,11 @@ static void glfm__EGLDestroy(GLFMPlatformData *platformData) {
     platformData->eglContextCurrent = false;
 }
 
-static void glfm__EGLCheckError(GLFMPlatformData *platformData) {
+static void glfm__eglCheckError(GLFMPlatformData *platformData) {
     EGLint err = eglGetError();
     if (err == EGL_BAD_SURFACE) {
-        glfm__EGLSurfaceDestroy(platformData);
-        glfm__EGLSurfaceInit(platformData);
+        glfm__eglSurfaceDestroy(platformData);
+        glfm__eglSurfaceInit(platformData);
     } else if (err == EGL_CONTEXT_LOST || err == EGL_BAD_CONTEXT) {
         if (platformData->eglContext != EGL_NO_CONTEXT) {
             platformData->eglContext = EGL_NO_CONTEXT;
@@ -742,10 +742,10 @@ static void glfm__EGLCheckError(GLFMPlatformData *platformData) {
                 }
             }
         }
-        glfm__EGLContextInit(platformData);
+        glfm__eglContextInit(platformData);
     } else {
-        glfm__EGLDestroy(platformData);
-        glfm__EGLInit(platformData);
+        glfm__eglDestroy(platformData);
+        glfm__eglInit(platformData);
     }
 }
 
@@ -927,9 +927,9 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
         }
         case APP_CMD_INIT_WINDOW: {
             LOG_LIFECYCLE("APP_CMD_INIT_WINDOW");
-            const bool success = glfm__EGLInit(platformData);
+            const bool success = glfm__eglInit(platformData);
             if (!success) {
-                glfm__EGLCheckError(platformData);
+                glfm__eglCheckError(platformData);
             }
             platformData->refreshRequested = true;
             glfm__drawFrame(platformData);
@@ -941,7 +941,7 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
         }
         case APP_CMD_TERM_WINDOW: {
             LOG_LIFECYCLE("APP_CMD_TERM_WINDOW");
-            glfm__EGLSurfaceDestroy(platformData);
+            glfm__eglSurfaceDestroy(platformData);
             glfm__setAnimating(platformData, false);
             break;
         }
@@ -1003,7 +1003,7 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
         }
         case APP_CMD_DESTROY: {
             LOG_LIFECYCLE("APP_CMD_DESTROY");
-            glfm__EGLDestroy(platformData);
+            glfm__eglDestroy(platformData);
             break;
         }
         default: {
@@ -1405,7 +1405,7 @@ void android_main(struct android_app *app) {
                     ASensorManager_destroyEventQueue(sensorManager, platformData->sensorEventQueue);
                     platformData->sensorEventQueue = NULL;
                 }
-                glfm__EGLDestroy(platformData);
+                glfm__eglDestroy(platformData);
                 glfm__setAnimating(platformData, false);
                 (*vm)->DetachCurrentThread(vm);
                 platformData->app = NULL;
@@ -1477,7 +1477,7 @@ void glfmSwapBuffers(GLFMDisplay *display) {
         platformData->swapCalled = true;
         platformData->lastSwapTime = glfmGetTime();
         if (!result) {
-            glfm__EGLCheckError(platformData);
+            glfm__eglCheckError(platformData);
         }
     }
 }
