@@ -52,7 +52,7 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 #define GLFM_RELEASE(value) ((void)0)
 #define GLFM_WEAK __weak
 #else
-#define GLFM_RETAIN(value) [value retain];
+#define GLFM_RETAIN(value) [value retain]
 #define GLFM_AUTORELEASE(value) [value autorelease]
 #define GLFM_RELEASE(value) [value release]
 #define GLFM_WEAK __unsafe_unretained
