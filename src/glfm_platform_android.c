@@ -796,9 +796,50 @@ static void glfm__onContentRectChanged(ANativeActivity *activity, const ARect *r
 
 // MARK: Keyboard visibility
 
+static ARect glfm__getDecorViewRect(GLFMPlatformData *platformData, ARect defaultRect) {
+    JNIEnv *jni = platformData->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return defaultRect;
+    }
+
+    jobject decorView = glfm__getDecorView(platformData->app);
+    if (!decorView) {
+        return defaultRect;
+    }
+
+    jintArray locationArray = (*jni)->NewIntArray(jni, 2);
+    if (!locationArray) {
+        (*jni)->DeleteLocalRef(jni, decorView);
+        return defaultRect;
+    }
+
+    jint location[2] = { 0 };
+    glfm__callJavaMethodWithArgs(jni, decorView, "getLocationInWindow", "([I)V", Void, locationArray);
+    (*jni)->GetIntArrayRegion(jni, locationArray, 0, 2, location);
+    (*jni)->DeleteLocalRef(jni, locationArray);
+    if ((*jni)->ExceptionCheck(jni)) {
+        (*jni)->DeleteLocalRef(jni, decorView);
+        return defaultRect;
+    }
+
+    jint width = glfm__callJavaMethod(jni, decorView, "getWidth", "()I", Int);
+    jint height = glfm__callJavaMethod(jni, decorView, "getHeight", "()I", Int);
+    (*jni)->DeleteLocalRef(jni, decorView);
+    if ((*jni)->ExceptionCheck(jni)) {
+        return defaultRect;
+    }
+
+    ARect result;
+    result.left = location[0];
+    result.top = location[1];
+    result.right = location[0] + width;
+    result.bottom = location[1] + height;
+    return result;
+}
+
 static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
     if (platformData->display) {
-        ARect windowRect = platformData->app->contentRect;
+        ARect windowRect = glfm__getDecorViewRect(platformData, platformData->app->contentRect);
         ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, windowRect);
         ARect nonVisibleRect[4];
 
