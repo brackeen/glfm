@@ -47,10 +47,12 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 #endif
 
 #if __has_feature(objc_arc)
+#define GLFM_RETAIN(value) value
 #define GLFM_AUTORELEASE(value) value
 #define GLFM_RELEASE(value) ((void)0)
 #define GLFM_WEAK __weak
 #else
+#define GLFM_RETAIN(value) [value retain];
 #define GLFM_AUTORELEASE(value) [value autorelease]
 #define GLFM_RELEASE(value) [value release]
 #define GLFM_WEAK __unsafe_unretained
@@ -1102,24 +1104,23 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 - (NSArray<UIKeyCommand *> *)keyCommands {
     static NSArray<UIKeyCommand *> *keyCommands = NULL;
     if (!keyCommands) {
-        keyCommands = @[ [UIKeyCommand keyCommandWithInput:UIKeyInputUpArrow
-                                             modifierFlags:(UIKeyModifierFlags)0
-                                                    action:@selector(keyPressed:)],
-                         [UIKeyCommand keyCommandWithInput:UIKeyInputDownArrow
-                                             modifierFlags:(UIKeyModifierFlags)0
-                                                    action:@selector(keyPressed:)],
-                         [UIKeyCommand keyCommandWithInput:UIKeyInputLeftArrow
-                                             modifierFlags:(UIKeyModifierFlags)0
-                                                    action:@selector(keyPressed:)],
-                         [UIKeyCommand keyCommandWithInput:UIKeyInputRightArrow
-                                             modifierFlags:(UIKeyModifierFlags)0
-                                                    action:@selector(keyPressed:)],
-                         [UIKeyCommand keyCommandWithInput:UIKeyInputEscape
-                                             modifierFlags:(UIKeyModifierFlags)0
-                                                    action:@selector(keyPressed:)] ];
-#if !__has_feature(objc_arc)
-        [keyCommands retain];
-#endif
+        NSArray<NSString *> *keyInputs = @[
+            UIKeyInputUpArrow, UIKeyInputDownArrow, UIKeyInputLeftArrow, UIKeyInputRightArrow,
+            UIKeyInputEscape, UIKeyInputPageUp, UIKeyInputPageDown,
+        ];
+        if (@available(iOS 13.4, tvOS  13.4, *)) {
+            keyInputs = [keyInputs arrayByAddingObjectsFromArray: @[
+                UIKeyInputHome, UIKeyInputEnd,
+            ]];
+                           
+        }
+        NSMutableArray *mutableKeyCommands = GLFM_AUTORELEASE([NSMutableArray new]);
+        [keyInputs enumerateObjectsUsingBlock:^(NSString *keyInput, NSUInteger idx, BOOL *stop) {
+            [mutableKeyCommands addObject:[UIKeyCommand keyCommandWithInput:keyInput
+                                                              modifierFlags:(UIKeyModifierFlags)0
+                                                                     action:@selector(keyPressed:)]];
+        }];
+        keyCommands = GLFM_RETAIN([mutableKeyCommands copy]);
     }
 
     return keyCommands;
@@ -1139,6 +1140,18 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
             keyCode = GLFMKeyRight;
         } else if (key == UIKeyInputEscape) {
             keyCode = GLFMKeyEscape;
+        } else if (key == UIKeyInputPageUp) {
+            keyCode = GLFMKeyPageUp;
+        } else if (key == UIKeyInputPageDown) {
+            keyCode = GLFMKeyPageDown;
+        }
+        
+        if (@available(iOS 13.4, tvOS  13.4, *)) {
+            if (key == UIKeyInputHome) {
+                keyCode = GLFMKeyHome;
+            } else if (key == UIKeyInputEnd) {
+                keyCode = GLFMKeyEnd;
+            }
         }
 
         if (keyCode != 0) {

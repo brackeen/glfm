@@ -1052,27 +1052,48 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
             if (aKeyCode != 0) {
                 GLFMKey key;
                 switch (aKeyCode) {
-                    case AKEYCODE_DPAD_LEFT:
-                        key = GLFMKeyLeft;
+                    case AKEYCODE_DEL:
+                        key = GLFMKeyBackspace;
                         break;
-                    case AKEYCODE_DPAD_RIGHT:
-                        key = GLFMKeyRight;
-                        break;
-                    case AKEYCODE_DPAD_UP:
-                        key = GLFMKeyUp;
-                        break;
-                    case AKEYCODE_DPAD_DOWN:
-                        key = GLFMKeyDown;
+                    case AKEYCODE_TAB:
+                        key = GLFMKeyTab;
                         break;
                     case AKEYCODE_ENTER:
                     case AKEYCODE_DPAD_CENTER:
                         key = GLFMKeyEnter;
                         break;
-                    case AKEYCODE_TAB:
-                        key = GLFMKeyTab;
+                    case AKEYCODE_ESCAPE:
+                        key = GLFMKeyEscape;
                         break;
                     case AKEYCODE_SPACE:
                         key = GLFMKeySpace;
+                        break;
+                    case AKEYCODE_PAGE_UP:
+                        key = GLFMKeyPageUp;
+                        break;
+                    case AKEYCODE_PAGE_DOWN:
+                        key = GLFMKeyPageDown;
+                        break;
+                    case AKEYCODE_MOVE_END:
+                        key = GLFMKeyEnd;
+                        break;
+                    case AKEYCODE_MOVE_HOME:
+                        key = GLFMKeyHome;
+                        break;
+                    case AKEYCODE_DPAD_LEFT:
+                        key = GLFMKeyLeft;
+                        break;
+                    case AKEYCODE_DPAD_UP:
+                        key = GLFMKeyUp;
+                        break;
+                    case AKEYCODE_DPAD_RIGHT:
+                        key = GLFMKeyRight;
+                        break;
+                    case AKEYCODE_DPAD_DOWN:
+                        key = GLFMKeyDown;
+                        break;
+                    case AKEYCODE_FORWARD_DEL:
+                        key = GLFMKeyDelete;
                         break;
                     case AKEYCODE_BACK:
                         key = GLFMKeyNavBack;

@@ -513,6 +513,14 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
                 keyCode = GLFMKeyRight;
             } else if (strcmp("Down", e->key) == 0) {
                 keyCode = GLFMKeyDown;
+            } else if (strcmp("PageUp", e->key) == 0) {
+                keyCode = GLFMKeyPageUp;
+            } else if (strcmp("PageDown", e->key) == 0) {
+                keyCode = GLFMKeyPageDown;
+            } else if (strcmp("Home", e->key) == 0) {
+                keyCode = GLFMKeyHome;
+            } else if (strcmp("End", e->key) == 0) {
+                keyCode = GLFMKeyEnd;
             }
         }
         handled = display->keyFunc(display, keyCode, action, modifiers) || handled;
