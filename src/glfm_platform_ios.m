@@ -1116,6 +1116,8 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
         }
         NSMutableArray *mutableKeyCommands = GLFM_AUTORELEASE([NSMutableArray new]);
         [keyInputs enumerateObjectsUsingBlock:^(NSString *keyInput, NSUInteger idx, BOOL *stop) {
+            (void)idx;
+            (void)stop;
             [mutableKeyCommands addObject:[UIKeyCommand keyCommandWithInput:keyInput
                                                               modifierFlags:(UIKeyModifierFlags)0
                                                                      action:@selector(keyPressed:)]];
