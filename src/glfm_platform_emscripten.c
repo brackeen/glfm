@@ -531,39 +531,62 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
 
 static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *e, void *userData) {
     GLFMDisplay *display = userData;
-    if (display->touchFunc) {
-        GLFMPlatformData *platformData = display->platformData;
-        GLFMTouchPhase touchPhase;
-        switch (eventType) {
-            case EMSCRIPTEN_EVENT_MOUSEDOWN:
-                touchPhase = GLFMTouchPhaseBegan;
-                platformData->mouseDown = true;
-                break;
-
-            case EMSCRIPTEN_EVENT_MOUSEMOVE:
-                if (platformData->mouseDown) {
-                    touchPhase = GLFMTouchPhaseMoved;
-                } else {
-                    touchPhase = GLFMTouchPhaseHover;
-                }
-                break;
-
-            case EMSCRIPTEN_EVENT_MOUSEUP:
-                touchPhase = GLFMTouchPhaseEnded;
-                platformData->mouseDown = false;
-                break;
-
-            default:
-                touchPhase = GLFMTouchPhaseCancelled;
-                platformData->mouseDown = false;
-                break;
-        }
-        return display->touchFunc(display, e->button, touchPhase,
-                                  platformData->scale * (double)e->targetX,
-                                  platformData->scale * (double)e->targetY);
-    } else {
+    GLFMPlatformData *platformData = display->platformData;
+    if (!display->touchFunc) {
+        platformData->mouseDown = false;
         return 0;
     }
+    
+    // The mouse event handler targets EMSCRIPTEN_EVENT_TARGET_WINDOW so that dragging the mouse outside the canvas can be detected.
+    // If a mouse drag begins inside the canvas, the mouse release event is sent even if the mouse is released outside the canvas.
+    float canvasX, canvasY, canvasW, canvasH;
+    EM_ASM({
+        var rect = Module['canvas'].getBoundingClientRect();
+        setValue($0, rect.x, "float");
+        setValue($1, rect.y, "float");
+        setValue($2, rect.width, "float");
+        setValue($3, rect.height, "float");
+    }, &canvasX, &canvasY, &canvasW, &canvasH);
+    const float mouseX = e->targetX - canvasX;
+    const float mouseY = e->targetY - canvasY;
+    const bool mouseInside = mouseX >= 0 && mouseY >= 0 && mouseX < canvasW && mouseY < canvasH;
+    if (!mouseInside && eventType == EMSCRIPTEN_EVENT_MOUSEDOWN) {
+        // Mouse click outside canvas
+        return 0;
+    }
+    if (!mouseInside && eventType != EMSCRIPTEN_EVENT_MOUSEDOWN && !platformData->mouseDown) {
+        // Mouse hover or click outside canvas
+        return 0;
+    }
+    
+    GLFMTouchPhase touchPhase;
+    switch (eventType) {
+        case EMSCRIPTEN_EVENT_MOUSEDOWN:
+            touchPhase = GLFMTouchPhaseBegan;
+            platformData->mouseDown = true;
+            break;
+            
+        case EMSCRIPTEN_EVENT_MOUSEMOVE:
+            if (platformData->mouseDown) {
+                touchPhase = GLFMTouchPhaseMoved;
+            } else {
+                touchPhase = GLFMTouchPhaseHover;
+            }
+            break;
+            
+        case EMSCRIPTEN_EVENT_MOUSEUP:
+            touchPhase = GLFMTouchPhaseEnded;
+            platformData->mouseDown = false;
+            break;
+            
+        default:
+            touchPhase = GLFMTouchPhaseCancelled;
+            platformData->mouseDown = false;
+            break;
+    }
+    return display->touchFunc(display, e->button, touchPhase,
+                              platformData->scale * (double)mouseX,
+                              platformData->scale * (double)mouseY);
 }
 
 static EM_BOOL glfm__mouseWheelCallback(int eventType, const EmscriptenWheelEvent *wheelEvent, void *userData) {
@@ -746,9 +769,9 @@ int main() {
     emscripten_set_touchend_callback(webGLTarget, glfmDisplay, 1, glfm__touchCallback);
     emscripten_set_touchmove_callback(webGLTarget, glfmDisplay, 1, glfm__touchCallback);
     emscripten_set_touchcancel_callback(webGLTarget, glfmDisplay, 1, glfm__touchCallback);
-    emscripten_set_mousedown_callback(webGLTarget, glfmDisplay, 1, glfm__mouseCallback);
-    emscripten_set_mouseup_callback(webGLTarget, glfmDisplay, 1, glfm__mouseCallback);
-    emscripten_set_mousemove_callback(webGLTarget, glfmDisplay, 1, glfm__mouseCallback);
+    emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, glfmDisplay, 1, glfm__mouseCallback);
+    emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, glfmDisplay, 1, glfm__mouseCallback);
+    emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, glfmDisplay, 1, glfm__mouseCallback);
     emscripten_set_wheel_callback(webGLTarget, glfmDisplay, 1, glfm__mouseWheelCallback);
     //emscripten_set_click_callback(webGLTarget, glfmDisplay, 1, glfm__mouseCallback);
     //emscripten_set_dblclick_callback(webGLTarget, glfmDisplay, 1, glfm__mouseCallback);
