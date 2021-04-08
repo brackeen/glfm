@@ -584,9 +584,13 @@ static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *e,
             platformData->mouseDown = false;
             break;
     }
-    return display->touchFunc(display, e->button, touchPhase,
-                              platformData->scale * (double)mouseX,
-                              platformData->scale * (double)mouseY);
+    bool handled = display->touchFunc(display, e->button, touchPhase,
+                                      platformData->scale * (double)mouseX,
+                                      platformData->scale * (double)mouseY);
+    // Always return `false` when the event is `mouseDown` for iframe support.
+    // Returning `true` invokes `preventDefault`, and invoking `preventDefault` on
+    // `mouseDown` events prevents `mouseMove` events outside the iframe.
+    return handled && eventType != EMSCRIPTEN_EVENT_MOUSEDOWN;
 }
 
 static EM_BOOL glfm__mouseWheelCallback(int eventType, const EmscriptenWheelEvent *wheelEvent, void *userData) {
