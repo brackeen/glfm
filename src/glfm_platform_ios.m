@@ -677,7 +677,8 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 }
 
 - (UIRectEdge)preferredScreenEdgesDeferringSystemGestures {
-    return _glfmDisplay->uiChrome == GLFMUserInterfaceChromeFullscreen ? UIRectEdgeBottom : UIRectEdgeNone;
+    UIRectEdge edges =  UIRectEdgeLeft | UIRectEdgeRight;
+    return _glfmDisplay->uiChrome == GLFMUserInterfaceChromeFullscreen ? UIRectEdgeBottom | edges : edges;
 }
 #endif
 
