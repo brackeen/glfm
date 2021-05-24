@@ -1050,6 +1050,10 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
         CGRect keyboardFrame = [nsValue CGRectValue];
 
         self.keyboardVisible = CGRectIntersectsRect(self.view.window.frame, keyboardFrame);
+        if (!self.keyboardVisible) {
+            // User hid keyboard (iPad)
+            self.keyboardRequested = NO;
+        }
         
         if (self.isViewLoaded) {
             [self.glfmView requestRefresh];
