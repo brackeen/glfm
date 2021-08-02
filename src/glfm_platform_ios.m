@@ -28,6 +28,7 @@
 
 #import <UIKit/UIKit.h>
 #if TARGET_OS_IOS
+#import <CoreHaptics/CoreHaptics.h>
 #import <CoreMotion/CoreMotion.h>
 #endif
 #if GLFM_INCLUDE_METAL
@@ -1507,6 +1508,44 @@ void glfm__sensorFuncUpdated(GLFMDisplay *display) {
     }
 #else
     (void)display;
+#endif
+}
+
+bool glfmIsHapticFeedbackSupported(GLFMDisplay *display) {
+    (void)display;
+#if TARGET_OS_IOS
+    if (@available(iOS 13, *)) {
+        return [CHHapticEngine capabilitiesForHardware].supportsHaptics;
+    } else {
+        return false;
+    }
+#else
+    return false;
+#endif
+}
+
+void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle style) {
+    (void)display;
+#if TARGET_OS_IOS
+    if (@available(iOS 10, *)) {
+        UIImpactFeedbackStyle uiStyle;
+        switch (style) {
+            case GLFMHapticFeedbackLight: default:
+                uiStyle = UIImpactFeedbackStyleLight;
+                break;
+            case GLFMHapticFeedbackMedium:
+                uiStyle = UIImpactFeedbackStyleMedium;
+                break;
+            case GLFMHapticFeedbackHeavy:
+                uiStyle = UIImpactFeedbackStyleHeavy;
+                break;
+        }
+        UIImpactFeedbackGenerator *generator = [[UIImpactFeedbackGenerator alloc] initWithStyle:uiStyle];
+        [generator impactOccurred];
+        GLFM_RELEASE(generator);
+    }
+#else
+    (void)style;
 #endif
 }
 

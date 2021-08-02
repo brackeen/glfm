@@ -253,6 +253,17 @@ void glfm__sensorFuncUpdated(GLFMDisplay *display) {
     // TODO: Sensors
 }
 
+bool glfmIsHapticFeedbackSupported(GLFMDisplay *display) {
+    (void)display;
+    return false;
+}
+
+void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle style) {
+    (void)display;
+    (void)style;
+    // Do nothing
+}
+
 // MARK: Platform-specific functions
 
 bool glfmIsMetalSupported(GLFMDisplay *display) {

@@ -244,6 +244,12 @@ typedef enum {
     GLFMSensorRotationMatrix, // Events are a rotation matrix
 } GLFMSensor;
 
+typedef enum {
+    GLFMHapticFeedbackLight,
+    GLFMHapticFeedbackMedium,
+    GLFMHapticFeedbackHeavy,
+} GLFMHapticFeedbackStyle;
+
 // MARK: - Structs and function pointers
 
 typedef struct GLFMDisplay GLFMDisplay;
@@ -509,6 +515,17 @@ GLFMMouseWheelFunc glfmSetMouseWheelFunc(GLFMDisplay *display, GLFMMouseWheelFun
 /// This function automatically enables events for the sensor; to disable, set the callback to NULL.
 /// Callbacks are automatically disabled when the app is inactive.
 GLFMSensorFunc glfmSetSensorFunc(GLFMDisplay *display, GLFMSensor sensor, GLFMSensorFunc sensorFunc);
+
+// MARK: - Haptics
+
+/// Returns true if the device supports haptic feedback.
+/// On iOS, this function returns true if the device supports haptic feedback (iPhone 7 or newer) and the device is running iOS 13 or newer.
+/// On Emscripten, this function always return false.
+bool glfmIsHapticFeedbackSupported(GLFMDisplay *display);
+
+/// Performs haptic feedback.
+/// On Emscripten, this function does nothing.
+void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle style);
 
 // MARK: - Platform-specific functions
 

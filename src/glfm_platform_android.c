@@ -1854,6 +1854,98 @@ void glfm__sensorFuncUpdated(GLFMDisplay *display) {
     }
 }
 
+bool glfmIsHapticFeedbackSupported(GLFMDisplay *display) {
+    /*
+    Vibrator vibrator = (Vibrator)context.getSystemService(Context.VIBRATOR_SERVICE);
+    return vibrator ? vibrator.hasVibrator() : false;
+    */
+    if (!display) {
+        return false;
+    }
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    JNIEnv *jni = platformData->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return false;
+    }
+    jclass contextClass = (*jni)->FindClass(jni, "android/content/Context");
+    if (glfm__wasJavaExceptionThrown()) {
+        return false;
+    }
+    jstring vibratorServiceString = glfm__getJavaStaticField(jni, contextClass, "VIBRATOR_SERVICE",
+                                                             "Ljava/lang/String;", Object);
+    if (!vibratorServiceString || glfm__wasJavaExceptionThrown()) {
+        (*jni)->DeleteLocalRef(jni, contextClass);
+        return false;
+    }
+    jobject vibratorService = glfm__callJavaMethodWithArgs(jni, platformData->app->activity->clazz,
+                                                           "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;",
+                                                           Object, vibratorServiceString);
+    if (!vibratorService || glfm__wasJavaExceptionThrown()) {
+        (*jni)->DeleteLocalRef(jni, vibratorServiceString);
+        (*jni)->DeleteLocalRef(jni, contextClass);
+        return false;
+    }
+
+    jboolean result = glfm__callJavaMethod(jni, vibratorService, "hasVibrator", "()Z", Boolean);
+    (*jni)->DeleteLocalRef(jni, vibratorService);
+    (*jni)->DeleteLocalRef(jni, vibratorServiceString);
+    (*jni)->DeleteLocalRef(jni, contextClass);
+    if (glfm__wasJavaExceptionThrown()) {
+        return false;
+    } else {
+        return result;
+    }
+}
+
+void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle style) {
+    // decorView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, flags);
+    static const jint HapticFeedbackConstants_CONTEXT_CLICK = 6; // Light, API 23
+    static const jint HapticFeedbackConstants_VIRTUAL_KEY = 1; // Medium
+    static const jint HapticFeedbackConstants_LONG_PRESS = 0; // Heavy
+    static const jint HapticFeedbackConstants_FLAG_IGNORE_VIEW_SETTING = 0x01;
+    static const jint HapticFeedbackConstants_FLAG_IGNORE_GLOBAL_SETTING = 0x02;
+
+    if (!display) {
+        return;
+    }
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    JNIEnv *jni = platformData->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return;
+    }
+
+    const int SDK_INT = platformData->app->activity->sdkVersion;
+    jint defaultFeedbackConstant = HapticFeedbackConstants_LONG_PRESS;
+    jint feedbackConstant;
+    jint feedbackFlags = HapticFeedbackConstants_FLAG_IGNORE_VIEW_SETTING | HapticFeedbackConstants_FLAG_IGNORE_GLOBAL_SETTING;
+    switch (style) {
+        case GLFMHapticFeedbackLight: default:
+            if (SDK_INT < 23) {
+                feedbackConstant = HapticFeedbackConstants_VIRTUAL_KEY;
+            } else {
+                feedbackConstant = HapticFeedbackConstants_CONTEXT_CLICK;
+            }
+            break;
+        case GLFMHapticFeedbackMedium:
+            feedbackConstant = HapticFeedbackConstants_VIRTUAL_KEY;
+            break;
+        case GLFMHapticFeedbackHeavy:
+            feedbackConstant = HapticFeedbackConstants_LONG_PRESS;
+            break;
+    }
+
+    jobject decorView = glfm__getDecorView(platformData->app);
+    if (!decorView) {
+        return;
+    }
+    bool performed = glfm__callJavaMethodWithArgs(jni, decorView, "performHapticFeedback", "(II)Z", Boolean, feedbackConstant, feedbackFlags);
+    if (!performed) {
+        // Some devices (Samsung S8) don't support all constants
+        glfm__callJavaMethodWithArgs(jni, decorView, "performHapticFeedback", "(II)Z", Boolean, defaultFeedbackConstant, feedbackFlags);
+    }
+    (*jni)->DeleteLocalRef(jni, decorView);
+}
+
 // MARK: Platform-specific functions
 
 bool glfmIsMetalSupported(GLFMDisplay *display) {
