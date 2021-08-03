@@ -1902,6 +1902,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
     static const jint HapticFeedbackConstants_CONTEXT_CLICK = 6; // Light, API 23
     static const jint HapticFeedbackConstants_VIRTUAL_KEY = 1; // Medium
     static const jint HapticFeedbackConstants_LONG_PRESS = 0; // Heavy
+    static const jint HapticFeedbackConstants_REJECT = 17; // Heavy, API 30
     static const jint HapticFeedbackConstants_FLAG_IGNORE_VIEW_SETTING = 0x01;
     static const jint HapticFeedbackConstants_FLAG_IGNORE_GLOBAL_SETTING = 0x02;
 
@@ -1930,7 +1931,11 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
             feedbackConstant = HapticFeedbackConstants_VIRTUAL_KEY;
             break;
         case GLFMHapticFeedbackHeavy:
-            feedbackConstant = HapticFeedbackConstants_LONG_PRESS;
+            if (SDK_INT < 30) {
+                feedbackConstant = HapticFeedbackConstants_LONG_PRESS;
+            } else {
+                feedbackConstant = HapticFeedbackConstants_REJECT;
+            }
             break;
     }
 
