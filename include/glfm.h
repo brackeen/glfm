@@ -241,7 +241,7 @@ typedef enum {
     GLFMSensorAccelerometer, // Events are a vector in G's
     GLFMSensorMagnetometer, // Events are a vector in microteslas
     GLFMSensorGyroscope, // Events are a vector in radians/sec
-    GLFMSensorRotationMatrix, // Events are a rotation matrix
+    GLFMSensorRotationMatrix, // Events are a rotation matrix (X axis points North, Z axis is vertical)
 } GLFMSensor;
 
 typedef enum {

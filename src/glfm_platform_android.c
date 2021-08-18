@@ -1366,24 +1366,69 @@ void android_main(struct android_app *app) {
                         sensorEventReceived[GLFMSensorGyroscope] = true;
                         platformData->sensorEventValid[GLFMSensorGyroscope] = true;
                     } else if (event.type == ASENSOR_TYPE_ROTATION_VECTOR) {
+                        const int SDK_INT = platformData->app->activity->sdkVersion;
+
                         GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorRotationMatrix];
                         sensorEvent->sensor = GLFMSensorRotationMatrix;
                         sensorEvent->timestamp = (double)event.timestamp / 1000000000.0;
 
-                        // Convert unit quaternion to rotation matrix
+                        // Get unit quaternion
                         double qx = (double)event.vector.x;
                         double qy = (double)event.vector.y;
                         double qz = (double)event.vector.z;
                         double qw;
-
-                        const int SDK_INT = platformData->app->activity->sdkVersion;
-                        if (SDK_INT >= 18 && event.data[3] != 0.0f) {
+                        if (SDK_INT >= 18) {
                             qw = (double)event.data[3];
                         } else {
                             qw = 1 - (qx * qx + qy * qy + qz * qz);
                             qw = (qw > 0) ? sqrt(qw) : 0;
                         }
 
+                        /*
+                         * Convert unit quaternion to rotation matrix.
+                         *
+                         * First, convert Android's reference frame to the same as iOS.
+                         * Android uses a reference frame where the Y axis points north,
+                         * and iOS uses a reference frame where the X axis points north.
+                         *
+                         * To convert the unit quaternion, pre-multiply the unit quaternion by
+                         * a rotation of -90 degrees around the Z axis.
+                         *
+                         * a=-90
+                         * q1 = cos(a/2) + 0i + 0j + sin(a/2)k
+                         *
+                         * Which is the same as:
+                         *
+                         * f = sqrt(2)/2
+                         * q1 = f + 0i + 0j - fk
+                         *
+                         * Multiplying two quaternions, where q2 is the original Android quaternion:
+                         *
+                         * q1q2 = (w1w2 - x1x2 - y1y2 - z1z2) +
+                         *        (w1x2 + x1w2 + y1z2 - z1y2)i +
+                         *        (w1y2 + z1x2 + y1w2 - x1z2)j +
+                         *        (w1z2 + x1y2 + z1w2 - y1x2)k
+                         *
+                         * Where x1 == 0, y1 == 0, z1 == -f, w1 == f:
+                         *
+                         * q1q2 = (f * (z2 + w2)) +
+                         *        (f * (y2 + x2))i +
+                         *        (f * (y2 - x2))j +
+                         *        (f * (z2 + w2))k
+                         *
+                         * In C:
+                         *
+                         * double f = sqrt(2)/2;
+                         * double qx_ = f * (qy + qx);
+                         * double qy_ = f * (qy - qx);
+                         * double qz_ = f * (qz - qw);
+                         * double qw_ = f * (qz + qw);
+                         *
+                         * However, since f*f == 0.5, and we don't need the converted quaternion,
+                         * we can remove a few multiplications.
+                        */
+#if 0
+                        // Original (no conversion)
                         double qxx2 = qx * qx * 2;
                         double qxy2 = qx * qy * 2;
                         double qxz2 = qx * qz * 2;
@@ -1393,7 +1438,23 @@ void android_main(struct android_app *app) {
                         double qyw2 = qy * qw * 2;
                         double qzz2 = qz * qz * 2;
                         double qzw2 = qz * qw * 2;
+#else
+                        // Conversion to the same reference frame as iOS
+                        double qx_ = qy + qx;
+                        double qy_ = qy - qx;
+                        double qz_ = qz - qw;
+                        double qw_ = qz + qw;
 
+                        double qxx2 = qx_ * qx_;
+                        double qxy2 = qx_ * qy_;
+                        double qxz2 = qx_ * qz_;
+                        double qxw2 = qx_ * qw_;
+                        double qyy2 = qy_ * qy_;
+                        double qyz2 = qy_ * qz_;
+                        double qyw2 = qy_ * qw_;
+                        double qzz2 = qz_ * qz_;
+                        double qzw2 = qz_ * qw_;
+#endif
                         sensorEvent->matrix.m00 = 1 - qyy2 - qzz2;
                         sensorEvent->matrix.m10 = qxy2 - qzw2;
                         sensorEvent->matrix.m20 = qxz2 + qyw2;
