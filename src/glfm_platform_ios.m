@@ -999,6 +999,12 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
             case UIPressTypePlayPause:
                 key = GLFMKeyPlayPause;
                 break;
+            case UIPressTypePageUp:
+                key = GLFMKeyPageUp;
+                break;
+            case UIPressTypePageDown:
+                key = GLFMKeyPageDown;
+                break;
         }
         if (key != 0) {
             return _glfmDisplay->keyFunc(_glfmDisplay, key, action, 0);
