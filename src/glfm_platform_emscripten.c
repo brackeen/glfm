@@ -558,8 +558,8 @@ static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *e,
         setValue($2, rect.width, "float");
         setValue($3, rect.height, "float");
     }, &canvasX, &canvasY, &canvasW, &canvasH);
-    const float mouseX = e->targetX - canvasX;
-    const float mouseY = e->targetY - canvasY;
+    const float mouseX = (float)e->targetX - canvasX;
+    const float mouseY = (float)e->targetY - canvasY;
     const bool mouseInside = mouseX >= 0 && mouseY >= 0 && mouseX < canvasW && mouseY < canvasH;
     if (!mouseInside && eventType == EMSCRIPTEN_EVENT_MOUSEDOWN) {
         // Mouse click outside canvas
