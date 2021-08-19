@@ -274,8 +274,10 @@ GLFMSensorFunc glfmSetSensorFunc(GLFMDisplay *display, GLFMSensor sensor, GLFMSe
     int index = (int)sensor;
     if (display && index >= 0 && index < GLFM_NUM_SENSORS) {
         previous = display->sensorFuncs[index];
-        display->sensorFuncs[index] = sensorFunc;
-        glfm__sensorFuncUpdated(display);
+        if (sensorFunc != previous) {
+            display->sensorFuncs[index] = sensorFunc;
+            glfm__sensorFuncUpdated(display);
+        }
     }
     return previous;
 }
