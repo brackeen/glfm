@@ -511,9 +511,11 @@ GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
 GLFMMouseWheelFunc glfmSetMouseWheelFunc(GLFMDisplay *display, GLFMMouseWheelFunc mouseWheelFunc);
 
 /// Sets the function to call when the sensor events occur for a particular sensor.
-/// If the sensor is not available, this function does nothing.
-/// This function automatically enables events for the sensor; to disable, set the callback to NULL.
-/// Callbacks are automatically disabled when the app is inactive.
+/// If the sensor is not available, this function does nothing. See glfmIsSensorAvailable.
+/// Each GLFMSensor type can have it's own GLFMSensorFunc.
+/// If sensorFunc is not NULL, the sensor is enabled. To disable the sensor, set the sensorFunc to NULL.
+/// Sensor events can drain battery. When sensor events are not needed, set the sensorFunc to NULL.
+/// Sensors are automatically disabled when the app is inactive.
 GLFMSensorFunc glfmSetSensorFunc(GLFMDisplay *display, GLFMSensor sensor, GLFMSensorFunc sensorFunc);
 
 // MARK: - Haptics
