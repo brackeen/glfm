@@ -179,7 +179,7 @@ There is no CMake generator for Android Studio projects, but you can include `CM
                   android:configChanges="orientation|screenLayout|screenSize|keyboardHidden|keyboard">
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="glfm_example" />  <!-- or glfm_test_pattern -->
+                android:value="glfm_example" />  <!-- glfm_example, glfm_compass, or glfm_test_pattern -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
