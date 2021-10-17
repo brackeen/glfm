@@ -395,12 +395,12 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     // iPhone 6 Display Zoom hack - use a modified bounds so that the renderbufferStorage method
     // creates the correct size renderbuffer.
     CGRect oldBounds = eaglLayer.bounds;
-    if (eaglLayer.contentsScale == 2.343750) {
-        if (eaglLayer.bounds.size.width == 320.0 && eaglLayer.bounds.size.height == 568.0) {
+    if (eaglLayer.contentsScale == (CGFloat)2.343750) {
+        if (eaglLayer.bounds.size.width == (CGFloat)320.0 && eaglLayer.bounds.size.height == (CGFloat)568.0) {
             eaglLayer.bounds = CGRectMake(eaglLayer.bounds.origin.x, eaglLayer.bounds.origin.y,
                                           eaglLayer.bounds.size.width,
                                           1334 / eaglLayer.contentsScale);
-        } else if (eaglLayer.bounds.size.width == 568.0 && eaglLayer.bounds.size.height == 320.0) {
+        } else if (eaglLayer.bounds.size.width == (CGFloat)568.0 && eaglLayer.bounds.size.height == (CGFloat)320.0) {
             eaglLayer.bounds = CGRectMake(eaglLayer.bounds.origin.x, eaglLayer.bounds.origin.y,
                                           1334 / eaglLayer.contentsScale,
                                           eaglLayer.bounds.size.height);
@@ -1077,10 +1077,10 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
             keyboardFrame.size.height *= self.view.contentScaleFactor;
 
             _glfmDisplay->keyboardVisibilityChangedFunc(_glfmDisplay, self.keyboardVisible,
-                                                        keyboardFrame.origin.x,
-                                                        keyboardFrame.origin.y,
-                                                        keyboardFrame.size.width,
-                                                        keyboardFrame.size.height);
+                                                        (double)keyboardFrame.origin.x,
+                                                        (double)keyboardFrame.origin.y,
+                                                        (double)keyboardFrame.size.width,
+                                                        (double)keyboardFrame.size.height);
         }
     }
 }
@@ -1185,7 +1185,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     didFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey, id> *)launchOptions {
     _active = YES;
     self.window = GLFM_AUTORELEASE([[UIWindow alloc] init]);
-    if (self.window.bounds.size.width <= 0.0 || self.window.bounds.size.height <= 0.0) {
+    if (self.window.bounds.size.width <= (CGFloat)0.0 || self.window.bounds.size.height <= (CGFloat)0.0) {
         // Set UIWindow frame for iOS 8.
         // On iOS 9, the UIWindow frame may be different than the UIScreen bounds for iPad's
         // Split View or Slide Over.
@@ -1326,7 +1326,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     int newDrawableHeight = (int)(bounds.size.height * contentScaleFactor);
 
     // On the iPhone 6 when "Display Zoom" is set, the size will be incorrect.
-    if (contentScaleFactor == 2.343750) {
+    if (contentScaleFactor == (CGFloat)2.343750) {
         if (newDrawableWidth == 750 && newDrawableHeight == 1331) {
             newDrawableHeight = 1334;
         } else if (newDrawableWidth == 1331 && newDrawableHeight == 750) {
@@ -1354,7 +1354,7 @@ void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
 
 double glfmGetDisplayScale(GLFMDisplay *display) {
     (void)display;
-    return [UIScreen mainScreen].nativeScale;
+    return (double)[UIScreen mainScreen].nativeScale;
 }
 
 void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
@@ -1368,16 +1368,16 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
             *left = 0.0;
         } else if (@available(iOS 11, tvOS 11, *)) {
             UIEdgeInsets insets = vc.view.safeAreaInsets;
-            *top = insets.top * vc.view.contentScaleFactor;
-            *right = insets.right * vc.view.contentScaleFactor;
-            *bottom = insets.bottom * vc.view.contentScaleFactor;
-            *left = insets.left * vc.view.contentScaleFactor;
+            *top = (double)(insets.top * vc.view.contentScaleFactor);
+            *right = (double)(insets.right * vc.view.contentScaleFactor);
+            *bottom = (double)(insets.bottom * vc.view.contentScaleFactor);
+            *left = (double)(insets.left * vc.view.contentScaleFactor);
         } else {
 #if TARGET_OS_IOS
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
             if (![vc prefersStatusBarHidden]) {
-                *top = ([UIApplication sharedApplication].statusBarFrame.size.height *
+                *top = (double)([UIApplication sharedApplication].statusBarFrame.size.height *
                         vc.view.contentScaleFactor);
             } else {
                 *top = 0.0;
