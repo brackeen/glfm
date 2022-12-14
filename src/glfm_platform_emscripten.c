@@ -43,7 +43,7 @@ static void glfm__clearActiveTouches(GLFMPlatformData *platformData);
 
 // MARK: GLFM implementation
 
-double glfmGetTime() {
+double glfmGetTime(void) {
     return emscripten_get_now() / 1000.0;
 }
 
@@ -693,7 +693,7 @@ static EM_BOOL glfm__touchCallback(int eventType, const EmscriptenTouchEvent *e,
 
 // MARK: main
 
-int main() {
+int main(void) {
     GLFMDisplay *glfmDisplay = calloc(1, sizeof(GLFMDisplay));
     GLFMPlatformData *platformData = calloc(1, sizeof(GLFMPlatformData));
     glfmDisplay->platformData = platformData;
