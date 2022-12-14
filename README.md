@@ -129,23 +129,25 @@ static void onFrame(GLFMDisplay *display) {
 ## API
 See [glfm.h](include/glfm.h)
 
-## Build the GLFM examples with Xcode 12
+## Build the GLFM examples with Xcode
 
-Requires CMake 3.18.
+Use `cmake` to generate an Xcode project:
 
 ```Shell
-mkdir -p build/ios && cd build/ios && cmake -DGLFM_BUILD_EXAMPLE=ON -G Xcode ../..
+mkdir -p build/ios && cd build/ios
+cmake -DGLFM_BUILD_EXAMPLE=ON -G Xcode ../..
 open GLFM.xcodeproj
 ```
-Switch to the `glfm_example` target and run on the simulator or a device.
+
+In Xcode, switch to the `glfm_example` target and run on a simulator or a device.
 
 ## Build the GLFM examples with Emscripten
-Tested with [Emscripten 2.0.8](https://emscripten.org/docs/getting_started/downloads.html).
 
-Make sure `EMSDK` is set, and build:
+Use `emcmake` to set environmental variables for `cmake`, then build:
+
 ```Shell
 mkdir -p build/emscripten && cd build/emscripten
-cmake -DGLFM_BUILD_EXAMPLE=ON -DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../..
+emcmake cmake -DGLFM_BUILD_EXAMPLE=ON ../..
 cmake --build .
 ```
 
@@ -154,7 +156,7 @@ Then run locally:
 emrun example/glfm_example.html
 ```
 
-## Build the GLFM examples with Android Studio 4
+## Build the GLFM examples with Android Studio
 There is no CMake generator for Android Studio projects, but you can include `CMakeLists.txt` in a new or existing project.
 
 1. Select "Start a new Android Studio project".
@@ -163,8 +165,7 @@ There is no CMake generator for Android Studio projects, but you can include `CM
 4. In `AndroidManifest.xml`, add the main `<activity>` like so:
 ```XML
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.brackeen.glfmexample">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-feature android:glEsVersion="0x00020000" android:required="true" />
 
@@ -176,6 +177,7 @@ There is no CMake generator for Android Studio projects, but you can include `CM
 
         <!-- Add this activity to your AndroidManifest.xml -->
         <activity android:name="android.app.NativeActivity"
+                  android:exported="true"
                   android:configChanges="orientation|screenLayout|screenSize|keyboardHidden|keyboard">
             <meta-data
                 android:name="android.app.lib_name"
@@ -194,12 +196,12 @@ There is no CMake generator for Android Studio projects, but you can include `CM
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.2"
+    compileSdkVersion 32
+    buildToolsVersion "32.0.0"
     defaultConfig {
         applicationId "com.brackeen.glfmexample"
         minSdkVersion 15
-        targetSdkVersion 29
+        targetSdkVersion 32
         versionCode 1
         versionName "1.0"
 
@@ -220,6 +222,7 @@ android {
             path "../../../CMakeLists.txt"
         }
     }
+    namespace 'com.brackeen.glfmexample'
 }
 ```
 6. Press "Sync Now" and "Run 'app'"
