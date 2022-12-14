@@ -8,54 +8,31 @@
 #define GLFM_VERSION_MINOR 9
 #define GLFM_VERSION_REVISION 0
 
-// One of these will be defined:
-// GLFM_PLATFORM_IOS
-// GLFM_PLATFORM_TVOS
-// GLFM_PLATFORM_ANDROID
-// GLFM_PLATFORM_EMSCRIPTEN
-
-#if defined(__ANDROID__)
-  #define GLFM_PLATFORM_ANDROID
-#elif defined(__EMSCRIPTEN__)
-  #define GLFM_PLATFORM_EMSCRIPTEN
-#elif defined(__APPLE__)
-  #include <TargetConditionals.h>
-  #if TARGET_OS_IOS
-    #define GLFM_PLATFORM_IOS
-  #elif TARGET_OS_TV
-    #define GLFM_PLATFORM_TVOS
-  #else
-    #error Unknown Apple platform
-  #endif
-#else
-  #error Unknown platform
+#if !defined(__APPLE__) && !defined(__ANDROID__) && !defined(__EMSCRIPTEN__)
+  #error Unsupported platform
 #endif
 
 // OpenGL ES includes
 
 #if defined(GLFM_INCLUDE_ES32)
-  #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
-    #error No OpenGL ES 3.2 support in iOS
-  #elif defined(GLFM_PLATFORM_EMSCRIPTEN)
-    #error No OpenGL ES 3.2 support in WebGL
-  #else
+  #if defined(__ANDROID__)
     #include <GLES3/gl32.h>
     #include <GLES3/gl3ext.h>
+  #else
+    #error OpenGL ES 3.2 only supported on Android
   #endif
 #elif defined(GLFM_INCLUDE_ES31)
-  #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
-    #error No OpenGL ES 3.1 support in iOS
-  #elif defined(GLFM_PLATFORM_EMSCRIPTEN)
-    #error No OpenGL ES 3.1 support in WebGL
-  #else
+  #if defined(__ANDROID__)
     #include <GLES3/gl31.h>
     #include <GLES3/gl3ext.h>
+  #else
+    #error OpenGL ES 3.1 only supported on Android
   #endif
 #elif defined(GLFM_INCLUDE_ES3)
-  #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
+  #if defined(__APPLE__)
     #include <OpenGLES/ES3/gl.h>
     #include <OpenGLES/ES3/glext.h>
-  #elif defined(GLFM_PLATFORM_EMSCRIPTEN)
+  #elif defined(__EMSCRIPTEN__)
     #include <GLES3/gl3.h>
     #include <GLES3/gl2ext.h>
   #else
@@ -63,7 +40,7 @@
     #include <GLES3/gl3ext.h>
   #endif
 #elif !defined(GLFM_INCLUDE_NONE)
-  #if defined(GLFM_PLATFORM_IOS) || defined(GLFM_PLATFORM_TVOS)
+  #if defined(__APPLE__)
     #include <OpenGLES/ES2/gl.h>
     #include <OpenGLES/ES2/glext.h>
   #else
@@ -73,9 +50,9 @@
 #endif
 
 #ifdef __GNUC__
-#define GLFM_DEPRECATED __attribute__ ((deprecated))
+  #define GLFM_DEPRECATED __attribute__((deprecated))
 #else
-#define GLFM_DEPRECATED
+  #define GLFM_DEPRECATED
 #endif
 
 #include <stdbool.h>
@@ -638,7 +615,7 @@ void *glfmGetUIViewController(GLFMDisplay *display);
 #if defined(__ANDROID__) || defined(GLFM_EXPOSE_NATIVE_ANDROID)
 
 #if defined(__ANDROID__)
-#include <android/native_activity.h>
+  #include <android/native_activity.h>
 #else
 typedef struct ANativeActivity ANativeActivity;
 #endif

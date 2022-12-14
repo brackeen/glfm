@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6.0) # Might run on earlier versions. Probably requires 3.4 or 3.5
+cmake_minimum_required(VERSION 3.6.0)
 
 link_libraries(glfm)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
@@ -26,5 +26,5 @@ set_property(TARGET glfm_test_pattern PROPERTY C_STANDARD 99)
 
 # Compass example
 set(GLFM_APP_TARGET_NAME glfm_compass)
-set(GLFM_APP_SRC src/compass.c)
+set(GLFM_APP_SRC src/compass.c src/file_compat.h)
 include(GLFMAppTarget)

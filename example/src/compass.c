@@ -3,10 +3,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include "glfm.h"
-
-#if defined(GLFM_PLATFORM_EMSCRIPTEN) || defined(GLFM_PLATFORM_TVOS)
-#warning Compass example requires iOS or Android (devices with a rotation sensor)
-#endif
+#define FILE_COMPAT_ANDROID_ACTIVITY glfmAndroidGetActivity()
+#include "file_compat.h"
 
 static const char *VERT_SHADER =
 "attribute highp vec3 a_position;"
@@ -218,7 +216,11 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetUserData(display, app);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
     glfmSetRenderFunc(display, onFrame);
-
-    // Enable sensor for the device's rotation matrix. To disable, set the callback function to NULL.
-    glfmSetSensorFunc(display, GLFMSensorRotationMatrix, onSensor);
+    
+    if (glfmIsSensorAvailable(display, GLFMSensorRotationMatrix)) {
+        // Enable sensor for the device's rotation matrix. To disable, set the callback function to NULL.
+        glfmSetSensorFunc(display, GLFMSensorRotationMatrix, onSensor);
+    } else {
+        printf("Warning: Rotation sensor not available on this device\n");
+    }
 }
