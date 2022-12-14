@@ -55,8 +55,8 @@ else()
     set_target_properties(${GLFM_APP_TARGET_NAME} PROPERTIES
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${GLFM_APP_ORGANIZATION_IDENTIFIER}.\${PRODUCT_NAME:rfc1034identifier}"
         XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos iphonesimulator appletvos appletvsimulator"
-        XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 9.0          # Version required for GLFM
-        XCODE_ATTRIBUTE_TVOS_DEPLOYMENT_TARGET 9.0
+        XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 11.0
+        XCODE_ATTRIBUTE_TVOS_DEPLOYMENT_TARGET 11.0
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
         XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2,3"          # iPhone, iPad, tvOS
         XCODE_ATTRIBUTE_USE_HEADERMAP YES                       # Avoid header search paths
@@ -156,3 +156,5 @@ else()
         "</plist>\n"
     )
 endif()
+
+set_target_properties(${GLFM_APP_TARGET_NAME} PROPERTIES C_STANDARD 11)
