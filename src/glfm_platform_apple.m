@@ -89,8 +89,8 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 
 @implementation GLFMMetalView
 
-@synthesize glfmDisplay, drawableWidth, drawableHeight, surfaceCreatedNotified, refreshRequested;
-@synthesize preRenderCallback = _preRenderCallback;
+@synthesize drawableWidth, drawableHeight, surfaceCreatedNotified, refreshRequested;
+@synthesize glfmDisplay = _glfmDisplay, preRenderCallback = _preRenderCallback;
 @dynamic renderingAPI, animating;
 
 - (instancetype)initWithFrame:(CGRect)frame contentScaleFactor:(CGFloat)contentScaleFactor
@@ -252,10 +252,10 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     GLuint _msaaRenderbuffer;
 }
 
-@synthesize glfmDisplay, renderingAPI, displayLink, context, colorFormat, preserveBackbuffer;
+@synthesize renderingAPI, displayLink, context, colorFormat, preserveBackbuffer;
 @synthesize depthBits, stencilBits, multisampling;
 @synthesize surfaceCreatedNotified, surfaceSizeChanged, refreshRequested;
-@synthesize preRenderCallback = _preRenderCallback;
+@synthesize glfmDisplay = _glfmDisplay, preRenderCallback = _preRenderCallback;
 @dynamic drawableWidth, drawableHeight, animating;
 
 + (Class)layerClass {
@@ -773,9 +773,9 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 }
 
 - (void)deviceOrientationChanged:(NSNotification *)notification {
-    UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
-    if (self.orientation != orientation) {
-        self.orientation = orientation;
+    UIInterfaceOrientation newOrientation = [[UIApplication sharedApplication] statusBarOrientation];
+    if (self.orientation != newOrientation) {
+        self.orientation = newOrientation;
         if (self.isViewLoaded) {
             [self.glfmView requestRefresh];
         }
