@@ -19,7 +19,7 @@ else() # Assume iOS
         set(CMAKE_OSX_SYSROOT "iphoneos")
     endif()
     
-    set(GLFM_SRC src/glfm_platform.h src/glfm_platform_ios.m)
+    set(GLFM_SRC src/glfm_platform.h src/glfm_platform_apple.m)
     set(GLFM_COMPILE_OPTIONS "-Wno-objc-missing-property-synthesis;-Wno-direct-ivar-access")
 endif()
 
