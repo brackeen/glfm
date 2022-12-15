@@ -1135,7 +1135,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
                                                               modifierFlags:(UIKeyModifierFlags)0
                                                                      action:@selector(keyPressed:)]];
         }];
-        keyCommands = GLFM_RETAIN([mutableKeyCommands copy]);
+        keyCommands = [mutableKeyCommands copy];
     }
 
     return keyCommands;
