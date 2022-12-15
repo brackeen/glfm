@@ -20,7 +20,7 @@ else() # Assume iOS
     endif()
     
     set(GLFM_SRC src/glfm_platform.h src/glfm_platform_apple.m)
-    set(GLFM_COMPILE_OPTIONS "-Wno-objc-missing-property-synthesis;-Wno-direct-ivar-access")
+    set(GLFM_COMPILE_OPTIONS "-Wno-direct-ivar-access")
 endif()
 
 add_library(glfm ${GLFM_SRC} ${GLFM_HEADERS})
