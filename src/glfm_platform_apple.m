@@ -42,6 +42,14 @@ NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } whil
 #define GLFM_WEAK __unsafe_unretained
 #endif
 
+static bool glfm__isCGFloatEqual(CGFloat a, CGFloat b) {
+#if CGFLOAT_IS_DOUBLE
+    return fabs(a - b) <= DBL_EPSILON;
+#else
+    return fabsf(a - b) <= FLT_EPSILON;
+#endif
+}
+
 @interface GLFMAppDelegate : NSObject <UIApplicationDelegate>
 
 @property(nonatomic, strong) UIWindow *window;
@@ -384,12 +392,14 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     // iPhone 6 Display Zoom hack - use a modified bounds so that the renderbufferStorage method
     // creates the correct size renderbuffer.
     CGRect oldBounds = eaglLayer.bounds;
-    if (eaglLayer.contentsScale == (CGFloat)2.343750) {
-        if (eaglLayer.bounds.size.width == (CGFloat)320.0 && eaglLayer.bounds.size.height == (CGFloat)568.0) {
+    if (glfm__isCGFloatEqual(eaglLayer.contentsScale, (CGFloat)2.343750)) {
+        if (glfm__isCGFloatEqual(eaglLayer.bounds.size.width, (CGFloat)320.0) &&
+            glfm__isCGFloatEqual(eaglLayer.bounds.size.height, (CGFloat)568.0)) {
             eaglLayer.bounds = CGRectMake(eaglLayer.bounds.origin.x, eaglLayer.bounds.origin.y,
                                           eaglLayer.bounds.size.width,
                                           1334 / eaglLayer.contentsScale);
-        } else if (eaglLayer.bounds.size.width == (CGFloat)568.0 && eaglLayer.bounds.size.height == (CGFloat)320.0) {
+        } else if (glfm__isCGFloatEqual(eaglLayer.bounds.size.width, (CGFloat)568.0) &&
+                   glfm__isCGFloatEqual(eaglLayer.bounds.size.height, (CGFloat)320.0)) {
             eaglLayer.bounds = CGRectMake(eaglLayer.bounds.origin.x, eaglLayer.bounds.origin.y,
                                           1334 / eaglLayer.contentsScale,
                                           eaglLayer.bounds.size.height);
@@ -1329,7 +1339,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     int newDrawableHeight = (int)(bounds.size.height * contentScaleFactor);
 
     // On the iPhone 6 when "Display Zoom" is set, the size will be incorrect.
-    if (contentScaleFactor == (CGFloat)2.343750) {
+    if (glfm__isCGFloatEqual(contentScaleFactor, (CGFloat)2.343750)) {
         if (newDrawableWidth == 750 && newDrawableHeight == 1331) {
             newDrawableHeight = 1334;
         } else if (newDrawableWidth == 1331 && newDrawableHeight == 750) {
