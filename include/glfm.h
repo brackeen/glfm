@@ -5,7 +5,7 @@
 #define GLFM_H
 
 #define GLFM_VERSION_MAJOR 0
-#define GLFM_VERSION_MINOR 9
+#define GLFM_VERSION_MINOR 10
 #define GLFM_VERSION_REVISION 0
 
 #if !defined(__APPLE__) && !defined(__ANDROID__) && !defined(__EMSCRIPTEN__)
