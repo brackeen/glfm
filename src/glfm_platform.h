@@ -1,22 +1,5 @@
-/*
- GLFM
- https://github.com/brackeen/glfm
- Copyright (c) 2014-2021 David Brackeen
- 
- This software is provided 'as-is', without any express or implied warranty.
- In no event will the authors be held liable for any damages arising from the
- use of this software. Permission is granted to anyone to use this software
- for any purpose, including commercial applications, and to alter it and
- redistribute it freely, subject to the following restrictions:
- 
- 1. The origin of this software must not be misrepresented; you must not
-    claim that you wrote the original software. If you use this software in a
-    product, an acknowledgment in the product documentation would be appreciated
-    but is not required.
- 2. Altered source versions must be plainly marked as such, and must not be
-    misrepresented as being the original software.
- 3. This notice may not be removed or altered from any source distribution.
- */
+// GLFM
+// https://github.com/brackeen/glfm
 
 #ifndef GLFM_PLATFORM_H
 #define GLFM_PLATFORM_H
@@ -320,39 +303,6 @@ static void glfm__reportSurfaceError(GLFMDisplay *display, const char *errorMess
     if (display->surfaceErrorFunc && errorMessage) {
         display->surfaceErrorFunc(display, errorMessage);
     }
-}
-
-// glfmExtensionSupported function is from
-// http://www.opengl.org/archives/resources/features/OGLextensions/
-bool glfmExtensionSupported(const char *extension) {
-    // Extension names should not have spaces.
-    GLubyte *where = (GLubyte *)strchr(extension, ' ');
-    if (where || *extension == '\0') {
-        return false;
-    }
-
-    const GLubyte *extensions = glGetString(GL_EXTENSIONS);
-
-    // It takes a bit of care to be fool-proof about parsing the
-    // OpenGL extensions string. Don't be fooled by sub-strings, etc.
-    const GLubyte *start = extensions;
-    for (;;) {
-        where = (GLubyte *)strstr((const char *)start, extension);
-        if (!where) {
-            break;
-        }
-
-        GLubyte *terminator = where + strlen(extension);
-        if (where == start || *(where - 1) == ' ') {
-            if (*terminator == ' ' || *terminator == '\0') {
-                return true;
-            }
-        }
-
-        start = terminator;
-    }
-
-    return false;
 }
 
 #ifdef __cplusplus

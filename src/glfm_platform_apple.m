@@ -526,8 +526,9 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     static bool has_GL_EXT_discard_framebuffer = false;
     if (!checked_GL_EXT_discard_framebuffer) {
         checked_GL_EXT_discard_framebuffer = true;
-        if (glfmExtensionSupported("GL_EXT_discard_framebuffer")) {
-            has_GL_EXT_discard_framebuffer = true;
+        const char *extensions = (const char *)glGetString(GL_EXTENSIONS);
+        if (extensions) {
+            has_GL_EXT_discard_framebuffer = strstr(extensions, "GL_EXT_discard_framebuffer") != NULL;
         }
     }
     if (has_GL_EXT_discard_framebuffer) {

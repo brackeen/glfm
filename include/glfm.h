@@ -444,9 +444,6 @@ void glfmSetSwapBehavior(GLFMDisplay *display, GLFMSwapBehavior behavior);
 /// Returns the swap buffer behavior.
 GLFMSwapBehavior glfmGetSwapBehavior(GLFMDisplay *display);
 
-/// Checks if a named OpenGL extension is supported.
-bool glfmExtensionSupported(const char *extension);
-
 /// Gets the address of the specified function.
 GLFMProc glfmGetProcAddress(const char *functionName);
 
