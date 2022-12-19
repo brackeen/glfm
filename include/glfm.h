@@ -597,14 +597,16 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
 /// Returns `true` if this is an Apple platform that supports Metal, `false` otherwise.
 bool glfmIsMetalSupported(GLFMDisplay *display);
 
-/// Returns a pointer to an `MTKView` instance, or `NULL` if Metal is not available.
+#if defined(__APPLE__) || defined(GLFM_EXPOSE_NATIVE_APPLE)
+
+/// *Apple platforms only*: Returns a pointer to an `MTKView` instance, or `NULL` if Metal is not
+/// available.
 ///
 /// This will only return a valid reference after the surface was created.
 void *glfmGetMetalView(GLFMDisplay *display);
 
-#if defined(__APPLE__) || defined(GLFM_EXPOSE_NATIVE_APPLE)
-
-/// *Apple platforms only*: Returns a pointer to the `UIViewController` instance used to display content.
+/// *Apple platforms only*: Returns a pointer to the `UIViewController` instance used to display
+/// content.
 void *glfmGetUIViewController(GLFMDisplay *display);
 
 #endif // GLFM_EXPOSE_NATIVE_APPLE

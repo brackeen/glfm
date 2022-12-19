@@ -2002,11 +2002,6 @@ bool glfmIsMetalSupported(GLFMDisplay *display) {
     return false;
 }
 
-void *glfmGetMetalView(GLFMDisplay *display) {
-    (void)display;
-    return NULL;
-}
-
 ANativeActivity *glfmAndroidGetActivity() {
     if (platformDataGlobal && platformDataGlobal->app) {
         return platformDataGlobal->app->activity;
