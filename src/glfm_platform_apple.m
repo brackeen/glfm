@@ -223,9 +223,9 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 
 #endif
 
-#pragma mark - GLFMOpenGLView
+#pragma mark - GLFMOpenGLESView
 
-@interface GLFMOpenGLView : UIView <GLFMView>
+@interface GLFMOpenGLESView : UIView <GLFMView>
 
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
 @property(nonatomic, assign) GLFMRenderingAPI renderingAPI;
@@ -242,7 +242,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 
 @end
 
-@implementation GLFMOpenGLView {
+@implementation GLFMOpenGLESView {
     GLint _drawableWidth;
     GLint _drawableHeight;
     GLuint _defaultFramebuffer;
@@ -708,15 +708,15 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 #if GLFM_INCLUDE_METAL
     if (self.glfmDisplay->preferredAPI == GLFMRenderingAPIMetal && self.metalDevice) {
         glfmView = GLFM_AUTORELEASE([[GLFMMetalView alloc] initWithFrame:frame
-                                                       contentScaleFactor:scale
-                                                                   device:self.metalDevice
-                                                              glfmDisplay:self.glfmDisplay]);
+                                                      contentScaleFactor:scale
+                                                                  device:self.metalDevice
+                                                             glfmDisplay:self.glfmDisplay]);
     }
 #endif
     if (!glfmView) {
-        glfmView = GLFM_AUTORELEASE([[GLFMOpenGLView alloc] initWithFrame:frame
-                                                        contentScaleFactor:scale
-                                                               glfmDisplay:self.glfmDisplay]);
+        glfmView = GLFM_AUTORELEASE([[GLFMOpenGLESView alloc] initWithFrame:frame
+                                                         contentScaleFactor:scale
+                                                                glfmDisplay:self.glfmDisplay]);
     }
     GLFM_WEAK __typeof(self) weakSelf = self;
     glfmView.preRenderCallback = ^{
