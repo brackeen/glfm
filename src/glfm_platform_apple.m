@@ -6,16 +6,18 @@
 #include "glfm.h"
 
 #if !defined(GLFM_INCLUDE_METAL)
-#define GLFM_INCLUDE_METAL 1
+#  define GLFM_INCLUDE_METAL 1
 #endif
 
-#import <UIKit/UIKit.h>
+#if TARGET_OS_IOS || TARGET_OS_TV
+#  import <UIKit/UIKit.h>
+#endif
 #if TARGET_OS_IOS
-#import <CoreHaptics/CoreHaptics.h>
-#import <CoreMotion/CoreMotion.h>
+#  import <CoreHaptics/CoreHaptics.h>
+#  import <CoreMotion/CoreMotion.h>
 #endif
 #if GLFM_INCLUDE_METAL
-#import <MetalKit/MetalKit.h>
+#  import <MetalKit/MetalKit.h>
 #endif
 
 #include <dlfcn.h>
@@ -24,20 +26,20 @@
 #define MAX_SIMULTANEOUS_TOUCHES 10
 
 #ifndef NDEBUG
-#define CHECK_GL_ERROR() ((void)0)
+#  define CHECK_GL_ERROR() ((void)0)
 #else
-#define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
-NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } while(0)
+#  define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
+   NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } while(0)
 #endif
 
 #if __has_feature(objc_arc)
-#define GLFM_AUTORELEASE(value) value
-#define GLFM_RELEASE(value) ((void)0)
-#define GLFM_WEAK __weak
+#  define GLFM_AUTORELEASE(value) value
+#  define GLFM_RELEASE(value) ((void)0)
+#  define GLFM_WEAK __weak
 #else
-#define GLFM_AUTORELEASE(value) [value autorelease]
-#define GLFM_RELEASE(value) [value release]
-#define GLFM_WEAK __unsafe_unretained
+#  define GLFM_AUTORELEASE(value) [value autorelease]
+#  define GLFM_RELEASE(value) [value release]
+#  define GLFM_WEAK __unsafe_unretained
 #endif
 
 static bool glfm__isCGFloatEqual(CGFloat a, CGFloat b) {
@@ -48,16 +50,9 @@ static bool glfm__isCGFloatEqual(CGFloat a, CGFloat b) {
 #endif
 }
 
-@interface GLFMAppDelegate : NSObject <UIApplicationDelegate>
-
-@property(nonatomic, strong) UIWindow *window;
-@property(nonatomic, assign) BOOL active;
-
-@end
-
-#pragma mark - GLFMView
-
 static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor, int *width, int *height);
+
+// MARK: - GLFMView protocol
 
 @protocol GLFMView
 
@@ -75,7 +70,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 
 #if GLFM_INCLUDE_METAL
 
-#pragma mark - GLFMMetalView
+// MARK: - GLFMMetalView
 
 @interface GLFMMetalView : MTKView <GLFMView, MTKViewDelegate>
 
@@ -221,9 +216,11 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 
 @end
 
-#endif
+#endif // GLFM_INCLUDE_METAL
 
-#pragma mark - GLFMOpenGLESView
+#if TARGET_OS_IOS || TARGET_OS_TV
+
+// MARK: - GLFMOpenGLESView
 
 @interface GLFMOpenGLESView : UIView <GLFMView>
 
@@ -631,7 +628,16 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 
 @end
 
-#pragma mark - GLFMViewController
+// MARK: - GLFMAppDelegate interface
+
+@interface GLFMAppDelegate : NSObject <UIApplicationDelegate>
+
+@property(nonatomic, strong) UIWindow *window;
+@property(nonatomic, assign) BOOL active;
+
+@end
+
+// MARK: - GLFMViewController
 
 @interface GLFMViewController : UIViewController<UIKeyInput, UITextInputTraits>
 
@@ -899,7 +905,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     }
 }
 
-#endif
+#endif // TARGET_OS_IOS
 
 - (void)dealloc {
     if (self.glfmDisplay->surfaceDestroyedFunc) {
@@ -916,7 +922,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 #endif
 }
 
-#pragma mark - UIResponder
+// MARK: UIResponder
 
 - (void)clearTouches {
     for (int i = 0; i < MAX_SIMULTANEOUS_TOUCHES; i++) {
@@ -1054,9 +1060,9 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     [super pressesCancelled:presses withEvent:event];
 }
 
-#endif
+#endif // TARGET_OS_TV
 
-#pragma mark - UIKeyInput
+// MARK: UIKeyInput
 
 #if TARGET_OS_IOS
 
@@ -1187,7 +1193,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 
 @end
 
-#pragma mark - Application Delegate
+// MARK: - GLFMAppDelegate implementation
 
 @implementation GLFMAppDelegate
 
@@ -1262,7 +1268,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 
 @end
 
-#pragma mark - Main
+// MARK: - Main
 
 int main(int argc, char *argv[]) {
     @autoreleasepool {
@@ -1270,7 +1276,9 @@ int main(int argc, char *argv[]) {
     }
 }
 
-#pragma mark - GLFM implementation
+#endif // TARGET_OS_IOS || TARGET_OS_TV
+
+// MARK: - GLFM implementation
 
 double glfmGetTime() {
     return CACurrentMediaTime();
@@ -1297,7 +1305,7 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
     if (display) {
         if (display->supportedOrientations != supportedOrientations) {
             display->supportedOrientations = supportedOrientations;
-
+#if TARGET_OS_IOS
             // HACK: Notify that the value of supportedInterfaceOrientations has changed
             GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
             if (vc.isViewLoaded && vc.view.window) {
@@ -1308,6 +1316,7 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
                     [vc dismissViewControllerAnimated:NO completion:NULL];
                 }];
             }
+#endif
         }
     }
 }
@@ -1337,6 +1346,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     int newDrawableWidth = (int)(bounds.size.width * contentScaleFactor);
     int newDrawableHeight = (int)(bounds.size.height * contentScaleFactor);
 
+#if TARGET_OS_IOS
     // On the iPhone 6 when "Display Zoom" is set, the size will be incorrect.
     if (glfm__isCGFloatEqual(contentScaleFactor, (CGFloat)2.343750)) {
         if (newDrawableWidth == 750 && newDrawableHeight == 1331) {
@@ -1345,6 +1355,8 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
             newDrawableWidth = 1334;
         }
     }
+#endif
+
     *width = newDrawableWidth;
     *height = newDrawableHeight;
 }
@@ -1567,7 +1579,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
 #endif
 }
 
-// MARK: Platform-specific functions
+// MARK: - Apple-specific functions
 
 bool glfmIsMetalSupported(GLFMDisplay *display) {
 #if GLFM_INCLUDE_METAL

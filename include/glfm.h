@@ -9,50 +9,60 @@
 #define GLFM_VERSION_REVISION 0
 
 #if !defined(__APPLE__) && !defined(__ANDROID__) && !defined(__EMSCRIPTEN__)
-  #error Unsupported platform
+#  error Unsupported platform
+#endif
+
+#if defined(__APPLE__)
+#  include <TargetConditionals.h>
+#  if !(TARGET_OS_IOS || TARGET_OS_TV)
+#    error Unsupported Apple platform
+#  endif
+#  if !defined(GL_SILENCE_DEPRECATION)
+#    define GL_SILENCE_DEPRECATION
+#  endif
 #endif
 
 // OpenGL ES includes
 
 #if defined(GLFM_INCLUDE_ES32)
-  #if defined(__ANDROID__)
-    #include <GLES3/gl32.h>
-    #include <GLES3/gl3ext.h>
-  #else
-    #error OpenGL ES 3.2 only supported on Android
-  #endif
+#  if defined(__ANDROID__)
+#    include <GLES3/gl32.h>
+#    include <GLES3/gl3ext.h>
+#  else
+#    error OpenGL ES 3.2 only supported on Android
+#  endif
 #elif defined(GLFM_INCLUDE_ES31)
-  #if defined(__ANDROID__)
-    #include <GLES3/gl31.h>
-    #include <GLES3/gl3ext.h>
-  #else
-    #error OpenGL ES 3.1 only supported on Android
-  #endif
+#  if defined(__ANDROID__)
+#    include <GLES3/gl31.h>
+#    include <GLES3/gl3ext.h>
+#  else
+#    error OpenGL ES 3.1 only supported on Android
+#  endif
 #elif defined(GLFM_INCLUDE_ES3)
-  #if defined(__APPLE__)
-    #include <OpenGLES/ES3/gl.h>
-    #include <OpenGLES/ES3/glext.h>
-  #elif defined(__EMSCRIPTEN__)
-    #include <GLES3/gl3.h>
-    #include <GLES3/gl2ext.h>
-  #else
-    #include <GLES3/gl3.h>
-    #include <GLES3/gl3ext.h>
-  #endif
+#  if defined(__APPLE__)
+#    include <OpenGLES/ES3/gl.h>
+#    include <OpenGLES/ES3/glext.h>
+#  elif defined(__EMSCRIPTEN__)
+#    include <GLES3/gl3.h>
+#    include <GLES3/gl2ext.h>
+#  else
+#    include <GLES3/gl3.h>
+#    include <GLES3/gl3ext.h>
+#  endif
 #elif !defined(GLFM_INCLUDE_NONE)
-  #if defined(__APPLE__)
-    #include <OpenGLES/ES2/gl.h>
-    #include <OpenGLES/ES2/glext.h>
-  #else
-    #include <GLES2/gl2.h>
-    #include <GLES2/gl2ext.h>
-  #endif
+#  if defined(__APPLE__)
+#    include <OpenGLES/ES2/gl.h>
+#    include <OpenGLES/ES2/glext.h>
+#  else
+#    include <GLES2/gl2.h>
+#    include <GLES2/gl2ext.h>
+#  endif
 #endif
 
 #ifdef __GNUC__
-  #define GLFM_DEPRECATED __attribute__((deprecated))
+#  define GLFM_DEPRECATED __attribute__((deprecated))
 #else
-  #define GLFM_DEPRECATED
+#  define GLFM_DEPRECATED
 #endif
 
 #include <stdbool.h>
@@ -614,7 +624,7 @@ void *glfmGetUIViewController(GLFMDisplay *display);
 #if defined(__ANDROID__) || defined(GLFM_EXPOSE_NATIVE_ANDROID)
 
 #if defined(__ANDROID__)
-  #include <android/native_activity.h>
+#  include <android/native_activity.h>
 #else
 typedef struct ANativeActivity ANativeActivity;
 #endif
@@ -628,4 +638,4 @@ ANativeActivity *glfmAndroidGetActivity(void);
 }
 #endif
 
-#endif
+#endif // GLFM_H
