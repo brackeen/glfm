@@ -1304,9 +1304,11 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
         if (display->supportedOrientations != supportedOrientations) {
             display->supportedOrientations = supportedOrientations;
 #if TARGET_OS_IOS
-            // HACK: Notify that the value of supportedInterfaceOrientations has changed
             GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-            if (vc.isViewLoaded && vc.view.window) {
+            if (@available(iOS 16, *)) {
+                [vc setNeedsUpdateOfSupportedInterfaceOrientations];
+            } else if (vc.isViewLoaded && vc.view.window) {
+                // HACK: Notify that the value of supportedInterfaceOrientations has changed
                 [vc.glfmView requestRefresh];
                 UIViewController *dummyVC = GLFM_AUTORELEASE([[UIViewController alloc] init]);
                 dummyVC.view = GLFM_AUTORELEASE([[UIView alloc] init]);
