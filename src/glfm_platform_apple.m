@@ -703,6 +703,10 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     return (UIView<GLFMView> *)self.view;
 }
 
+- (UIView<GLFMView> *)glfmViewIfLoaded {
+    return (UIView<GLFMView> *)self.viewIfLoaded;
+}
+
 - (void)loadView {
     glfmMain(self.glfmDisplay);
 
@@ -736,7 +740,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     [super viewDidLoad];
 
     GLFMAppDelegate *delegate = UIApplication.sharedApplication.delegate;
-    self.glfmView.animating = delegate.active;
+    self.glfmViewIfLoaded.animating = delegate.active;
     
 #if TARGET_OS_IOS
     self.view.multipleTouchEnabled = self.multipleTouchEnabled;
@@ -783,9 +787,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
     UIInterfaceOrientation newOrientation = [[UIApplication sharedApplication] statusBarOrientation];
     if (self.orientation != newOrientation) {
         self.orientation = newOrientation;
-        if (self.isViewLoaded) {
-            [self.glfmView requestRefresh];
-        }
+        [self.glfmViewIfLoaded requestRefresh];
         if (self.glfmDisplay->orientationChangedFunc) {
             self.glfmDisplay->orientationChangedFunc(self.glfmDisplay,
                                                      glfmGetInterfaceOrientation(self.glfmDisplay));
@@ -912,7 +914,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
         self.glfmDisplay->surfaceDestroyedFunc(self.glfmDisplay);
     }
     free(self.glfmDisplay);
-    self.glfmView.preRenderCallback = nil;
+    self.glfmViewIfLoaded.preRenderCallback = nil;
 #if !__has_feature(objc_arc)
     self.motionManager = nil;
 #if GLFM_INCLUDE_METAL
@@ -1078,9 +1080,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
             self.keyboardRequested = NO;
         }
         
-        if (self.isViewLoaded) {
-            [self.glfmView requestRefresh];
-        }
+        [self.glfmViewIfLoaded requestRefresh];
 
         if (self.glfmDisplay->keyboardVisibilityChangedFunc) {
             // Convert to view coordinates
@@ -1295,9 +1295,7 @@ GLFMProc glfmGetProcAddress(const char *functionName) {
 void glfmSwapBuffers(GLFMDisplay *display) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        if (vc.isViewLoaded) {
-            [vc.glfmView swapBuffers];
-        }
+        [vc.glfmViewIfLoaded swapBuffers];
     }
 }
 
@@ -1426,9 +1424,7 @@ void glfm__displayChromeUpdated(GLFMDisplay *display) {
     if (display && display->platformData) {
 #if TARGET_OS_IOS
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        if (vc.isViewLoaded) {
-            [vc.glfmView requestRefresh];
-        }
+        [vc.glfmViewIfLoaded requestRefresh];
         [vc setNeedsStatusBarAppearanceUpdate];
         if (@available(iOS 11, *)) {
             [vc setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
@@ -1466,9 +1462,7 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         vc.multipleTouchEnabled = (BOOL)multitouchEnabled;
-        if (vc.isViewLoaded) {
-            vc.view.multipleTouchEnabled = (BOOL)multitouchEnabled;
-        }
+        vc.glfmViewIfLoaded.multipleTouchEnabled = (BOOL)multitouchEnabled;
     }
 #else
     (void)display;
@@ -1595,11 +1589,9 @@ void *glfmGetMetalView(GLFMDisplay *display) {
 #if GLFM_INCLUDE_METAL
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        if (vc.isViewLoaded) {
-            UIView *view = vc.view;
-            if ([view isKindOfClass:[MTKView class]]) {
-                return (__bridge void *)view;
-            }
+        UIView *view = vc.glfmViewIfLoaded;
+        if ([view isKindOfClass:[MTKView class]]) {
+            return (__bridge void *)view;
         }
     }
 #endif
