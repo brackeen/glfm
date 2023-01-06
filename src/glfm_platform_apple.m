@@ -1136,7 +1136,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
             UIKeyInputUpArrow, UIKeyInputDownArrow, UIKeyInputLeftArrow, UIKeyInputRightArrow,
             UIKeyInputEscape, UIKeyInputPageUp, UIKeyInputPageDown,
         ];
-        if (@available(iOS 13.4, tvOS  13.4, *)) {
+        if (@available(iOS 13.4, tvOS 13.4, *)) {
             keyInputs = [keyInputs arrayByAddingObjectsFromArray: @[
                 UIKeyInputHome, UIKeyInputEnd,
             ]];
@@ -1176,7 +1176,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
             keyCode = GLFMKeyPageDown;
         }
         
-        if (@available(iOS 13.4, tvOS  13.4, *)) {
+        if (@available(iOS 13.4, tvOS 13.4, *)) {
             if (key == UIKeyInputHome) {
                 keyCode = GLFMKeyHome;
             } else if (key == UIKeyInputEnd) {
