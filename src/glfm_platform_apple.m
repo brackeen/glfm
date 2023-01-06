@@ -993,7 +993,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 #if TARGET_OS_TV
 
 - (BOOL)handlePress:(UIPress *)press withAction:(GLFMKeyAction)action {
-    if (_glfmDisplay->keyFunc) {
+    if (self.glfmDisplay->keyFunc) {
         GLFMKey key = (GLFMKey)0;
         switch (press.type) {
             case UIPressTypeUpArrow:
@@ -1025,7 +1025,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
                 break;
         }
         if (key != 0) {
-            return _glfmDisplay->keyFunc(_glfmDisplay, key, action, 0);
+            return self.glfmDisplay->keyFunc(self.glfmDisplay, key, action, 0);
         } else {
             return NO;
         }
