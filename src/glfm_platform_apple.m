@@ -68,6 +68,59 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 
 @end
 
+// MARK: GLFMNullView
+
+@interface GLFMNullView : UIView <GLFMView>
+
+@end
+
+@implementation GLFMNullView
+
+@synthesize preRenderCallback = _preRenderCallback;
+
+- (GLFMRenderingAPI)renderingAPI {
+    return GLFMRenderingAPIOpenGLES2;
+}
+
+- (int)drawableWidth {
+    return 0;
+}
+
+- (int)drawableHeight {
+    return 0;
+}
+
+- (BOOL)animating {
+    return NO;
+}
+
+- (void)setAnimating:(BOOL)animating {
+    (void)animating;
+}
+
+- (void)draw {
+    if (_preRenderCallback) {
+        _preRenderCallback();
+    }
+}
+
+- (void)swapBuffers {
+    
+}
+
+- (void)requestRefresh {
+    
+}
+
+#if !__has_feature(objc_arc)
+- (void)dealloc {
+    [_preRenderCallback release];
+    [super dealloc];
+}
+#endif
+
+@end
+
 #if GLFM_INCLUDE_METAL
 
 // MARK: - GLFMMetalView
@@ -727,6 +780,10 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
         glfmView = GLFM_AUTORELEASE([[GLFMOpenGLESView alloc] initWithFrame:frame
                                                          contentScaleFactor:scale
                                                                 glfmDisplay:self.glfmDisplay]);
+    }
+    if (!glfmView) {
+        assert(glfmView != nil);
+        glfmView = GLFM_AUTORELEASE([[GLFMNullView alloc] initWithFrame:frame]);
     }
     GLFM_WEAK __typeof(self) weakSelf = self;
     glfmView.preRenderCallback = ^{
