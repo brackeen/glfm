@@ -29,7 +29,7 @@
 #  define CHECK_GL_ERROR() ((void)0)
 #else
 #  define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
-   NSLog(@"OpenGL error 0x%04x at glfm_platform_ios.m:%i", error, __LINE__); } while(0)
+   NSLog(@"OpenGL error 0x%04x at glfm_platform_apple.m:%i", error, __LINE__); } while(0)
 #endif
 
 #if __has_feature(objc_arc)
