@@ -48,6 +48,7 @@ typedef struct {
     bool hasInited;
     bool refreshRequested;
     bool swapCalled;
+    bool surfaceCreatedNotified;
     double lastSwapTime;
 
     EGLDisplay eglDisplay;
@@ -489,9 +490,10 @@ static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
         return false;
     } else {
         platformData->eglContextCurrent = true;
-        if (created && platformData->display) {
-            LOG_LIFECYCLE("GL Context made current");
-            if (platformData->display->surfaceCreatedFunc) {
+        LOG_LIFECYCLE("GL Context made current");
+        if (created && !platformData->surfaceCreatedNotified) {
+            platformData->surfaceCreatedNotified = true;
+            if (platformData->display && platformData->display->surfaceCreatedFunc) {
                 platformData->display->surfaceCreatedFunc(platformData->display,
                                                           platformData->width,
                                                           platformData->height);
@@ -691,9 +693,10 @@ static void glfm__eglDestroy(GLFMPlatformData *platformData) {
         eglMakeCurrent(platformData->eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         if (platformData->eglContext != EGL_NO_CONTEXT) {
             eglDestroyContext(platformData->eglDisplay, platformData->eglContext);
-            if (platformData->display) {
-                LOG_LIFECYCLE("GL Context destroyed");
-                if (platformData->display->surfaceDestroyedFunc) {
+            LOG_LIFECYCLE("GL Context destroyed");
+            if (platformData->surfaceCreatedNotified) {
+                platformData->surfaceCreatedNotified = false;
+                if (platformData->display && platformData->display->surfaceDestroyedFunc) {
                     platformData->display->surfaceDestroyedFunc(platformData->display);
                 }
             }
@@ -718,9 +721,10 @@ static void glfm__eglCheckError(GLFMPlatformData *platformData) {
         if (platformData->eglContext != EGL_NO_CONTEXT) {
             platformData->eglContext = EGL_NO_CONTEXT;
             platformData->eglContextCurrent = false;
-            if (platformData->display) {
-                LOG_LIFECYCLE("GL Context lost");
-                if (platformData->display->surfaceDestroyedFunc) {
+            LOG_LIFECYCLE("GL Context lost");
+            if (platformData->surfaceCreatedNotified) {
+                platformData->surfaceCreatedNotified = false;
+                if (platformData->display && platformData->display->surfaceDestroyedFunc) {
                     platformData->display->surfaceDestroyedFunc(platformData->display);
                 }
             }

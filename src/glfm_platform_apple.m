@@ -59,6 +59,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 @property(nonatomic, readonly) GLFMRenderingAPI renderingAPI;
 @property(nonatomic, readonly) int drawableWidth;
 @property(nonatomic, readonly) int drawableHeight;
+@property(nonatomic, readonly) BOOL surfaceCreatedNotified;
 @property(nonatomic, assign) BOOL animating;
 @property(nonatomic, copy, nullable) void (^preRenderCallback)(void);
 
@@ -91,6 +92,10 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 }
 
 - (BOOL)animating {
+    return NO;
+}
+
+- (BOOL)surfaceCreatedNotified {
     return NO;
 }
 
@@ -967,7 +972,7 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 #endif // TARGET_OS_IOS
 
 - (void)dealloc {
-    if (self.glfmDisplay->surfaceDestroyedFunc) {
+    if (self.glfmViewIfLoaded.surfaceCreatedNotified && self.glfmDisplay->surfaceDestroyedFunc) {
         self.glfmDisplay->surfaceDestroyedFunc(self.glfmDisplay);
     }
     free(self.glfmDisplay);
