@@ -23,18 +23,13 @@
 //#define LOG_LIFECYCLE(...) __android_log_print(ANDROID_LOG_INFO, "GLFM", __VA_ARGS__)
 #define LOG_LIFECYCLE(...) do { } while (0)
 
-// MARK: Platform data (global singleton)
-
 #define MAX_SIMULTANEOUS_TOUCHES 5
 #define LOOPER_ID_SENSOR_EVENT_QUEUE 0xdb2a20
 // Same as iOS
 #define SENSOR_UPDATE_INTERVAL_MICROS ((int)(0.01 * 1000000))
 #define RESIZE_EVENT_MAX_WAIT_FRAMES 5
 
-static void glfm__setAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
-static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display);
-static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force);
-static float glfm__getRefreshRate(GLFMDisplay *display);
+// MARK: - Platform data (global singleton)
 
 typedef struct {
     struct android_app *app;
@@ -77,7 +72,18 @@ typedef struct {
 
 static GLFMPlatformData *platformDataGlobal = NULL;
 
-// MARK: JNI code
+// MARK: - Private function declarations
+
+static void glfm__setAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
+static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display);
+static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force);
+static float glfm__getRefreshRate(GLFMDisplay *display);
+static void glfm__resetContentRect(GLFMPlatformData *platformData);
+static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData);
+static void glfm__setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome);
+static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event);
+
+// MARK: - JNI code
 
 #define glfm__wasJavaExceptionThrown() \
     ((*jni)->ExceptionCheck(jni) ? ((*jni)->ExceptionClear(jni), true) : false)
@@ -134,278 +140,7 @@ static jfieldID glfm__getJavaStaticFieldID(JNIEnv *jni, jclass class, const char
     (*jni)->GetStatic##fieldType##Field(jni, class, \
         glfm__getJavaStaticFieldID(jni, class, fieldName, fieldSig))
 
-static void glfm__setOrientation(struct android_app *app) {
-    static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR = 0x00000004;
-    static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE = 0x00000006;
-    static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT = 0x00000007;
-
-    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
-    GLFMInterfaceOrientation orientations = platformData->display->supportedOrientations;
-    bool portraitRequested = (
-            ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationPortrait) ||
-            ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationPortraitUpsideDown));
-    bool landscapeRequested = ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationLandscape);
-    int orientation;
-    if (portraitRequested && landscapeRequested) {
-        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
-    } else if (landscapeRequested) {
-        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
-    } else {
-        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT;
-    }
-
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
-        return;
-    }
-
-    glfm__callJavaMethodWithArgs(jni, app->activity->clazz, "setRequestedOrientation", "(I)V", Void, orientation);
-    glfm__clearJavaException()
-}
-
-static jobject glfm__getDecorView(struct android_app *app) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
-        return NULL;
-    }
-    jobject window = glfm__callJavaMethod(jni, app->activity->clazz, "getWindow", "()Landroid/view/Window;", Object);
-    if (!window || glfm__wasJavaExceptionThrown()) {
-        return NULL;
-    }
-    jobject decorView = glfm__callJavaMethod(jni, window, "getDecorView", "()Landroid/view/View;", Object);
-    (*jni)->DeleteLocalRef(jni, window);
-    return glfm__wasJavaExceptionThrown() ? NULL : decorView;
-}
-
-static void glfm__setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome) {
-    static const unsigned int View_STATUS_BAR_HIDDEN = 0x00000001;
-    static const unsigned int View_SYSTEM_UI_FLAG_LOW_PROFILE = 0x00000001;
-    static const unsigned int View_SYSTEM_UI_FLAG_HIDE_NAVIGATION = 0x00000002;
-    static const unsigned int View_SYSTEM_UI_FLAG_FULLSCREEN = 0x00000004;
-    static const unsigned int View_SYSTEM_UI_FLAG_LAYOUT_STABLE = 0x00000100;
-    static const unsigned int View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION = 0x00000200;
-    static const unsigned int View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN = 0x00000400;
-    static const unsigned int View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x00001000;
-
-    const int SDK_INT = app->activity->sdkVersion;
-    if (SDK_INT < 11) {
-        return;
-    }
-
-    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
-        return;
-    }
-
-    jobject decorView = glfm__getDecorView(app);
-    if (!decorView) {
-        return;
-    }
-    if (uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
-        glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void, 0);
-    } else if (SDK_INT >= 11 && SDK_INT < 14) {
-        glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void, View_STATUS_BAR_HIDDEN);
-    } else if (SDK_INT >= 14 && SDK_INT < 19) {
-        if (uiChrome == GLFMUserInterfaceChromeNavigation) {
-            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                         (jint)View_SYSTEM_UI_FLAG_FULLSCREEN);
-        } else {
-            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                         (jint)(View_SYSTEM_UI_FLAG_LOW_PROFILE | View_SYSTEM_UI_FLAG_FULLSCREEN));
-        }
-    } else if (SDK_INT >= 19) {
-        if (uiChrome == GLFMUserInterfaceChromeNavigation) {
-            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                         (jint)View_SYSTEM_UI_FLAG_FULLSCREEN);
-        } else {
-            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                         (jint)(View_SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                                                View_SYSTEM_UI_FLAG_FULLSCREEN |
-                                                View_SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                                                View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                                                View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                                                View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY));
-        }
-    }
-    (*jni)->DeleteLocalRef(jni, decorView);
-    glfm__clearJavaException()
-}
-
-/*
- * Move task to the back if it is root task. This make the back button have the same behavior
- * as the home button.
- *
- * Without this, when the user presses the back button, the loop in android_main() is exited, the
- * OpenGL context is destroyed, and the main thread is destroyed. The android_main() function
- * would be called again in the same process if the user returns to the app.
- *
- * When this, when the app is in the background, the app will pause in the ALooper_pollAll() call.
- */
-static bool glfm__handleBackButton(struct android_app *app) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
-        return false;
-    }
-
-    jboolean handled = glfm__callJavaMethodWithArgs(jni, app->activity->clazz, "moveTaskToBack",
-                                                   "(Z)Z", Boolean, false);
-    return !glfm__wasJavaExceptionThrown() && handled;
-}
-
-static bool glfm__setKeyboardVisible(GLFMPlatformData *platformData, bool visible) {
-    static const int InputMethodManager_SHOW_FORCED = 2;
-
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
-        return false;
-    }
-
-    jobject decorView = glfm__getDecorView(platformData->app);
-    if (!decorView) {
-        return false;
-    }
-
-    jclass contextClass = (*jni)->FindClass(jni, "android/content/Context");
-    if (glfm__wasJavaExceptionThrown()) {
-        return false;
-    }
-
-    jstring imString = glfm__getJavaStaticField(jni, contextClass, "INPUT_METHOD_SERVICE",
-                                                "Ljava/lang/String;", Object);
-    if (!imString || glfm__wasJavaExceptionThrown()) {
-        return false;
-    }
-    jobject ime = glfm__callJavaMethodWithArgs(jni, platformData->app->activity->clazz,
-                                               "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;",
-                                               Object, imString);
-    if (!ime || glfm__wasJavaExceptionThrown()) {
-        return false;
-    }
-
-    if (visible) {
-        glfm__callJavaMethodWithArgs(jni, ime, "showSoftInput", "(Landroid/view/View;I)Z", Boolean,
-                                     decorView, InputMethodManager_SHOW_FORCED);
-    } else {
-        jobject windowToken = glfm__callJavaMethod(jni, decorView, "getWindowToken", "()Landroid/os/IBinder;", Object);
-        if (!windowToken || glfm__wasJavaExceptionThrown()) {
-            return false;
-        }
-        glfm__callJavaMethodWithArgs(jni, ime, "hideSoftInputFromWindow",
-                                     "(Landroid/os/IBinder;I)Z", Boolean, windowToken, 0);
-        (*jni)->DeleteLocalRef(jni, windowToken);
-    }
-
-    (*jni)->DeleteLocalRef(jni, ime);
-    (*jni)->DeleteLocalRef(jni, imString);
-    (*jni)->DeleteLocalRef(jni, contextClass);
-    (*jni)->DeleteLocalRef(jni, decorView);
-
-    return !glfm__wasJavaExceptionThrown();
-}
-
-static void glfm__resetContentRect(GLFMPlatformData *platformData) {
-    // Reset's NativeActivity's content rect so that onContentRectChanged acts as a
-    // OnGlobalLayoutListener. This is needed to detect changes to getWindowVisibleDisplayFrame()
-    // HACK: This uses undocumented fields.
-
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
-        return;
-    }
-
-    jfieldID field = glfm__getJavaFieldID(jni, platformData->app->activity->clazz,
-                                         "mLastContentWidth", "I");
-    if (!field || glfm__wasJavaExceptionThrown()) {
-        return;
-    }
-
-    (*jni)->SetIntField(jni, platformData->app->activity->clazz, field, -1);
-    glfm__clearJavaException()
-}
-
-static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, ARect defaultRect) {
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
-        return defaultRect;
-    }
-
-    jobject decorView = glfm__getDecorView(platformData->app);
-    if (!decorView) {
-        return defaultRect;
-    }
-
-    jclass javaRectClass = (*jni)->FindClass(jni, "android/graphics/Rect");
-    if (glfm__wasJavaExceptionThrown()) {
-        return defaultRect;
-    }
-
-    jobject javaRect = (*jni)->AllocObject(jni, javaRectClass);
-    if (glfm__wasJavaExceptionThrown()) {
-        return defaultRect;
-    }
-
-    glfm__callJavaMethodWithArgs(jni, decorView, "getWindowVisibleDisplayFrame",
-                                 "(Landroid/graphics/Rect;)V", Void, javaRect);
-    if (glfm__wasJavaExceptionThrown()) {
-        return defaultRect;
-    }
-
-    ARect rect;
-    rect.left = glfm__getJavaField(jni, javaRect, "left", "I", Int);
-    rect.right = glfm__getJavaField(jni, javaRect, "right", "I", Int);
-    rect.top = glfm__getJavaField(jni, javaRect, "top", "I", Int);
-    rect.bottom = glfm__getJavaField(jni, javaRect, "bottom", "I", Int);
-
-    (*jni)->DeleteLocalRef(jni, javaRect);
-    (*jni)->DeleteLocalRef(jni, javaRectClass);
-    (*jni)->DeleteLocalRef(jni, decorView);
-
-    if (glfm__wasJavaExceptionThrown()) {
-        return defaultRect;
-    } else {
-        return rect;
-    }
-}
-
-static uint32_t glfm__getUnicodeChar(GLFMPlatformData *platformData, AInputEvent *event) {
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
-        return 0;
-    }
-
-    jint keyCode = AKeyEvent_getKeyCode(event);
-    jint metaState = AKeyEvent_getMetaState(event);
-
-    jclass keyEventClass = (*jni)->FindClass(jni, "android/view/KeyEvent");
-    if (!keyEventClass || glfm__wasJavaExceptionThrown()) {
-        return 0;
-    }
-
-    jmethodID getUnicodeChar = (*jni)->GetMethodID(jni, keyEventClass, "getUnicodeChar", "(I)I");
-    jmethodID eventConstructor = (*jni)->GetMethodID(jni, keyEventClass, "<init>", "(II)V");
-
-    jobject eventObject = (*jni)->NewObject(jni, keyEventClass, eventConstructor,
-                                            (jint)AKEY_EVENT_ACTION_DOWN, keyCode);
-    if (!eventObject || glfm__wasJavaExceptionThrown()) {
-        return 0;
-    }
-
-    jint unicodeKey = (*jni)->CallIntMethod(jni, eventObject, getUnicodeChar, metaState);
-
-    (*jni)->DeleteLocalRef(jni, eventObject);
-    (*jni)->DeleteLocalRef(jni, keyEventClass);
-
-    if (glfm__wasJavaExceptionThrown()) {
-        return 0;
-    } else {
-        return (uint32_t)unicodeKey;
-    }
-}
-
-// MARK: EGL
+// MARK: - EGL
 
 static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
 
@@ -757,7 +492,7 @@ static void glfm__drawFrame(GLFMPlatformData *platformData) {
     }
 }
 
-// MARK: Native app glue extension
+// MARK: - Native app glue extension
 
 static bool ARectsEqual(ARect r1, ARect r2) {
     return r1.left == r2.left && r1.top == r2.top && r1.right == r2.right && r1.bottom == r2.bottom;
@@ -781,116 +516,7 @@ static void glfm__onContentRectChanged(ANativeActivity *activity, const ARect *r
     glfm__setContentRect((struct android_app *)activity->instance, *rect);
 }
 
-// MARK: Keyboard visibility
-
-static ARect glfm__getDecorViewRect(GLFMPlatformData *platformData, ARect defaultRect) {
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
-        return defaultRect;
-    }
-
-    jobject decorView = glfm__getDecorView(platformData->app);
-    if (!decorView) {
-        return defaultRect;
-    }
-
-    jintArray locationArray = (*jni)->NewIntArray(jni, 2);
-    if (!locationArray) {
-        (*jni)->DeleteLocalRef(jni, decorView);
-        return defaultRect;
-    }
-
-    jint location[2] = { 0 };
-    glfm__callJavaMethodWithArgs(jni, decorView, "getLocationInWindow", "([I)V", Void, locationArray);
-    (*jni)->GetIntArrayRegion(jni, locationArray, 0, 2, location);
-    (*jni)->DeleteLocalRef(jni, locationArray);
-    if ((*jni)->ExceptionCheck(jni)) {
-        (*jni)->DeleteLocalRef(jni, decorView);
-        return defaultRect;
-    }
-
-    jint width = glfm__callJavaMethod(jni, decorView, "getWidth", "()I", Int);
-    jint height = glfm__callJavaMethod(jni, decorView, "getHeight", "()I", Int);
-    (*jni)->DeleteLocalRef(jni, decorView);
-    if ((*jni)->ExceptionCheck(jni)) {
-        return defaultRect;
-    }
-
-    ARect result;
-    result.left = location[0];
-    result.top = location[1];
-    result.right = location[0] + width;
-    result.bottom = location[1] + height;
-    return result;
-}
-
-static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
-    if (platformData->display) {
-        ARect windowRect = glfm__getDecorViewRect(platformData, platformData->app->contentRect);
-        ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, windowRect);
-        ARect nonVisibleRect[4];
-
-        // Left
-        nonVisibleRect[0].left = windowRect.left;
-        nonVisibleRect[0].right = visibleRect.left;
-        nonVisibleRect[0].top = windowRect.top;
-        nonVisibleRect[0].bottom = windowRect.bottom;
-
-        // Right
-        nonVisibleRect[1].left = visibleRect.right;
-        nonVisibleRect[1].right = windowRect.right;
-        nonVisibleRect[1].top = windowRect.top;
-        nonVisibleRect[1].bottom = windowRect.bottom;
-
-        // Top
-        nonVisibleRect[2].left = windowRect.left;
-        nonVisibleRect[2].right = windowRect.right;
-        nonVisibleRect[2].top = windowRect.top;
-        nonVisibleRect[2].bottom = visibleRect.top;
-
-        // Bottom
-        nonVisibleRect[3].left = windowRect.left;
-        nonVisibleRect[3].right = windowRect.right;
-        nonVisibleRect[3].top = visibleRect.bottom;
-        nonVisibleRect[3].bottom = windowRect.bottom;
-
-        // Find largest with minimum keyboard size
-        const int minimumKeyboardSize = (int)(100 * platformData->scale);
-        int largestIndex = 0;
-        int largestArea = -1;
-        for (int i = 0; i < 4; i++) {
-            int w = nonVisibleRect[i].right - nonVisibleRect[i].left;
-            int h = nonVisibleRect[i].bottom - nonVisibleRect[i].top;
-            int area = w * h;
-            if (w >= minimumKeyboardSize && h >= minimumKeyboardSize && area > largestArea) {
-                largestIndex = i;
-                largestArea = area;
-            }
-        }
-
-        bool keyboardVisible = largestArea > 0;
-        ARect keyboardFrame = keyboardVisible ? nonVisibleRect[largestIndex] : (ARect){0, 0, 0, 0};
-
-        // Send update notification
-        if (platformData->keyboardVisible != keyboardVisible ||
-                !ARectsEqual(platformData->keyboardFrame, keyboardFrame)) {
-            platformData->keyboardVisible = keyboardVisible;
-            platformData->keyboardFrame = keyboardFrame;
-            platformData->refreshRequested = true;
-            if (platformData->display->keyboardVisibilityChangedFunc) {
-                double x = keyboardFrame.left;
-                double y = keyboardFrame.top;
-                double w = keyboardFrame.right - keyboardFrame.left;
-                double h = keyboardFrame.bottom - keyboardFrame.top;
-                platformData->display->keyboardVisibilityChangedFunc(platformData->display,
-                                                                     keyboardVisible,
-                                                                     x, y, w, h);
-            }
-        }
-    }
-}
-
-// MARK: App command callback
+// MARK: - App command callback
 
 static void glfm__setAnimating(GLFMPlatformData *platformData, bool animating) {
     if (platformData->animating != animating) {
@@ -1000,217 +626,7 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
     }
 }
 
-// MARK: Key and touch input callback
-
-static const char *glfm__unicodeToUTF8(uint32_t unicode) {
-    static char utf8[5];
-    if (unicode < 0x80) {
-        utf8[0] = (char)(unicode & 0x7fu);
-        utf8[1] = 0;
-    } else if (unicode < 0x800) {
-        utf8[0] = (char)(0xc0u | (unicode >> 6u));
-        utf8[1] = (char)(0x80u | (unicode & 0x3fu));
-        utf8[2] = 0;
-    } else if (unicode < 0x10000) {
-        utf8[0] = (char)(0xe0u | (unicode >> 12u));
-        utf8[1] = (char)(0x80u | ((unicode >> 6u) & 0x3fu));
-        utf8[2] = (char)(0x80u | (unicode & 0x3fu));
-        utf8[3] = 0;
-    } else if (unicode < 0x110000) {
-        utf8[0] = (char)(0xf0u | (unicode >> 18u));
-        utf8[1] = (char)(0x80u | ((unicode >> 12u) & 0x3fu));
-        utf8[2] = (char)(0x80u | ((unicode >> 6u) & 0x3fu));
-        utf8[3] = (char)(0x80u | (unicode & 0x3fu));
-        utf8[4] = 0;
-    } else {
-        utf8[0] = 0;
-    }
-    return utf8;
-}
-
-static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
-    const int32_t eventType = AInputEvent_getType(event);
-    if (eventType == AINPUT_EVENT_TYPE_KEY) {
-        unsigned int handled = 0;
-        if (platformData->display && platformData->display->keyFunc) {
-            int32_t aKeyCode = AKeyEvent_getKeyCode(event);
-            int32_t aAction = AKeyEvent_getAction(event);
-            if (aKeyCode != 0) {
-                GLFMKey key;
-                switch (aKeyCode) {
-                    case AKEYCODE_DEL:
-                        key = GLFMKeyBackspace;
-                        break;
-                    case AKEYCODE_TAB:
-                        key = GLFMKeyTab;
-                        break;
-                    case AKEYCODE_ENTER:
-                    case AKEYCODE_DPAD_CENTER:
-                        key = GLFMKeyEnter;
-                        break;
-                    case AKEYCODE_ESCAPE:
-                        key = GLFMKeyEscape;
-                        break;
-                    case AKEYCODE_SPACE:
-                        key = GLFMKeySpace;
-                        break;
-                    case AKEYCODE_PAGE_UP:
-                        key = GLFMKeyPageUp;
-                        break;
-                    case AKEYCODE_PAGE_DOWN:
-                        key = GLFMKeyPageDown;
-                        break;
-                    case AKEYCODE_MOVE_END:
-                        key = GLFMKeyEnd;
-                        break;
-                    case AKEYCODE_MOVE_HOME:
-                        key = GLFMKeyHome;
-                        break;
-                    case AKEYCODE_DPAD_LEFT:
-                        key = GLFMKeyLeft;
-                        break;
-                    case AKEYCODE_DPAD_UP:
-                        key = GLFMKeyUp;
-                        break;
-                    case AKEYCODE_DPAD_RIGHT:
-                        key = GLFMKeyRight;
-                        break;
-                    case AKEYCODE_DPAD_DOWN:
-                        key = GLFMKeyDown;
-                        break;
-                    case AKEYCODE_FORWARD_DEL:
-                        key = GLFMKeyDelete;
-                        break;
-                    case AKEYCODE_BACK:
-                        key = GLFMKeyNavBack;
-                        break;
-                    case AKEYCODE_MENU:
-                        key = GLFMKeyNavMenu;
-                        break;
-                    default:
-                        // TODO: Send all keycodes?
-                        if (aKeyCode >= AKEYCODE_0 && aKeyCode <= AKEYCODE_9) {
-                            key = (GLFMKey)(aKeyCode - AKEYCODE_0 + '0');
-                        } else if (aKeyCode >= AKEYCODE_A && aKeyCode <= AKEYCODE_Z) {
-                            key = (GLFMKey)(aKeyCode - AKEYCODE_A + 'A');
-                        } else {
-                            key = (GLFMKey)0;
-                        }
-                        break;
-                }
-
-                if (key != 0) {
-                    if (aAction == AKEY_EVENT_ACTION_UP) {
-                        handled = platformData->display->keyFunc(platformData->display, key,
-                                                                 GLFMKeyActionReleased, 0);
-                        if (handled == 0 && aKeyCode == AKEYCODE_BACK) {
-                            handled = glfm__handleBackButton(app) ? 1 : 0;
-                        }
-                    } else if (aAction == AKEY_EVENT_ACTION_DOWN) {
-                        GLFMKeyAction keyAction;
-                        if (AKeyEvent_getRepeatCount(event) > 0) {
-                            keyAction = GLFMKeyActionRepeated;
-                        } else {
-                            keyAction = GLFMKeyActionPressed;
-                        }
-                        handled = platformData->display->keyFunc(platformData->display, key,
-                                                                 keyAction, 0);
-                    } else if (aAction == AKEY_EVENT_ACTION_MULTIPLE) {
-                        int32_t i;
-                        for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
-                            handled |= platformData->display->keyFunc(platformData->display, key,
-                                                                GLFMKeyActionPressed, 0);
-                            handled |= platformData->display->keyFunc(platformData->display, key,
-                                                                GLFMKeyActionReleased, 0);
-                        }
-                    }
-                }
-            }
-        }
-        if (platformData->display && platformData->display->charFunc) {
-            int32_t aAction = AKeyEvent_getAction(event);
-            if (aAction == AKEY_EVENT_ACTION_DOWN || aAction == AKEY_EVENT_ACTION_MULTIPLE) {
-                uint32_t unicode = glfm__getUnicodeChar(platformData, event);
-                if (unicode >= ' ') {
-                    const char *str = glfm__unicodeToUTF8(unicode);
-                    if (aAction == AKEY_EVENT_ACTION_DOWN) {
-                        platformData->display->charFunc(platformData->display, str, 0);
-                    } else {
-                        int32_t i;
-                        for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
-                            platformData->display->charFunc(platformData->display, str, 0);
-                        }
-                    }
-                }
-            }
-        }
-        return (int32_t)handled;
-    } else if (eventType == AINPUT_EVENT_TYPE_MOTION) {
-        if (platformData->display && platformData->display->touchFunc) {
-            const int maxTouches = platformData->multitouchEnabled ? MAX_SIMULTANEOUS_TOUCHES : 1;
-            const int32_t action = AMotionEvent_getAction(event);
-            const uint32_t maskedAction = (uint32_t)action & (uint32_t)AMOTION_EVENT_ACTION_MASK;
-
-            GLFMTouchPhase phase;
-            bool validAction = true;
-
-            switch (maskedAction) {
-                case AMOTION_EVENT_ACTION_DOWN:
-                case AMOTION_EVENT_ACTION_POINTER_DOWN:
-                    phase = GLFMTouchPhaseBegan;
-                    break;
-                case AMOTION_EVENT_ACTION_UP:
-                case AMOTION_EVENT_ACTION_POINTER_UP:
-                case AMOTION_EVENT_ACTION_OUTSIDE:
-                    phase = GLFMTouchPhaseEnded;
-                    break;
-                case AMOTION_EVENT_ACTION_MOVE:
-                    phase = GLFMTouchPhaseMoved;
-                    break;
-                case AMOTION_EVENT_ACTION_CANCEL:
-                    phase = GLFMTouchPhaseCancelled;
-                    break;
-                default:
-                    phase = GLFMTouchPhaseCancelled;
-                    validAction = false;
-                    break;
-            }
-            if (validAction) {
-                if (phase == GLFMTouchPhaseMoved) {
-                    const size_t count = AMotionEvent_getPointerCount(event);
-                    size_t i;
-                    for (i = 0; i < count; i++) {
-                        const int touchNumber = AMotionEvent_getPointerId(event, i);
-                        if (touchNumber >= 0 && touchNumber < maxTouches) {
-                            double x = (double)AMotionEvent_getX(event, i);
-                            double y = (double)AMotionEvent_getY(event, i);
-                            platformData->display->touchFunc(platformData->display, touchNumber,
-                                                             phase, x, y);
-                            //LOG_DEBUG("Touch: (num=%i, phase=%i) %f,%f", touchNumber, phase, x, y);
-                        }
-                    }
-                } else {
-                    const size_t index = (size_t)(((uint32_t)action &
-                            (uint32_t)AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >>
-                            (uint32_t)AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
-                    const int touchNumber = AMotionEvent_getPointerId(event, index);
-                    if (touchNumber >= 0 && touchNumber < maxTouches) {
-                        double x = (double)AMotionEvent_getX(event, index);
-                        double y = (double)AMotionEvent_getY(event, index);
-                        platformData->display->touchFunc(platformData->display, touchNumber,
-                                                         phase, x, y);
-                        //LOG_DEBUG("Touch: (num=%i, phase=%i) %f,%f", touchNumber, phase, x, y);
-                    }
-                }
-            }
-        }
-        return 1;
-    }
-    return 0;
-}
-
-// MARK: Main entry point
+// MARK: - Main entry point
 
 void android_main(struct android_app *app) {
 #pragma clang diagnostic push
@@ -1512,168 +928,181 @@ void android_main(struct android_app *app) {
     }
 }
 
-// MARK: GLFM implementation
+// MARK: - GLFM private functions
 
-double glfmGetTime() {
-    static int clockID;
-    static time_t initTime;
-    static bool initialized = false;
-
-    struct timespec time;
-
-    if (!initialized) {
-        if (clock_gettime(CLOCK_MONOTONIC_RAW, &time) == 0) {
-            clockID = CLOCK_MONOTONIC_RAW;
-        } else if (clock_gettime(CLOCK_MONOTONIC, &time) == 0) {
-            clockID = CLOCK_MONOTONIC;
-        } else {
-            clock_gettime(CLOCK_REALTIME, &time);
-            clockID = CLOCK_REALTIME;
-        }
-        initTime = time.tv_sec;
-        initialized = true;
-    } else {
-        clock_gettime(clockID, &time);
-    }
-    // Subtract by initTime to ensure that conversion to double keeps nanosecond accuracy
-    return (time.tv_sec - initTime) + (double)time.tv_nsec / 1e9;
-}
-
-void glfmSwapBuffers(GLFMDisplay *display) {
-    if (display) {
-        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-        EGLBoolean result = eglSwapBuffers(platformData->eglDisplay, platformData->eglSurface);
-        platformData->swapCalled = true;
-        platformData->lastSwapTime = glfmGetTime();
-        if (!result) {
-            glfm__eglCheckError(platformData);
-        }
-    }
-}
-
-static float glfm__getRefreshRate(GLFMDisplay *display) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+static jobject glfm__getDecorView(struct android_app *app) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
     JNIEnv *jni = platformData->jniEnv;
-    jobject activity = platformData->app->activity->clazz;
-    glfm__clearJavaException()
-    jobject window = glfm__callJavaMethod(jni, activity, "getWindow", "()Landroid/view/Window;", Object);
+    if ((*jni)->ExceptionCheck(jni)) {
+        return NULL;
+    }
+    jobject window = glfm__callJavaMethod(jni, app->activity->clazz, "getWindow", "()Landroid/view/Window;", Object);
     if (!window || glfm__wasJavaExceptionThrown()) {
-        return 60;
+        return NULL;
     }
-    jobject windowManager = glfm__callJavaMethod(jni, window, "getWindowManager", "()Landroid/view/WindowManager;", Object);
+    jobject decorView = glfm__callJavaMethod(jni, window, "getDecorView", "()Landroid/view/View;", Object);
     (*jni)->DeleteLocalRef(jni, window);
-    if (!windowManager || glfm__wasJavaExceptionThrown()) {
-        return 60;
-    }
-    jobject windowDisplay = glfm__callJavaMethod(jni, windowManager, "getDefaultDisplay", "()Landroid/view/Display;", Object);
-    (*jni)->DeleteLocalRef(jni, windowManager);
-    if (!windowDisplay || glfm__wasJavaExceptionThrown()) {
-        return 60;
-    }
-    float refreshRate = glfm__callJavaMethod(jni, windowDisplay, "getRefreshRate","()F", Float);
-    (*jni)->DeleteLocalRef(jni, windowDisplay);
-    if (glfm__wasJavaExceptionThrown() || refreshRate <= 0) {
-        return 60;
-    }
-    return refreshRate;
+    return glfm__wasJavaExceptionThrown() ? NULL : decorView;
 }
 
-void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOrientation supportedOrientations) {
-    if (display && display->supportedOrientations != supportedOrientations) {
-        display->supportedOrientations = supportedOrientations;
-        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-        glfm__setOrientation(platformData->app);
-    }
-}
-
-static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    int32_t width;
-    int32_t height;
-    eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_WIDTH, &width);
-    eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_HEIGHT, &height);
-    if (width != platformData->width || height != platformData->height) {
-        if (force || platformData->resizeEventWaitFrames <= 0) {
-            LOG_LIFECYCLE("Resize: %i x %i", width, height);
-            platformData->resizeEventWaitFrames = RESIZE_EVENT_MAX_WAIT_FRAMES;
-            platformData->refreshRequested = true;
-            platformData->width = width;
-            platformData->height = height;
-            glfm__reportOrientationChangeIfNeeded(platformData->display);
-            if (platformData->display && platformData->display->surfaceResizedFunc) {
-                platformData->display->surfaceResizedFunc(platformData->display, width, height);
-            }
-        } else {
-            // Prefer to wait until after content rect changed, if possible
-            platformData->resizeEventWaitFrames--;
-        }
-    }
-}
-
-static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    GLFMInterfaceOrientation orientation = glfmGetInterfaceOrientation(display);
-    if (platformData->orientation != orientation) {
-        platformData->orientation = orientation;
-        platformData->refreshRequested = true;
-        if (display->orientationChangedFunc) {
-            display->orientationChangedFunc(display, orientation);
-        }
-    }
-}
-
-GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
-    static const int Surface_ROTATION_0 = 0;
-    static const int Surface_ROTATION_90 = 1;
-    static const int Surface_ROTATION_180 = 2;
-    static const int Surface_ROTATION_270 = 3;
-
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+static ARect glfm__getDecorViewRect(GLFMPlatformData *platformData, ARect defaultRect) {
     JNIEnv *jni = platformData->jniEnv;
-    jobject activity = platformData->app->activity->clazz;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return defaultRect;
+    }
+
+    jobject decorView = glfm__getDecorView(platformData->app);
+    if (!decorView) {
+        return defaultRect;
+    }
+
+    jintArray locationArray = (*jni)->NewIntArray(jni, 2);
+    if (!locationArray) {
+        (*jni)->DeleteLocalRef(jni, decorView);
+        return defaultRect;
+    }
+
+    jint location[2] = { 0 };
+    glfm__callJavaMethodWithArgs(jni, decorView, "getLocationInWindow", "([I)V", Void, locationArray);
+    (*jni)->GetIntArrayRegion(jni, locationArray, 0, 2, location);
+    (*jni)->DeleteLocalRef(jni, locationArray);
+    if ((*jni)->ExceptionCheck(jni)) {
+        (*jni)->DeleteLocalRef(jni, decorView);
+        return defaultRect;
+    }
+
+    jint width = glfm__callJavaMethod(jni, decorView, "getWidth", "()I", Int);
+    jint height = glfm__callJavaMethod(jni, decorView, "getHeight", "()I", Int);
+    (*jni)->DeleteLocalRef(jni, decorView);
+    if ((*jni)->ExceptionCheck(jni)) {
+        return defaultRect;
+    }
+
+    ARect result;
+    result.left = location[0];
+    result.top = location[1];
+    result.right = location[0] + width;
+    result.bottom = location[1] + height;
+    return result;
+}
+
+static void glfm__setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome) {
+    static const unsigned int View_STATUS_BAR_HIDDEN = 0x00000001;
+    static const unsigned int View_SYSTEM_UI_FLAG_LOW_PROFILE = 0x00000001;
+    static const unsigned int View_SYSTEM_UI_FLAG_HIDE_NAVIGATION = 0x00000002;
+    static const unsigned int View_SYSTEM_UI_FLAG_FULLSCREEN = 0x00000004;
+    static const unsigned int View_SYSTEM_UI_FLAG_LAYOUT_STABLE = 0x00000100;
+    static const unsigned int View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION = 0x00000200;
+    static const unsigned int View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN = 0x00000400;
+    static const unsigned int View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x00001000;
+
+    const int SDK_INT = app->activity->sdkVersion;
+    if (SDK_INT < 11) {
+        return;
+    }
+
+    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
+    JNIEnv *jni = platformData->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return;
+    }
+
+    jobject decorView = glfm__getDecorView(app);
+    if (!decorView) {
+        return;
+    }
+    if (uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
+        glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void, 0);
+    } else if (SDK_INT >= 11 && SDK_INT < 14) {
+        glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void, View_STATUS_BAR_HIDDEN);
+    } else if (SDK_INT >= 14 && SDK_INT < 19) {
+        if (uiChrome == GLFMUserInterfaceChromeNavigation) {
+            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
+                                         (jint)View_SYSTEM_UI_FLAG_FULLSCREEN);
+        } else {
+            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
+                                         (jint)(View_SYSTEM_UI_FLAG_LOW_PROFILE | View_SYSTEM_UI_FLAG_FULLSCREEN));
+        }
+    } else if (SDK_INT >= 19) {
+        if (uiChrome == GLFMUserInterfaceChromeNavigation) {
+            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
+                                         (jint)View_SYSTEM_UI_FLAG_FULLSCREEN);
+        } else {
+            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
+                                         (jint)(View_SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                                                View_SYSTEM_UI_FLAG_FULLSCREEN |
+                                                View_SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                                                View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                                                View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                                                View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY));
+        }
+    }
+    (*jni)->DeleteLocalRef(jni, decorView);
     glfm__clearJavaException()
-    jobject window = glfm__callJavaMethod(jni, activity, "getWindow", "()Landroid/view/Window;", Object);
-    if (!window || glfm__wasJavaExceptionThrown()) {
-        return GLFMInterfaceOrientationUnknown;
+}
+
+static void glfm__resetContentRect(GLFMPlatformData *platformData) {
+    // Reset's NativeActivity's content rect so that onContentRectChanged acts as a
+    // OnGlobalLayoutListener. This is needed to detect changes to getWindowVisibleDisplayFrame()
+    // HACK: This uses undocumented fields.
+
+    JNIEnv *jni = platformData->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return;
     }
-    jobject windowManager = glfm__callJavaMethod(jni, window, "getWindowManager", "()Landroid/view/WindowManager;", Object);
-    (*jni)->DeleteLocalRef(jni, window);
-    if (!windowManager || glfm__wasJavaExceptionThrown()) {
-        return GLFMInterfaceOrientationUnknown;
+
+    jfieldID field = glfm__getJavaFieldID(jni, platformData->app->activity->clazz,
+                                         "mLastContentWidth", "I");
+    if (!field || glfm__wasJavaExceptionThrown()) {
+        return;
     }
-    jobject windowDisplay = glfm__callJavaMethod(jni, windowManager, "getDefaultDisplay", "()Landroid/view/Display;", Object);
-    (*jni)->DeleteLocalRef(jni, windowManager);
-    if (!windowDisplay || glfm__wasJavaExceptionThrown()) {
-        return GLFMInterfaceOrientationUnknown;
+
+    (*jni)->SetIntField(jni, platformData->app->activity->clazz, field, -1);
+    glfm__clearJavaException()
+}
+
+static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, ARect defaultRect) {
+    JNIEnv *jni = platformData->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return defaultRect;
     }
-    int rotation = glfm__callJavaMethod(jni, windowDisplay, "getRotation","()I", Int);
-    (*jni)->DeleteLocalRef(jni, windowDisplay);
+
+    jobject decorView = glfm__getDecorView(platformData->app);
+    if (!decorView) {
+        return defaultRect;
+    }
+
+    jclass javaRectClass = (*jni)->FindClass(jni, "android/graphics/Rect");
     if (glfm__wasJavaExceptionThrown()) {
-        return GLFMInterfaceOrientationUnknown;
+        return defaultRect;
     }
 
-    if (rotation == Surface_ROTATION_0) {
-        return GLFMInterfaceOrientationPortrait;
-    } else if (rotation == Surface_ROTATION_90) {
-        return GLFMInterfaceOrientationLandscapeRight;
-    } else if (rotation == Surface_ROTATION_180) {
-        return GLFMInterfaceOrientationPortraitUpsideDown;
-    } else if (rotation == Surface_ROTATION_270) {
-        return GLFMInterfaceOrientationLandscapeLeft;
+    jobject javaRect = (*jni)->AllocObject(jni, javaRectClass);
+    if (glfm__wasJavaExceptionThrown()) {
+        return defaultRect;
+    }
+
+    glfm__callJavaMethodWithArgs(jni, decorView, "getWindowVisibleDisplayFrame",
+                                 "(Landroid/graphics/Rect;)V", Void, javaRect);
+    if (glfm__wasJavaExceptionThrown()) {
+        return defaultRect;
+    }
+
+    ARect rect;
+    rect.left = glfm__getJavaField(jni, javaRect, "left", "I", Int);
+    rect.right = glfm__getJavaField(jni, javaRect, "right", "I", Int);
+    rect.top = glfm__getJavaField(jni, javaRect, "top", "I", Int);
+    rect.bottom = glfm__getJavaField(jni, javaRect, "bottom", "I", Int);
+
+    (*jni)->DeleteLocalRef(jni, javaRect);
+    (*jni)->DeleteLocalRef(jni, javaRectClass);
+    (*jni)->DeleteLocalRef(jni, decorView);
+
+    if (glfm__wasJavaExceptionThrown()) {
+        return defaultRect;
     } else {
-        return GLFMInterfaceOrientationUnknown;
+        return rect;
     }
-}
-
-void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    *width = platformData->width;
-    *height = platformData->height;
-}
-
-double glfmGetDisplayScale(GLFMDisplay *display) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    return platformData->scale;
 }
 
 static bool glfm__getSafeInsets(GLFMDisplay *display, double *top, double *right, double *bottom, double *left) {
@@ -1740,93 +1169,102 @@ static bool glfm__getSystemWindowInsets(GLFMDisplay *display, double *top, doubl
     return true;
 }
 
-void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
-                                double *left) {
-
-    bool success;
-    if (glfmGetDisplayChrome(display) == GLFMUserInterfaceChromeFullscreen) {
-        success = glfm__getSafeInsets(display, top, right, bottom, left);
-    } else {
-        success = glfm__getSystemWindowInsets(display, top, right, bottom, left);
+static float glfm__getRefreshRate(GLFMDisplay *display) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    JNIEnv *jni = platformData->jniEnv;
+    jobject activity = platformData->app->activity->clazz;
+    glfm__clearJavaException()
+    jobject window = glfm__callJavaMethod(jni, activity, "getWindow", "()Landroid/view/Window;", Object);
+    if (!window || glfm__wasJavaExceptionThrown()) {
+        return 60;
     }
-    if (!success) {
-        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-        ARect windowRect = platformData->app->contentRect;
-        ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, windowRect);
-        if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0) {
-            *top = 0;
-            *right = 0;
-            *bottom = 0;
-            *left = 0;
+    jobject windowManager = glfm__callJavaMethod(jni, window, "getWindowManager", "()Landroid/view/WindowManager;", Object);
+    (*jni)->DeleteLocalRef(jni, window);
+    if (!windowManager || glfm__wasJavaExceptionThrown()) {
+        return 60;
+    }
+    jobject windowDisplay = glfm__callJavaMethod(jni, windowManager, "getDefaultDisplay", "()Landroid/view/Display;", Object);
+    (*jni)->DeleteLocalRef(jni, windowManager);
+    if (!windowDisplay || glfm__wasJavaExceptionThrown()) {
+        return 60;
+    }
+    float refreshRate = glfm__callJavaMethod(jni, windowDisplay, "getRefreshRate","()F", Float);
+    (*jni)->DeleteLocalRef(jni, windowDisplay);
+    if (glfm__wasJavaExceptionThrown() || refreshRate <= 0) {
+        return 60;
+    }
+    return refreshRate;
+}
+
+static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    int32_t width;
+    int32_t height;
+    eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_WIDTH, &width);
+    eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_HEIGHT, &height);
+    if (width != platformData->width || height != platformData->height) {
+        if (force || platformData->resizeEventWaitFrames <= 0) {
+            LOG_LIFECYCLE("Resize: %i x %i", width, height);
+            platformData->resizeEventWaitFrames = RESIZE_EVENT_MAX_WAIT_FRAMES;
+            platformData->refreshRequested = true;
+            platformData->width = width;
+            platformData->height = height;
+            glfm__reportOrientationChangeIfNeeded(platformData->display);
+            if (platformData->display && platformData->display->surfaceResizedFunc) {
+                platformData->display->surfaceResizedFunc(platformData->display, width, height);
+            }
         } else {
-            *top = visibleRect.top;
-            *right = platformData->width - visibleRect.right;
-            *bottom = platformData->height - visibleRect.bottom;
-            *left = visibleRect.left;
+            // Prefer to wait until after content rect changed, if possible
+            platformData->resizeEventWaitFrames--;
         }
     }
 }
 
-void glfm__displayChromeUpdated(GLFMDisplay *display) {
+static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    GLFMInterfaceOrientation orientation = glfmGetInterfaceOrientation(display);
+    if (platformData->orientation != orientation) {
+        platformData->orientation = orientation;
+        platformData->refreshRequested = true;
+        if (display->orientationChangedFunc) {
+            display->orientationChangedFunc(display, orientation);
+        }
+    }
+}
+
+static void glfm__setOrientation(struct android_app *app) {
+    static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR = 0x00000004;
+    static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE = 0x00000006;
+    static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT = 0x00000007;
+
+    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
+    GLFMInterfaceOrientation orientations = platformData->display->supportedOrientations;
+    bool portraitRequested = (
+            ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationPortrait) ||
+            ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationPortraitUpsideDown));
+    bool landscapeRequested = ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationLandscape);
+    int orientation;
+    if (portraitRequested && landscapeRequested) {
+        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
+    } else if (landscapeRequested) {
+        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
+    } else {
+        orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT;
+    }
+
+    JNIEnv *jni = platformData->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return;
+    }
+
+    glfm__callJavaMethodWithArgs(jni, app->activity->clazz, "setRequestedOrientation", "(I)V", Void, orientation);
+    glfm__clearJavaException()
+}
+
+static void glfm__displayChromeUpdated(GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     glfm__setFullScreen(platformData->app, display->uiChrome);
 }
-
-GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    return platformData->renderingAPI;
-}
-
-bool glfmHasTouch(GLFMDisplay *display) {
-    (void)display;
-    // This will need to change, for say, TV apps
-    return true;
-}
-
-void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
-    (void)display;
-    (void)mouseCursor;
-    // Do nothing
-}
-
-void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    platformData->multitouchEnabled = multitouchEnabled;
-}
-
-bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    return platformData->multitouchEnabled;
-}
-
-GLFMProc glfmGetProcAddress(const char *functionName) {
-    GLFMProc function = eglGetProcAddress(functionName);
-    if (!function) {
-        static void *handle = NULL;
-        if (!handle) {
-            handle = dlopen(NULL, RTLD_LAZY);
-        }
-        function = handle ? (GLFMProc)dlsym(handle, functionName) : NULL;
-    }
-    return function;
-}
-
-void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    if (glfm__setKeyboardVisible(platformData, visible)) {
-        if (visible && display->uiChrome == GLFMUserInterfaceChromeFullscreen) {
-            // This seems to be required to reset to fullscreen when the keyboard is shown.
-            glfm__setFullScreen(platformData->app, GLFMUserInterfaceChromeNavigationAndStatusBar);
-        }
-    }
-}
-
-bool glfmIsKeyboardVisible(GLFMDisplay *display) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    return platformData->keyboardVisible;
-}
-
-// MARK: Sensors
 
 static const ASensor *glfm__getDeviceSensor(GLFMSensor sensor) {
     ASensorManager *sensorManager = ASensorManager_getInstance();
@@ -1890,16 +1328,580 @@ static void glfm__setAllRequestedSensorsEnabled(GLFMDisplay *display, bool enabl
     }
 }
 
-bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
-    (void)display;
-    return glfm__getDeviceSensor(sensor) != NULL;
-}
-
-void glfm__sensorFuncUpdated(GLFMDisplay *display) {
+static void glfm__sensorFuncUpdated(GLFMDisplay *display) {
     if (display) {
         GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
         glfm__setAllRequestedSensorsEnabled(display, platformData->animating);
     }
+}
+
+static bool glfm__setKeyboardVisible(GLFMPlatformData *platformData, bool visible) {
+    static const int InputMethodManager_SHOW_FORCED = 2;
+
+    JNIEnv *jni = platformData->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return false;
+    }
+
+    jobject decorView = glfm__getDecorView(platformData->app);
+    if (!decorView) {
+        return false;
+    }
+
+    jclass contextClass = (*jni)->FindClass(jni, "android/content/Context");
+    if (glfm__wasJavaExceptionThrown()) {
+        return false;
+    }
+
+    jstring imString = glfm__getJavaStaticField(jni, contextClass, "INPUT_METHOD_SERVICE",
+                                                "Ljava/lang/String;", Object);
+    if (!imString || glfm__wasJavaExceptionThrown()) {
+        return false;
+    }
+    jobject ime = glfm__callJavaMethodWithArgs(jni, platformData->app->activity->clazz,
+                                               "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;",
+                                               Object, imString);
+    if (!ime || glfm__wasJavaExceptionThrown()) {
+        return false;
+    }
+
+    if (visible) {
+        glfm__callJavaMethodWithArgs(jni, ime, "showSoftInput", "(Landroid/view/View;I)Z", Boolean,
+                                     decorView, InputMethodManager_SHOW_FORCED);
+    } else {
+        jobject windowToken = glfm__callJavaMethod(jni, decorView, "getWindowToken", "()Landroid/os/IBinder;", Object);
+        if (!windowToken || glfm__wasJavaExceptionThrown()) {
+            return false;
+        }
+        glfm__callJavaMethodWithArgs(jni, ime, "hideSoftInputFromWindow",
+                                     "(Landroid/os/IBinder;I)Z", Boolean, windowToken, 0);
+        (*jni)->DeleteLocalRef(jni, windowToken);
+    }
+
+    (*jni)->DeleteLocalRef(jni, ime);
+    (*jni)->DeleteLocalRef(jni, imString);
+    (*jni)->DeleteLocalRef(jni, contextClass);
+    (*jni)->DeleteLocalRef(jni, decorView);
+
+    return !glfm__wasJavaExceptionThrown();
+}
+
+static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
+    if (platformData->display) {
+        ARect windowRect = glfm__getDecorViewRect(platformData, platformData->app->contentRect);
+        ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, windowRect);
+        ARect nonVisibleRect[4];
+
+        // Left
+        nonVisibleRect[0].left = windowRect.left;
+        nonVisibleRect[0].right = visibleRect.left;
+        nonVisibleRect[0].top = windowRect.top;
+        nonVisibleRect[0].bottom = windowRect.bottom;
+
+        // Right
+        nonVisibleRect[1].left = visibleRect.right;
+        nonVisibleRect[1].right = windowRect.right;
+        nonVisibleRect[1].top = windowRect.top;
+        nonVisibleRect[1].bottom = windowRect.bottom;
+
+        // Top
+        nonVisibleRect[2].left = windowRect.left;
+        nonVisibleRect[2].right = windowRect.right;
+        nonVisibleRect[2].top = windowRect.top;
+        nonVisibleRect[2].bottom = visibleRect.top;
+
+        // Bottom
+        nonVisibleRect[3].left = windowRect.left;
+        nonVisibleRect[3].right = windowRect.right;
+        nonVisibleRect[3].top = visibleRect.bottom;
+        nonVisibleRect[3].bottom = windowRect.bottom;
+
+        // Find largest with minimum keyboard size
+        const int minimumKeyboardSize = (int)(100 * platformData->scale);
+        int largestIndex = 0;
+        int largestArea = -1;
+        for (int i = 0; i < 4; i++) {
+            int w = nonVisibleRect[i].right - nonVisibleRect[i].left;
+            int h = nonVisibleRect[i].bottom - nonVisibleRect[i].top;
+            int area = w * h;
+            if (w >= minimumKeyboardSize && h >= minimumKeyboardSize && area > largestArea) {
+                largestIndex = i;
+                largestArea = area;
+            }
+        }
+
+        bool keyboardVisible = largestArea > 0;
+        ARect keyboardFrame = keyboardVisible ? nonVisibleRect[largestIndex] : (ARect){0, 0, 0, 0};
+
+        // Send update notification
+        if (platformData->keyboardVisible != keyboardVisible ||
+                !ARectsEqual(platformData->keyboardFrame, keyboardFrame)) {
+            platformData->keyboardVisible = keyboardVisible;
+            platformData->keyboardFrame = keyboardFrame;
+            platformData->refreshRequested = true;
+            if (platformData->display->keyboardVisibilityChangedFunc) {
+                double x = keyboardFrame.left;
+                double y = keyboardFrame.top;
+                double w = keyboardFrame.right - keyboardFrame.left;
+                double h = keyboardFrame.bottom - keyboardFrame.top;
+                platformData->display->keyboardVisibilityChangedFunc(platformData->display,
+                                                                     keyboardVisible,
+                                                                     x, y, w, h);
+            }
+        }
+    }
+}
+
+static const char *glfm__unicodeToUTF8(uint32_t unicode) {
+    static char utf8[5];
+    if (unicode < 0x80) {
+        utf8[0] = (char)(unicode & 0x7fu);
+        utf8[1] = 0;
+    } else if (unicode < 0x800) {
+        utf8[0] = (char)(0xc0u | (unicode >> 6u));
+        utf8[1] = (char)(0x80u | (unicode & 0x3fu));
+        utf8[2] = 0;
+    } else if (unicode < 0x10000) {
+        utf8[0] = (char)(0xe0u | (unicode >> 12u));
+        utf8[1] = (char)(0x80u | ((unicode >> 6u) & 0x3fu));
+        utf8[2] = (char)(0x80u | (unicode & 0x3fu));
+        utf8[3] = 0;
+    } else if (unicode < 0x110000) {
+        utf8[0] = (char)(0xf0u | (unicode >> 18u));
+        utf8[1] = (char)(0x80u | ((unicode >> 12u) & 0x3fu));
+        utf8[2] = (char)(0x80u | ((unicode >> 6u) & 0x3fu));
+        utf8[3] = (char)(0x80u | (unicode & 0x3fu));
+        utf8[4] = 0;
+    } else {
+        utf8[0] = 0;
+    }
+    return utf8;
+}
+
+static uint32_t glfm__getUnicodeChar(GLFMPlatformData *platformData, AInputEvent *event) {
+    JNIEnv *jni = platformData->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return 0;
+    }
+
+    jint keyCode = AKeyEvent_getKeyCode(event);
+    jint metaState = AKeyEvent_getMetaState(event);
+
+    jclass keyEventClass = (*jni)->FindClass(jni, "android/view/KeyEvent");
+    if (!keyEventClass || glfm__wasJavaExceptionThrown()) {
+        return 0;
+    }
+
+    jmethodID getUnicodeChar = (*jni)->GetMethodID(jni, keyEventClass, "getUnicodeChar", "(I)I");
+    jmethodID eventConstructor = (*jni)->GetMethodID(jni, keyEventClass, "<init>", "(II)V");
+
+    jobject eventObject = (*jni)->NewObject(jni, keyEventClass, eventConstructor,
+                                            (jint)AKEY_EVENT_ACTION_DOWN, keyCode);
+    if (!eventObject || glfm__wasJavaExceptionThrown()) {
+        return 0;
+    }
+
+    jint unicodeKey = (*jni)->CallIntMethod(jni, eventObject, getUnicodeChar, metaState);
+
+    (*jni)->DeleteLocalRef(jni, eventObject);
+    (*jni)->DeleteLocalRef(jni, keyEventClass);
+
+    if (glfm__wasJavaExceptionThrown()) {
+        return 0;
+    } else {
+        return (uint32_t)unicodeKey;
+    }
+}
+
+/*
+ * Move task to the back if it is root task. This make the back button have the same behavior
+ * as the home button.
+ *
+ * Without this, when the user presses the back button, the loop in android_main() is exited, the
+ * OpenGL context is destroyed, and the main thread is destroyed. The android_main() function
+ * would be called again in the same process if the user returns to the app.
+ *
+ * When this, when the app is in the background, the app will pause in the ALooper_pollAll() call.
+ */
+static bool glfm__handleBackButton(struct android_app *app) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
+    JNIEnv *jni = platformData->jniEnv;
+    if ((*jni)->ExceptionCheck(jni)) {
+        return false;
+    }
+
+    jboolean handled = glfm__callJavaMethodWithArgs(jni, app->activity->clazz, "moveTaskToBack",
+                                                   "(Z)Z", Boolean, false);
+    return !glfm__wasJavaExceptionThrown() && handled;
+}
+
+static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
+    const int32_t eventType = AInputEvent_getType(event);
+    if (eventType == AINPUT_EVENT_TYPE_KEY) {
+        unsigned int handled = 0;
+        if (platformData->display && platformData->display->keyFunc) {
+            int32_t aKeyCode = AKeyEvent_getKeyCode(event);
+            int32_t aAction = AKeyEvent_getAction(event);
+            if (aKeyCode != 0) {
+                GLFMKey key;
+                switch (aKeyCode) {
+                    case AKEYCODE_DEL:
+                        key = GLFMKeyBackspace;
+                        break;
+                    case AKEYCODE_TAB:
+                        key = GLFMKeyTab;
+                        break;
+                    case AKEYCODE_ENTER:
+                    case AKEYCODE_DPAD_CENTER:
+                        key = GLFMKeyEnter;
+                        break;
+                    case AKEYCODE_ESCAPE:
+                        key = GLFMKeyEscape;
+                        break;
+                    case AKEYCODE_SPACE:
+                        key = GLFMKeySpace;
+                        break;
+                    case AKEYCODE_PAGE_UP:
+                        key = GLFMKeyPageUp;
+                        break;
+                    case AKEYCODE_PAGE_DOWN:
+                        key = GLFMKeyPageDown;
+                        break;
+                    case AKEYCODE_MOVE_END:
+                        key = GLFMKeyEnd;
+                        break;
+                    case AKEYCODE_MOVE_HOME:
+                        key = GLFMKeyHome;
+                        break;
+                    case AKEYCODE_DPAD_LEFT:
+                        key = GLFMKeyLeft;
+                        break;
+                    case AKEYCODE_DPAD_UP:
+                        key = GLFMKeyUp;
+                        break;
+                    case AKEYCODE_DPAD_RIGHT:
+                        key = GLFMKeyRight;
+                        break;
+                    case AKEYCODE_DPAD_DOWN:
+                        key = GLFMKeyDown;
+                        break;
+                    case AKEYCODE_FORWARD_DEL:
+                        key = GLFMKeyDelete;
+                        break;
+                    case AKEYCODE_BACK:
+                        key = GLFMKeyNavBack;
+                        break;
+                    case AKEYCODE_MENU:
+                        key = GLFMKeyNavMenu;
+                        break;
+                    default:
+                        // TODO: Send all keycodes?
+                        if (aKeyCode >= AKEYCODE_0 && aKeyCode <= AKEYCODE_9) {
+                            key = (GLFMKey)(aKeyCode - AKEYCODE_0 + '0');
+                        } else if (aKeyCode >= AKEYCODE_A && aKeyCode <= AKEYCODE_Z) {
+                            key = (GLFMKey)(aKeyCode - AKEYCODE_A + 'A');
+                        } else {
+                            key = (GLFMKey)0;
+                        }
+                        break;
+                }
+
+                if (key != 0) {
+                    if (aAction == AKEY_EVENT_ACTION_UP) {
+                        handled = platformData->display->keyFunc(platformData->display, key,
+                                                                 GLFMKeyActionReleased, 0);
+                        if (handled == 0 && aKeyCode == AKEYCODE_BACK) {
+                            handled = glfm__handleBackButton(app) ? 1 : 0;
+                        }
+                    } else if (aAction == AKEY_EVENT_ACTION_DOWN) {
+                        GLFMKeyAction keyAction;
+                        if (AKeyEvent_getRepeatCount(event) > 0) {
+                            keyAction = GLFMKeyActionRepeated;
+                        } else {
+                            keyAction = GLFMKeyActionPressed;
+                        }
+                        handled = platformData->display->keyFunc(platformData->display, key,
+                                                                 keyAction, 0);
+                    } else if (aAction == AKEY_EVENT_ACTION_MULTIPLE) {
+                        int32_t i;
+                        for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
+                            handled |= platformData->display->keyFunc(platformData->display, key,
+                                                                GLFMKeyActionPressed, 0);
+                            handled |= platformData->display->keyFunc(platformData->display, key,
+                                                                GLFMKeyActionReleased, 0);
+                        }
+                    }
+                }
+            }
+        }
+        if (platformData->display && platformData->display->charFunc) {
+            int32_t aAction = AKeyEvent_getAction(event);
+            if (aAction == AKEY_EVENT_ACTION_DOWN || aAction == AKEY_EVENT_ACTION_MULTIPLE) {
+                uint32_t unicode = glfm__getUnicodeChar(platformData, event);
+                if (unicode >= ' ') {
+                    const char *str = glfm__unicodeToUTF8(unicode);
+                    if (aAction == AKEY_EVENT_ACTION_DOWN) {
+                        platformData->display->charFunc(platformData->display, str, 0);
+                    } else {
+                        int32_t i;
+                        for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
+                            platformData->display->charFunc(platformData->display, str, 0);
+                        }
+                    }
+                }
+            }
+        }
+        return (int32_t)handled;
+    } else if (eventType == AINPUT_EVENT_TYPE_MOTION) {
+        if (platformData->display && platformData->display->touchFunc) {
+            const int maxTouches = platformData->multitouchEnabled ? MAX_SIMULTANEOUS_TOUCHES : 1;
+            const int32_t action = AMotionEvent_getAction(event);
+            const uint32_t maskedAction = (uint32_t)action & (uint32_t)AMOTION_EVENT_ACTION_MASK;
+
+            GLFMTouchPhase phase;
+            bool validAction = true;
+
+            switch (maskedAction) {
+                case AMOTION_EVENT_ACTION_DOWN:
+                case AMOTION_EVENT_ACTION_POINTER_DOWN:
+                    phase = GLFMTouchPhaseBegan;
+                    break;
+                case AMOTION_EVENT_ACTION_UP:
+                case AMOTION_EVENT_ACTION_POINTER_UP:
+                case AMOTION_EVENT_ACTION_OUTSIDE:
+                    phase = GLFMTouchPhaseEnded;
+                    break;
+                case AMOTION_EVENT_ACTION_MOVE:
+                    phase = GLFMTouchPhaseMoved;
+                    break;
+                case AMOTION_EVENT_ACTION_CANCEL:
+                    phase = GLFMTouchPhaseCancelled;
+                    break;
+                default:
+                    phase = GLFMTouchPhaseCancelled;
+                    validAction = false;
+                    break;
+            }
+            if (validAction) {
+                if (phase == GLFMTouchPhaseMoved) {
+                    const size_t count = AMotionEvent_getPointerCount(event);
+                    size_t i;
+                    for (i = 0; i < count; i++) {
+                        const int touchNumber = AMotionEvent_getPointerId(event, i);
+                        if (touchNumber >= 0 && touchNumber < maxTouches) {
+                            double x = (double)AMotionEvent_getX(event, i);
+                            double y = (double)AMotionEvent_getY(event, i);
+                            platformData->display->touchFunc(platformData->display, touchNumber,
+                                                             phase, x, y);
+                            //LOG_DEBUG("Touch: (num=%i, phase=%i) %f,%f", touchNumber, phase, x, y);
+                        }
+                    }
+                } else {
+                    const size_t index = (size_t)(((uint32_t)action &
+                            (uint32_t)AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >>
+                            (uint32_t)AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
+                    const int touchNumber = AMotionEvent_getPointerId(event, index);
+                    if (touchNumber >= 0 && touchNumber < maxTouches) {
+                        double x = (double)AMotionEvent_getX(event, index);
+                        double y = (double)AMotionEvent_getY(event, index);
+                        platformData->display->touchFunc(platformData->display, touchNumber,
+                                                         phase, x, y);
+                        //LOG_DEBUG("Touch: (num=%i, phase=%i) %f,%f", touchNumber, phase, x, y);
+                    }
+                }
+            }
+        }
+        return 1;
+    }
+    return 0;
+}
+
+// MARK: - GLFM public functions
+
+double glfmGetTime() {
+    static int clockID;
+    static time_t initTime;
+    static bool initialized = false;
+
+    struct timespec time;
+
+    if (!initialized) {
+        if (clock_gettime(CLOCK_MONOTONIC_RAW, &time) == 0) {
+            clockID = CLOCK_MONOTONIC_RAW;
+        } else if (clock_gettime(CLOCK_MONOTONIC, &time) == 0) {
+            clockID = CLOCK_MONOTONIC;
+        } else {
+            clock_gettime(CLOCK_REALTIME, &time);
+            clockID = CLOCK_REALTIME;
+        }
+        initTime = time.tv_sec;
+        initialized = true;
+    } else {
+        clock_gettime(clockID, &time);
+    }
+    // Subtract by initTime to ensure that conversion to double keeps nanosecond accuracy
+    return (time.tv_sec - initTime) + (double)time.tv_nsec / 1e9;
+}
+
+void glfmSwapBuffers(GLFMDisplay *display) {
+    if (display) {
+        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+        EGLBoolean result = eglSwapBuffers(platformData->eglDisplay, platformData->eglSurface);
+        platformData->swapCalled = true;
+        platformData->lastSwapTime = glfmGetTime();
+        if (!result) {
+            glfm__eglCheckError(platformData);
+        }
+    }
+}
+
+void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOrientation supportedOrientations) {
+    if (display && display->supportedOrientations != supportedOrientations) {
+        display->supportedOrientations = supportedOrientations;
+        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+        glfm__setOrientation(platformData->app);
+    }
+}
+
+GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
+    static const int Surface_ROTATION_0 = 0;
+    static const int Surface_ROTATION_90 = 1;
+    static const int Surface_ROTATION_180 = 2;
+    static const int Surface_ROTATION_270 = 3;
+
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    JNIEnv *jni = platformData->jniEnv;
+    jobject activity = platformData->app->activity->clazz;
+    glfm__clearJavaException()
+    jobject window = glfm__callJavaMethod(jni, activity, "getWindow", "()Landroid/view/Window;", Object);
+    if (!window || glfm__wasJavaExceptionThrown()) {
+        return GLFMInterfaceOrientationUnknown;
+    }
+    jobject windowManager = glfm__callJavaMethod(jni, window, "getWindowManager", "()Landroid/view/WindowManager;", Object);
+    (*jni)->DeleteLocalRef(jni, window);
+    if (!windowManager || glfm__wasJavaExceptionThrown()) {
+        return GLFMInterfaceOrientationUnknown;
+    }
+    jobject windowDisplay = glfm__callJavaMethod(jni, windowManager, "getDefaultDisplay", "()Landroid/view/Display;", Object);
+    (*jni)->DeleteLocalRef(jni, windowManager);
+    if (!windowDisplay || glfm__wasJavaExceptionThrown()) {
+        return GLFMInterfaceOrientationUnknown;
+    }
+    int rotation = glfm__callJavaMethod(jni, windowDisplay, "getRotation","()I", Int);
+    (*jni)->DeleteLocalRef(jni, windowDisplay);
+    if (glfm__wasJavaExceptionThrown()) {
+        return GLFMInterfaceOrientationUnknown;
+    }
+
+    if (rotation == Surface_ROTATION_0) {
+        return GLFMInterfaceOrientationPortrait;
+    } else if (rotation == Surface_ROTATION_90) {
+        return GLFMInterfaceOrientationLandscapeRight;
+    } else if (rotation == Surface_ROTATION_180) {
+        return GLFMInterfaceOrientationPortraitUpsideDown;
+    } else if (rotation == Surface_ROTATION_270) {
+        return GLFMInterfaceOrientationLandscapeLeft;
+    } else {
+        return GLFMInterfaceOrientationUnknown;
+    }
+}
+
+void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    *width = platformData->width;
+    *height = platformData->height;
+}
+
+double glfmGetDisplayScale(GLFMDisplay *display) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    return platformData->scale;
+}
+
+void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
+                                double *left) {
+
+    bool success;
+    if (glfmGetDisplayChrome(display) == GLFMUserInterfaceChromeFullscreen) {
+        success = glfm__getSafeInsets(display, top, right, bottom, left);
+    } else {
+        success = glfm__getSystemWindowInsets(display, top, right, bottom, left);
+    }
+    if (!success) {
+        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+        ARect windowRect = platformData->app->contentRect;
+        ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, windowRect);
+        if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0) {
+            *top = 0;
+            *right = 0;
+            *bottom = 0;
+            *left = 0;
+        } else {
+            *top = visibleRect.top;
+            *right = platformData->width - visibleRect.right;
+            *bottom = platformData->height - visibleRect.bottom;
+            *left = visibleRect.left;
+        }
+    }
+}
+
+GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    return platformData->renderingAPI;
+}
+
+bool glfmHasTouch(GLFMDisplay *display) {
+    (void)display;
+    // This will need to change, for say, TV apps
+    return true;
+}
+
+void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
+    (void)display;
+    (void)mouseCursor;
+    // Do nothing
+}
+
+void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    platformData->multitouchEnabled = multitouchEnabled;
+}
+
+bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    return platformData->multitouchEnabled;
+}
+
+GLFMProc glfmGetProcAddress(const char *functionName) {
+    GLFMProc function = eglGetProcAddress(functionName);
+    if (!function) {
+        static void *handle = NULL;
+        if (!handle) {
+            handle = dlopen(NULL, RTLD_LAZY);
+        }
+        function = handle ? (GLFMProc)dlsym(handle, functionName) : NULL;
+    }
+    return function;
+}
+
+void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    if (glfm__setKeyboardVisible(platformData, visible)) {
+        if (visible && display->uiChrome == GLFMUserInterfaceChromeFullscreen) {
+            // This seems to be required to reset to fullscreen when the keyboard is shown.
+            glfm__setFullScreen(platformData->app, GLFMUserInterfaceChromeNavigationAndStatusBar);
+        }
+    }
+}
+
+bool glfmIsKeyboardVisible(GLFMDisplay *display) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    return platformData->keyboardVisible;
+}
+
+bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
+    (void)display;
+    return glfm__getDeviceSensor(sensor) != NULL;
 }
 
 bool glfmIsHapticFeedbackSupported(GLFMDisplay *display) {
@@ -1999,7 +2001,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
     (*jni)->DeleteLocalRef(jni, decorView);
 }
 
-// MARK: Platform-specific functions
+// MARK: - Platform-specific functions
 
 bool glfmIsMetalSupported(GLFMDisplay *display) {
     (void)display;

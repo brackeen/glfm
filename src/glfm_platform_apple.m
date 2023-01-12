@@ -1340,7 +1340,52 @@ int main(int argc, char *argv[]) {
 
 #endif // TARGET_OS_IOS || TARGET_OS_TV
 
-// MARK: - GLFM implementation
+// MARK: - GLFM private functions
+
+static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor, int *width, int *height) {
+    int newDrawableWidth = (int)(bounds.size.width * contentScaleFactor);
+    int newDrawableHeight = (int)(bounds.size.height * contentScaleFactor);
+
+#if TARGET_OS_IOS
+    // On the iPhone 6 when "Display Zoom" is set, the size will be incorrect.
+    if (glfm__isCGFloatEqual(contentScaleFactor, (CGFloat)2.343750)) {
+        if (newDrawableWidth == 750 && newDrawableHeight == 1331) {
+            newDrawableHeight = 1334;
+        } else if (newDrawableWidth == 1331 && newDrawableHeight == 750) {
+            newDrawableWidth = 1334;
+        }
+    }
+#endif
+
+    *width = newDrawableWidth;
+    *height = newDrawableHeight;
+}
+
+static void glfm__displayChromeUpdated(GLFMDisplay *display) {
+    if (display && display->platformData) {
+#if TARGET_OS_IOS
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        [vc.glfmViewIfLoaded requestRefresh];
+        [vc setNeedsStatusBarAppearanceUpdate];
+        if (@available(iOS 11, *)) {
+            [vc setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
+        }
+#endif
+    }
+}
+
+static void glfm__sensorFuncUpdated(GLFMDisplay *display) {
+#if TARGET_OS_IOS
+    if (display) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        [vc updateMotionManagerActiveState];
+    }
+#else
+    (void)display;
+#endif
+}
+
+// MARK: - GLFM public functions
 
 double glfmGetTime() {
     return CACurrentMediaTime();
@@ -1404,25 +1449,6 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
 #endif
 }
 
-static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor, int *width, int *height) {
-    int newDrawableWidth = (int)(bounds.size.width * contentScaleFactor);
-    int newDrawableHeight = (int)(bounds.size.height * contentScaleFactor);
-
-#if TARGET_OS_IOS
-    // On the iPhone 6 when "Display Zoom" is set, the size will be incorrect.
-    if (glfm__isCGFloatEqual(contentScaleFactor, (CGFloat)2.343750)) {
-        if (newDrawableWidth == 750 && newDrawableHeight == 1331) {
-            newDrawableHeight = 1334;
-        } else if (newDrawableWidth == 1331 && newDrawableHeight == 750) {
-            newDrawableWidth = 1334;
-        }
-    }
-#endif
-
-    *width = newDrawableWidth;
-    *height = newDrawableHeight;
-}
-
 void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
@@ -1481,19 +1507,6 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
         *right = 0.0;
         *bottom = 0.0;
         *left = 0.0;
-    }
-}
-
-void glfm__displayChromeUpdated(GLFMDisplay *display) {
-    if (display && display->platformData) {
-#if TARGET_OS_IOS
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        [vc.glfmViewIfLoaded requestRefresh];
-        [vc setNeedsStatusBarAppearanceUpdate];
-        if (@available(iOS 11, *)) {
-            [vc setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
-        }
-#endif
     }
 }
 
@@ -1585,17 +1598,6 @@ bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
     (void)display;
     (void)sensor;
     return false;
-#endif
-}
-
-void glfm__sensorFuncUpdated(GLFMDisplay *display) {
-#if TARGET_OS_IOS
-    if (display) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        [vc updateMotionManagerActiveState];
-    }
-#else
-    (void)display;
 #endif
 }
 

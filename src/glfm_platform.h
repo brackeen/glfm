@@ -65,8 +65,8 @@ struct GLFMDisplay {
 
 // MARK: - Notification functions
 
-void glfm__displayChromeUpdated(GLFMDisplay *display);
-void glfm__sensorFuncUpdated(GLFMDisplay *display);
+static void glfm__displayChromeUpdated(GLFMDisplay *display);
+static void glfm__sensorFuncUpdated(GLFMDisplay *display);
 
 // MARK: - Setters
 

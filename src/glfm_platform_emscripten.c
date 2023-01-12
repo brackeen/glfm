@@ -39,9 +39,37 @@ typedef struct {
     GLFMInterfaceOrientation orientation;
 } GLFMPlatformData;
 
-static void glfm__clearActiveTouches(GLFMPlatformData *platformData);
+// MARK: - GLFM private functions
 
-// MARK: GLFM implementation
+static void glfm__clearActiveTouches(GLFMPlatformData *platformData) {
+    for (int i = 0; i < MAX_ACTIVE_TOUCHES; i++) {
+        platformData->activeTouches[i].active = false;
+    }
+}
+
+static void glfm__displayChromeUpdated(GLFMDisplay *display) {
+    GLFMPlatformData *platformData = display->platformData;
+
+    if (display->uiChrome == GLFMUserInterfaceChromeFullscreen) {
+        if (!platformData->isFullscreen) {
+            EMSCRIPTEN_RESULT result = emscripten_request_fullscreen(NULL, EM_FALSE);
+            platformData->isFullscreen = (result == EMSCRIPTEN_RESULT_SUCCESS);
+            if (!platformData->isFullscreen) {
+                display->uiChrome = GLFMUserInterfaceChromeNavigation;
+           }
+        }
+    } else if (platformData->isFullscreen) {
+        platformData->isFullscreen = false;
+        emscripten_exit_fullscreen();
+    }
+}
+
+void glfm__sensorFuncUpdated(GLFMDisplay *display) {
+    (void)display;
+    // TODO: Sensors
+}
+
+// MARK: - GLFM public functions
 
 double glfmGetTime(void) {
     return emscripten_get_now() / 1000.0;
@@ -139,23 +167,6 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
     } );
 }
 
-void glfm__displayChromeUpdated(GLFMDisplay *display) {
-    GLFMPlatformData *platformData = display->platformData;
-
-    if (display->uiChrome == GLFMUserInterfaceChromeFullscreen) {
-        if (!platformData->isFullscreen) {
-            EMSCRIPTEN_RESULT result = emscripten_request_fullscreen(NULL, EM_FALSE);
-            platformData->isFullscreen = (result == EMSCRIPTEN_RESULT_SUCCESS);
-            if (!platformData->isFullscreen) {
-                display->uiChrome = GLFMUserInterfaceChromeNavigation;
-           }
-        }
-    } else if (platformData->isFullscreen) {
-        platformData->isFullscreen = false;
-        emscripten_exit_fullscreen();
-    }
-}
-
 GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
     GLFMPlatformData *platformData = display->platformData;
     return platformData->renderingAPI;
@@ -231,11 +242,6 @@ bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
     return false;
 }
 
-void glfm__sensorFuncUpdated(GLFMDisplay *display) {
-    (void)display;
-    // TODO: Sensors
-}
-
 bool glfmIsHapticFeedbackSupported(GLFMDisplay *display) {
     (void)display;
     return false;
@@ -247,14 +253,14 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
     // Do nothing
 }
 
-// MARK: Platform-specific functions
+// MARK: - Platform-specific functions
 
 bool glfmIsMetalSupported(GLFMDisplay *display) {
     (void)display;
     return false;
 }
 
-// MARK: Emscripten glue
+// MARK: - Emscripten glue
 
 static int glfm__getDisplayWidth(GLFMDisplay *display) {
     (void)display;
@@ -608,12 +614,6 @@ static EM_BOOL glfm__mouseWheelCallback(int eventType, const EmscriptenWheelEven
     }
 }
 
-static void glfm__clearActiveTouches(GLFMPlatformData *platformData) {
-    for (int i = 0; i < MAX_ACTIVE_TOUCHES; i++) {
-        platformData->activeTouches[i].active = false;
-    }
-}
-
 static int glfm__getTouchIdentifier(GLFMPlatformData *platformData, const EmscriptenTouchPoint *t) {
     int firstNullIndex = -1;
     int index = -1;
@@ -686,7 +686,7 @@ static EM_BOOL glfm__touchCallback(int eventType, const EmscriptenTouchEvent *e,
     }
 }
 
-// MARK: main
+// MARK: - main
 
 int main(void) {
     GLFMDisplay *glfmDisplay = calloc(1, sizeof(GLFMDisplay));
