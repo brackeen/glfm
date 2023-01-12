@@ -59,7 +59,7 @@ static bool glfm__isCGFloatEqual(CGFloat a, CGFloat b) {
 #endif
 }
 
-static void glfm__getDefaultDisplaySize(GLFMDisplay *display,
+static void glfm__getDefaultDisplaySize(const GLFMDisplay *display,
                                         double *width, double *height, double *scale);
 static void glfm__getDrawableSize(double displayWidth, double displayHeight, double displayScale,
                                   int *width, int *height);
@@ -1635,7 +1635,7 @@ int main(int argc, const char * argv[]) {
 
 // MARK: - GLFM private functions
 
-static void glfm__getDefaultDisplaySize(GLFMDisplay *display,
+static void glfm__getDefaultDisplaySize(const GLFMDisplay *display,
                                         double *width, double *height, double *scale) {
 #if TARGET_OS_IOS || TARGET_OS_TV
     (void)display;
@@ -1751,7 +1751,7 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
     }
 }
 
-GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
+GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display) {
     (void)display;
 #if TARGET_OS_IOS
     UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
@@ -1772,7 +1772,7 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
 #endif
 }
 
-void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
+void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         if (vc.isViewLoaded) {
@@ -1789,7 +1789,7 @@ void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
     }
 }
 
-double glfmGetDisplayScale(GLFMDisplay *display) {
+double glfmGetDisplayScale(const GLFMDisplay *display) {
 #if TARGET_OS_OSX
     NSWindow *window = nil;
     if (display && display->platformData) {
@@ -1803,8 +1803,8 @@ double glfmGetDisplayScale(GLFMDisplay *display) {
 #endif
 }
 
-void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
-                                double *left) {
+void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
+                                double *bottom, double *left) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         if (!vc.isViewLoaded) {
@@ -1854,7 +1854,7 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
     }
 }
 
-GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
+GLFMRenderingAPI glfmGetRenderingAPI(const GLFMDisplay *display) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         if (vc.isViewLoaded) {
@@ -1867,7 +1867,7 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
     }
 }
 
-bool glfmHasTouch(GLFMDisplay *display) {
+bool glfmHasTouch(const GLFMDisplay *display) {
     (void)display;
 #if TARGET_OS_IOS || TARGET_OS_TV
     return true;
@@ -1899,7 +1899,7 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
 #endif
 }
 
-bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
+bool glfmGetMultitouchEnabled(const GLFMDisplay *display) {
 #if TARGET_OS_IOS || TARGET_OS_TV
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
@@ -1930,7 +1930,7 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
 #endif
 }
 
-bool glfmIsKeyboardVisible(GLFMDisplay *display) {
+bool glfmIsKeyboardVisible(const GLFMDisplay *display) {
 #if TARGET_OS_IOS || TARGET_OS_TV
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
@@ -1943,7 +1943,7 @@ bool glfmIsKeyboardVisible(GLFMDisplay *display) {
 #endif
 }
 
-bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
+bool glfmIsSensorAvailable(const GLFMDisplay *display, GLFMSensor sensor) {
 #if TARGET_OS_IOS
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
@@ -1967,7 +1967,7 @@ bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
 #endif
 }
 
-bool glfmIsHapticFeedbackSupported(GLFMDisplay *display) {
+bool glfmIsHapticFeedbackSupported(const GLFMDisplay *display) {
     (void)display;
 #if TARGET_OS_IOS
     if (@available(iOS 13, *)) {
@@ -2007,7 +2007,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
 
 // MARK: - Apple-specific functions
 
-bool glfmIsMetalSupported(GLFMDisplay *display) {
+bool glfmIsMetalSupported(const GLFMDisplay *display) {
 #if GLFM_INCLUDE_METAL
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
@@ -2017,7 +2017,7 @@ bool glfmIsMetalSupported(GLFMDisplay *display) {
     return false;
 }
 
-void *glfmGetMetalView(GLFMDisplay *display) {
+void *glfmGetMetalView(const GLFMDisplay *display) {
 #if GLFM_INCLUDE_METAL
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
@@ -2030,7 +2030,7 @@ void *glfmGetMetalView(GLFMDisplay *display) {
     return NULL;
 }
 
-void *glfmGetViewController(GLFMDisplay *display) {
+void *glfmGetViewController(const GLFMDisplay *display) {
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return (__bridge void *)vc;

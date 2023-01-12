@@ -102,7 +102,7 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display,
     }
 }
 
-GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
+GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display) {
     (void)display;
     
     EmscriptenOrientationChangeEvent orientationStatus;
@@ -130,19 +130,19 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
 
 extern EMSCRIPTEN_RESULT emscripten_get_orientation_status(EmscriptenOrientationChangeEvent *orientationStatus);
 
-void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
+void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height) {
     GLFMPlatformData *platformData = display->platformData;
     *width = platformData->width;
     *height = platformData->height;
 }
 
-double glfmGetDisplayScale(GLFMDisplay *display) {
+double glfmGetDisplayScale(const GLFMDisplay *display) {
     GLFMPlatformData *platformData = display->platformData;
     return platformData->scale;
 }
 
-void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
-                                double *left) {
+void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
+                                double *bottom, double *left) {
     GLFMPlatformData *platformData = display->platformData;
 
     *top = platformData->scale * EM_ASM_DOUBLE_V( {
@@ -167,12 +167,12 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
     } );
 }
 
-GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
+GLFMRenderingAPI glfmGetRenderingAPI(const GLFMDisplay *display) {
     GLFMPlatformData *platformData = display->platformData;
     return platformData->renderingAPI;
 }
 
-bool glfmHasTouch(GLFMDisplay *display) {
+bool glfmHasTouch(const GLFMDisplay *display) {
     (void)display;
     return EM_ASM_INT_V({
         return (('ontouchstart' in window) || (navigator.msMaxTouchPoints > 0));
@@ -215,7 +215,7 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
     platformData->multitouchEnabled = multitouchEnabled;
 }
 
-bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
+bool glfmGetMultitouchEnabled(const GLFMDisplay *display) {
     GLFMPlatformData *platformData = display->platformData;
     return platformData->multitouchEnabled;
 }
@@ -226,7 +226,7 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
     // Do nothing
 }
 
-bool glfmIsKeyboardVisible(GLFMDisplay *display) {
+bool glfmIsKeyboardVisible(const GLFMDisplay *display) {
     (void)display;
     return false;
 }
@@ -235,14 +235,14 @@ GLFMProc glfmGetProcAddress(const char *functionName) {
     return eglGetProcAddress(functionName);
 }
 
-bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
+bool glfmIsSensorAvailable(const GLFMDisplay *display, GLFMSensor sensor) {
     (void)display;
     (void)sensor;
     // TODO: Sensors
     return false;
 }
 
-bool glfmIsHapticFeedbackSupported(GLFMDisplay *display) {
+bool glfmIsHapticFeedbackSupported(const GLFMDisplay *display) {
     (void)display;
     return false;
 }
@@ -255,7 +255,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
 
 // MARK: - Platform-specific functions
 
-bool glfmIsMetalSupported(GLFMDisplay *display) {
+bool glfmIsMetalSupported(const GLFMDisplay *display) {
     (void)display;
     return false;
 }

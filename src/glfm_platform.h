@@ -95,7 +95,7 @@ void glfmSetDisplayConfig(GLFMDisplay *display,
     }
 }
 
-GLFMInterfaceOrientation glfmGetSupportedInterfaceOrientation(GLFMDisplay *display) {
+GLFMInterfaceOrientation glfmGetSupportedInterfaceOrientation(const GLFMDisplay *display) {
     return display ? display->supportedOrientations : GLFMInterfaceOrientationAll;
 }
 
@@ -114,11 +114,11 @@ void glfmSetUserData(GLFMDisplay *display, void *userData) {
     }
 }
 
-void *glfmGetUserData(GLFMDisplay *display) {
+void *glfmGetUserData(const GLFMDisplay *display) {
     return display ? display->userData : NULL;
 }
 
-GLFMUserInterfaceChrome glfmGetDisplayChrome(GLFMDisplay *display) {
+GLFMUserInterfaceChrome glfmGetDisplayChrome(const GLFMDisplay *display) {
     return display ? display->uiChrome : GLFMUserInterfaceChromeNavigation;
 }
 
@@ -289,7 +289,7 @@ void glfmSetSwapBehavior(GLFMDisplay *display, GLFMSwapBehavior behavior) {
     }
 }
 
-GLFMSwapBehavior glfmGetSwapBehavior(GLFMDisplay *display) {
+GLFMSwapBehavior glfmGetSwapBehavior(const GLFMDisplay *display) {
     if (display) {
         return display->swapBehavior;
     }

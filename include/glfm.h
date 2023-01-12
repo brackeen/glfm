@@ -380,7 +380,7 @@ void glfmSetUserData(GLFMDisplay *display, void *userData);
 /// Gets the user data pointer.
 ///
 /// See ``glfmSetUserData``.
-void *glfmGetUserData(GLFMDisplay *display);
+void *glfmGetUserData(const GLFMDisplay *display);
 
 /// Swap buffers.
 ///
@@ -403,7 +403,7 @@ void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
 /// Returns the supported user interface orientations. Default is `GLFMInterfaceOrientationAll`.
 ///
 /// Actual support may be limited by the device or platform.
-GLFMInterfaceOrientation glfmGetSupportedInterfaceOrientation(GLFMDisplay *display);
+GLFMInterfaceOrientation glfmGetSupportedInterfaceOrientation(const GLFMDisplay *display);
 
 /// Sets the supported user interface orientations.
 ///
@@ -419,26 +419,26 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display,
 /// - Returns: Either `GLFMInterfaceOrientationPortrait`, `GLFMInterfaceOrientationLandscapeLeft`,
 ///   `GLFMInterfaceOrientationLandscapeRight`, `GLFMInterfaceOrientationPortraitUpsideDown`, or
 ///   `GLFMInterfaceOrientationUnknown`.
-GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display);
+GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display);
 
 /// Gets the display size, in pixels.
-void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height);
+void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height);
 
 /// Gets the display scale.
 ///
 /// On Apple platforms, the value will be 1.0 for non-retina displays and 2.0
 /// for retina. Similar values will be returned for Android and Emscripten.
-double glfmGetDisplayScale(GLFMDisplay *display);
+double glfmGetDisplayScale(const GLFMDisplay *display);
 
 /// Gets the chrome insets, in pixels (AKA "safe area insets" in iOS).
 ///
 /// The "insets" are the space taken on the outer edges of the display by status bars,
 /// navigation bars, and other UI elements.
-void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
-                                double *left);
+void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
+                                double *bottom, double *left);
 
 /// Gets the user interface chrome.
-GLFMUserInterfaceChrome glfmGetDisplayChrome(GLFMDisplay *display);
+GLFMUserInterfaceChrome glfmGetDisplayChrome(const GLFMDisplay *display);
 
 /// Sets the user interface chrome.
 ///
@@ -451,7 +451,7 @@ void glfmSetDisplayChrome(GLFMDisplay *display, GLFMUserInterfaceChrome uiChrome
 /// Defaults to `GLFMRenderingAPIOpenGLES2`.
 ///
 /// The return value is not valid until the surface is created.
-GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display);
+GLFMRenderingAPI glfmGetRenderingAPI(const GLFMDisplay *display);
 
 /// Sets the swap behavior for newly created surfaces (Android only).
 ///
@@ -460,7 +460,7 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display);
 void glfmSetSwapBehavior(GLFMDisplay *display, GLFMSwapBehavior behavior);
 
 /// Returns the swap buffer behavior.
-GLFMSwapBehavior glfmGetSwapBehavior(GLFMDisplay *display);
+GLFMSwapBehavior glfmGetSwapBehavior(const GLFMDisplay *display);
 
 /// Gets the address of the specified function.
 GLFMProc glfmGetProcAddress(const char *functionName);
@@ -535,15 +535,15 @@ GLFMAppFocusFunc glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focu
 void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled);
 
 /// Gets whether multitouch input is enabled. By default, multitouch is disabled.
-bool glfmGetMultitouchEnabled(GLFMDisplay *display);
+bool glfmGetMultitouchEnabled(const GLFMDisplay *display);
 
 /// Gets whether the display has touch capabilities.
-bool glfmHasTouch(GLFMDisplay *display);
+bool glfmHasTouch(const GLFMDisplay *display);
 
 /// Checks if a hardware sensor is available.
 ///
 /// - Emscripten: Always returns `false`.
-bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor);
+bool glfmIsSensorAvailable(const GLFMDisplay *display, GLFMSensor sensor);
 
 /// Sets the mouse cursor (only on platforms with a mouse).
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor);
@@ -554,7 +554,7 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor);
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible);
 
 /// Returns `true` if the virtual keyboard is currently visible.
-bool glfmIsKeyboardVisible(GLFMDisplay *display);
+bool glfmIsKeyboardVisible(const GLFMDisplay *display);
 
 /// Sets the function to call when the virtual keyboard changes visibility or changes bounds.
 GLFMKeyboardVisibilityChangedFunc
@@ -603,7 +603,7 @@ GLFMSensorFunc glfmSetSensorFunc(GLFMDisplay *display, GLFMSensor sensor, GLFMSe
 /// - iOS: Returns `true` if the device supports haptic feedback (iPhone 7 or newer) and
 ///   the device is running iOS 13 or newer.
 /// - Emscripten: Always returns `false`.
-bool glfmIsHapticFeedbackSupported(GLFMDisplay *display);
+bool glfmIsHapticFeedbackSupported(const GLFMDisplay *display);
 
 /// Performs haptic feedback.
 ///
@@ -613,7 +613,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
 // MARK: - Platform-specific functions
 
 /// Returns `true` if this is an Apple platform that supports Metal, `false` otherwise.
-bool glfmIsMetalSupported(GLFMDisplay *display);
+bool glfmIsMetalSupported(const GLFMDisplay *display);
 
 #if defined(__APPLE__) || defined(GLFM_EXPOSE_NATIVE_APPLE)
 
@@ -621,11 +621,11 @@ bool glfmIsMetalSupported(GLFMDisplay *display);
 /// available.
 ///
 /// This will only return a valid reference after the surface was created.
-void *glfmGetMetalView(GLFMDisplay *display);
+void *glfmGetMetalView(const GLFMDisplay *display);
 
 /// *Apple platforms only*: Returns a pointer to the `UIViewController` (iOS, tvOS) or the
 /// `NSViewController` (macOS) used to display content.
-void *glfmGetViewController(GLFMDisplay *display);
+void *glfmGetViewController(const GLFMDisplay *display);
 
 #endif // GLFM_EXPOSE_NATIVE_APPLE
 

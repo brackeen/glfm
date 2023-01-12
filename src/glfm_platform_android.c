@@ -77,7 +77,7 @@ static GLFMPlatformData *platformDataGlobal = NULL;
 static void glfm__setAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
 static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display);
 static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force);
-static float glfm__getRefreshRate(GLFMDisplay *display);
+static float glfm__getRefreshRate(const GLFMDisplay *display);
 static void glfm__resetContentRect(GLFMPlatformData *platformData);
 static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData);
 static void glfm__setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome);
@@ -1105,8 +1105,9 @@ static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, 
     }
 }
 
-static bool glfm__getSafeInsets(GLFMDisplay *display, double *top, double *right, double *bottom, double *left) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *) display->platformData;
+static bool glfm__getSafeInsets(const GLFMDisplay *display, double *top, double *right,
+                                double *bottom, double *left) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     const int SDK_INT = platformData->app->activity->sdkVersion;
     if (SDK_INT < 28) {
         return false;
@@ -1140,8 +1141,9 @@ static bool glfm__getSafeInsets(GLFMDisplay *display, double *top, double *right
     return true;
 }
 
-static bool glfm__getSystemWindowInsets(GLFMDisplay *display, double *top, double *right, double *bottom, double *left) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *) display->platformData;
+static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, double *top, double *right,
+                                        double *bottom, double *left) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     const int SDK_INT = platformData->app->activity->sdkVersion;
     if (SDK_INT < 20) {
         return false;
@@ -1169,7 +1171,7 @@ static bool glfm__getSystemWindowInsets(GLFMDisplay *display, double *top, doubl
     return true;
 }
 
-static float glfm__getRefreshRate(GLFMDisplay *display) {
+static float glfm__getRefreshRate(const GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     JNIEnv *jni = platformData->jniEnv;
     jobject activity = platformData->app->activity->clazz;
@@ -1764,7 +1766,7 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
     }
 }
 
-GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
+GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display) {
     static const int Surface_ROTATION_0 = 0;
     static const int Surface_ROTATION_90 = 1;
     static const int Surface_ROTATION_180 = 2;
@@ -1807,19 +1809,19 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(GLFMDisplay *display) {
     }
 }
 
-void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
+void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     *width = platformData->width;
     *height = platformData->height;
 }
 
-double glfmGetDisplayScale(GLFMDisplay *display) {
+double glfmGetDisplayScale(const GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     return platformData->scale;
 }
 
-void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
-                                double *left) {
+void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
+                                double *bottom, double *left) {
 
     bool success;
     if (glfmGetDisplayChrome(display) == GLFMUserInterfaceChromeFullscreen) {
@@ -1845,12 +1847,12 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
     }
 }
 
-GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
+GLFMRenderingAPI glfmGetRenderingAPI(const GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     return platformData->renderingAPI;
 }
 
-bool glfmHasTouch(GLFMDisplay *display) {
+bool glfmHasTouch(const GLFMDisplay *display) {
     (void)display;
     // This will need to change, for say, TV apps
     return true;
@@ -1867,7 +1869,7 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
     platformData->multitouchEnabled = multitouchEnabled;
 }
 
-bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
+bool glfmGetMultitouchEnabled(const GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     return platformData->multitouchEnabled;
 }
@@ -1894,17 +1896,17 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
     }
 }
 
-bool glfmIsKeyboardVisible(GLFMDisplay *display) {
+bool glfmIsKeyboardVisible(const GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     return platformData->keyboardVisible;
 }
 
-bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
+bool glfmIsSensorAvailable(const GLFMDisplay *display, GLFMSensor sensor) {
     (void)display;
     return glfm__getDeviceSensor(sensor) != NULL;
 }
 
-bool glfmIsHapticFeedbackSupported(GLFMDisplay *display) {
+bool glfmIsHapticFeedbackSupported(const GLFMDisplay *display) {
     /*
     Vibrator vibrator = (Vibrator)context.getSystemService(Context.VIBRATOR_SERVICE);
     return vibrator ? vibrator.hasVibrator() : false;
@@ -2003,7 +2005,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
 
 // MARK: - Platform-specific functions
 
-bool glfmIsMetalSupported(GLFMDisplay *display) {
+bool glfmIsMetalSupported(const GLFMDisplay *display) {
     (void)display;
     return false;
 }
