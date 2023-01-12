@@ -13,14 +13,15 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Android")
     set(GLFM_SRC src/glfm_platform.h src/glfm_platform_android.c ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
     # android_native_app_glue: Silence warnings and set NDEBUG to remove some superfluous logging
     set_source_files_properties(${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c PROPERTIES COMPILE_OPTIONS "-DNDEBUG;-Wno-unused-parameter;-Wno-strict-prototypes;-Wno-missing-prototypes;-Wno-unused-macros")
-else() # Assume iOS
-    set(IOS TRUE)
+elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
     if (${CMAKE_OSX_SYSROOT} MATCHES "(MacOS)+")
         set(CMAKE_OSX_SYSROOT "iphoneos")
     endif()
     
     set(GLFM_SRC src/glfm_platform.h src/glfm_platform_apple.m)
     set(GLFM_COMPILE_OPTIONS "-Wno-direct-ivar-access")
+else()
+    message(FATAL_ERROR "CMAKE_SYSTEM_NAME ('${CMAKE_SYSTEM_NAME}') expected to be Darwin, Emscripten, or Android")
 endif()
 
 add_library(glfm ${GLFM_SRC} ${GLFM_HEADERS})
@@ -46,13 +47,14 @@ if (CMAKE_SYSTEM_NAME MATCHES "Android")
     find_library(GLESv2-lib GLESv2)
     target_link_libraries(glfm ${log-lib} ${android-lib} ${EGL-lib} ${GLESv2-lib})
     target_include_directories(glfm PRIVATE ${ANDROID_NDK}/sources/android/native_app_glue/)
-elseif (IOS)
+elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
     target_compile_definitions(glfm PRIVATE GLES_SILENCE_DEPRECATION)
     set_target_properties(glfm PROPERTIES
         ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/GLFM.build/lib # For Archiving
-        XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos iphonesimulator appletvos appletvsimulator"
+        XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos iphonesimulator appletvos appletvsimulator macosx"
         XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 11.0
         XCODE_ATTRIBUTE_TVOS_DEPLOYMENT_TARGET 11.0
+        XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET 10.13
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
         XCODE_ATTRIBUTE_CLANG_ENABLE_MODULES YES # Automatically import frameworks
     )

@@ -11,6 +11,15 @@
 
 #if TARGET_OS_IOS || TARGET_OS_TV
 #  import <UIKit/UIKit.h>
+#elif TARGET_OS_OSX
+#  import <AppKit/AppKit.h>
+#  define UIApplication NSApplication
+#  define UIApplicationDelegate NSApplicationDelegate
+#  define UIView NSView
+#  define UIViewAutoresizingFlexibleWidth NSViewWidthSizable
+#  define UIViewAutoresizingFlexibleHeight NSViewHeightSizable
+#  define UIViewController NSViewController
+#  define UIWindow NSWindow
 #endif
 #if TARGET_OS_IOS
 #  import <CoreHaptics/CoreHaptics.h>
@@ -50,6 +59,8 @@ static bool glfm__isCGFloatEqual(CGFloat a, CGFloat b) {
 #endif
 }
 
+static void glfm__getDefaultDisplaySize(GLFMDisplay *display,
+                                        double *width, double *height, double *scale);
 static void glfm__getDrawableSize(double displayWidth, double displayHeight, double displayScale,
                                   int *width, int *height);
 
@@ -118,12 +129,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     
 }
 
-#if !__has_feature(objc_arc)
 - (void)dealloc {
-    [_preRenderCallback release];
+    GLFM_RELEASE(_preRenderCallback);
+#if !__has_feature(objc_arc)
     [super dealloc];
-}
 #endif
+}
 
 @end
 
@@ -159,7 +170,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
         switch (glfmDisplay->colorFormat) {
             case GLFMColorFormatRGB565:
-                self.colorPixelFormat = MTLPixelFormatB5G6R5Unorm;
+                if (@available(iOS 8, tvOS 8, macOS 11, *)) {
+                    self.colorPixelFormat = MTLPixelFormatB5G6R5Unorm;
+                } else {
+                    self.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
+                }
                 break;
             case GLFMColorFormatRGBA8888:
             default:
@@ -173,7 +188,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         } else if (glfmDisplay->depthFormat == GLFMDepthFormatNone) {
             self.depthStencilPixelFormat = MTLPixelFormatStencil8;
         } else if (glfmDisplay->stencilFormat == GLFMStencilFormatNone) {
-            if (@available(iOS 13, tvOS 13, *)) {
+            if (@available(iOS 13, tvOS 13, macOS 10.12, *)) {
                 if (glfmDisplay->depthFormat == GLFMDepthFormat16) {
                     self.depthStencilPixelFormat = MTLPixelFormatDepth16Unorm;
                 } else {
@@ -195,6 +210,19 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (GLFMRenderingAPI)renderingAPI {
     return GLFMRenderingAPIMetal;
 }
+
+#if TARGET_OS_OSX
+
+- (void)setContentScaleFactor:(CGFloat)contentScaleFactor {
+    self.layer.contentsScale = contentScaleFactor;
+    CAMetalLayer *metalLayer = (CAMetalLayer *)self.layer;
+    CGSize drawableSize = metalLayer.drawableSize;
+    drawableSize.width = self.layer.bounds.size.width * self.layer.contentsScale;
+    drawableSize.height = self.layer.bounds.size.height * self.layer.contentsScale;
+    metalLayer.drawableSize = drawableSize;
+}
+
+#endif // TARGET_OS_OSX
 
 - (BOOL)animating {
     return !self.paused;
@@ -266,12 +294,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
 }
 
-#if !__has_feature(objc_arc)
 - (void)dealloc {
-    [_preRenderCallback release];
+    GLFM_RELEASE(_preRenderCallback);
+#if !__has_feature(objc_arc)
     [super dealloc];
-}
 #endif
+}
 
 @end
 
@@ -279,7 +307,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #if TARGET_OS_IOS || TARGET_OS_TV
 
-// MARK: - GLFMOpenGLESView
+// MARK: - GLFMOpenGLESView (iOS, tvOS)
 
 @interface GLFMOpenGLESView : UIView <GLFMView>
 
@@ -387,10 +415,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     if ([EAGLContext currentContext] == self.context) {
         [EAGLContext setCurrentContext:nil];
     }
-#if !__has_feature(objc_arc)
     self.context = nil;
     self.colorFormat = nil;
-    [_preRenderCallback release];
+    GLFM_RELEASE(_preRenderCallback);
+#if !__has_feature(objc_arc)
     [super dealloc];
 #endif
 }
@@ -688,6 +716,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @end
 
+#endif // TARGET_OS_IOS || TARGET_OS_TV
+
 // MARK: - GLFMAppDelegate interface
 
 @interface GLFMAppDelegate : NSObject <UIApplicationDelegate>
@@ -699,15 +729,22 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 // MARK: - GLFMViewController
 
-@interface GLFMViewController : UIViewController<UIKeyInput, UITextInputTraits>
+@interface GLFMViewController : UIViewController
 
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
-@property(nonatomic, assign) BOOL multipleTouchEnabled;
-@property(nonatomic, assign) BOOL keyboardRequested;
-@property(nonatomic, assign) BOOL keyboardVisible;
 #if GLFM_INCLUDE_METAL
 @property(nonatomic, strong) id<MTLDevice> metalDevice;
 #endif
+
+@end
+
+#if TARGET_OS_IOS || TARGET_OS_TV
+
+@interface GLFMViewController () <UIKeyInput, UITextInputTraits>
+
+@property(nonatomic, assign) BOOL multipleTouchEnabled;
+@property(nonatomic, assign) BOOL keyboardRequested;
+@property(nonatomic, assign) BOOL keyboardVisible;
 #if TARGET_OS_IOS
 @property(nonatomic, strong) CMMotionManager *motionManager;
 @property(nonatomic, assign) UIInterfaceOrientation orientation;
@@ -715,14 +752,19 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @end
 
+#endif // TARGET_OS_IOS || TARGET_OS_TV
+
 @implementation GLFMViewController {
     const void *activeTouches[MAX_SIMULTANEOUS_TOUCHES];
 }
 
-@synthesize glfmDisplay, multipleTouchEnabled, keyboardRequested, keyboardVisible;
+@synthesize glfmDisplay;
 
 #if GLFM_INCLUDE_METAL
 @synthesize metalDevice = _metalDevice;
+#endif
+#if TARGET_OS_IOS || TARGET_OS_TV
+@synthesize multipleTouchEnabled, keyboardRequested, keyboardVisible;
 #endif
 #if TARGET_OS_IOS
 @synthesize motionManager = _motionManager, orientation;
@@ -739,15 +781,18 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 #if GLFM_INCLUDE_METAL
+
 - (id<MTLDevice>)metalDevice {
     if (!_metalDevice) {
         self.metalDevice = GLFM_AUTORELEASE(MTLCreateSystemDefaultDevice());
     }
     return _metalDevice;
 }
+
 #endif
 
 #if TARGET_OS_IOS
+
 - (BOOL)prefersStatusBarHidden {
     return self.glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
 }
@@ -757,6 +802,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     return (self.glfmDisplay->uiChrome == GLFMUserInterfaceChromeFullscreen ?
             (UIRectEdgeBottom | edges) : edges);
 }
+
 #endif
 
 - (UIView<GLFMView> *)glfmView {
@@ -764,15 +810,25 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (UIView<GLFMView> *)glfmViewIfLoaded {
-    return (UIView<GLFMView> *)self.viewIfLoaded;
+    if (self.isViewLoaded) {
+        return (UIView<GLFMView> *)self.view;
+    } else {
+        return nil;
+    }
 }
 
 - (void)loadView {
     glfmMain(self.glfmDisplay);
 
     GLFMAppDelegate *delegate = UIApplication.sharedApplication.delegate;
+#if TARGET_OS_IOS || TARGET_OS_TV
     CGRect frame = delegate.window.bounds;
     CGFloat scale = [UIScreen mainScreen].nativeScale;
+#else
+    CGRect frame = [delegate.window contentRectForFrameRect:delegate.window.frame];
+    CGFloat scale = delegate.window.backingScaleFactor;
+#endif
+    
     UIView<GLFMView> *glfmView = nil;
     
 #if GLFM_INCLUDE_METAL
@@ -783,11 +839,13 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                                                              glfmDisplay:self.glfmDisplay]);
     }
 #endif
+#if TARGET_OS_IOS || TARGET_OS_TV
     if (!glfmView) {
         glfmView = GLFM_AUTORELEASE([[GLFMOpenGLESView alloc] initWithFrame:frame
                                                          contentScaleFactor:scale
                                                                 glfmDisplay:self.glfmDisplay]);
     }
+#endif
     if (!glfmView) {
         assert(glfmView != nil);
         glfmView = GLFM_AUTORELEASE([[GLFMNullView alloc] initWithFrame:frame]);
@@ -859,14 +917,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
 }
 
-#endif
-
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    if (self.glfmDisplay->lowMemoryFunc) {
-        self.glfmDisplay->lowMemoryFunc(self.glfmDisplay);
-    }
-}
+#endif // TARGET_OS_IOS
 
 - (void)preRenderCallback {
 #if TARGET_OS_IOS
@@ -979,22 +1030,33 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
     free(self.glfmDisplay);
     self.glfmViewIfLoaded.preRenderCallback = nil;
-#if !__has_feature(objc_arc)
+#if TARGET_OS_IOS
     self.motionManager = nil;
+#endif
 #if GLFM_INCLUDE_METAL
     self.metalDevice = nil;
 #endif
+#if !__has_feature(objc_arc)
     [super dealloc];
 #endif
 }
-
-// MARK: UIResponder
 
 - (void)clearTouches {
     for (int i = 0; i < MAX_SIMULTANEOUS_TOUCHES; i++) {
         activeTouches[i] = NULL;
     }
 }
+
+#if TARGET_OS_IOS || TARGET_OS_TV
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    if (self.glfmDisplay->lowMemoryFunc) {
+        self.glfmDisplay->lowMemoryFunc(self.glfmDisplay);
+    }
+}
+
+// MARK: UIResponder
 
 - (void)addTouchEvent:(UITouch *)touch withType:(GLFMTouchPhase)phase {
     int firstNullIndex = -1;
@@ -1165,7 +1227,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
 }
 
-#endif
+#endif // TARGET_OS_IOS
 
 // UITextInputTraits - disable suggestion bar
 - (UITextAutocorrectionType)autocorrectionType {
@@ -1255,9 +1317,13 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
 }
 
+#endif // TARGET_OS_IOS || TARGET_OS_TV
+
 @end
 
-// MARK: - GLFMAppDelegate implementation
+#if TARGET_OS_IOS || TARGET_OS_TV
+
+// MARK: - GLFMAppDelegate (iOS, tvOS)
 
 @implementation GLFMAppDelegate
 
@@ -1324,15 +1390,209 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)dealloc {
-#if !__has_feature(objc_arc)
     self.window = nil;
+#if !__has_feature(objc_arc)
     [super dealloc];
 #endif
 }
 
 @end
 
+#endif // TARGET_OS_IOS || TARGET_OS_TV
+
+#if TARGET_OS_OSX
+
+// MARK: - GLFMAppDelegate (macOS)
+
+@interface GLFMAppDelegate () <NSWindowDelegate>
+
+@end
+
+@implementation GLFMAppDelegate
+
+@synthesize window, active = _active;
+
+- (void)createDefaultMenuWithAppName:(NSString *)appName {
+    NSMenu *appMenu = GLFM_AUTORELEASE([NSMenu new]);
+    NSApp.mainMenu = GLFM_AUTORELEASE([NSMenu new]);
+    NSApp.servicesMenu = GLFM_AUTORELEASE([NSMenu new]);
+    NSApp.windowsMenu = GLFM_AUTORELEASE([[NSMenu alloc] initWithTitle:NSLocalizedString(@"Window", nil)]);
+
+    // App Menu
+    [NSApp.mainMenu addItemWithTitle:@"" action:nil keyEquivalent:@""].submenu = appMenu;
+    [appMenu addItemWithTitle:[NSString stringWithFormat:NSLocalizedString(@"About %@", nil), appName]
+                       action:@selector(orderFrontStandardAboutPanel:)
+                keyEquivalent:@""];
+    [appMenu addItem:[NSMenuItem separatorItem]];
+    [appMenu addItemWithTitle:NSLocalizedString(@"Services", nil)
+                       action:nil
+                keyEquivalent:@""].submenu = NSApp.servicesMenu;
+    [appMenu addItem:[NSMenuItem separatorItem]];
+    [appMenu addItemWithTitle:[NSString stringWithFormat:NSLocalizedString(@"Hide %@", nil), appName]
+                       action:@selector(hide:)
+                keyEquivalent:@"h"];
+    [appMenu addItemWithTitle:NSLocalizedString(@"Hide Others", nil)
+                       action:@selector(hideOtherApplications:)
+                keyEquivalent:@"h"].keyEquivalentModifierMask = NSEventModifierFlagOption | NSEventModifierFlagCommand;
+    [appMenu addItemWithTitle:NSLocalizedString(@"Show All", nil)
+                       action:@selector(unhideAllApplications:)
+                keyEquivalent:@""];
+    [appMenu addItem:[NSMenuItem separatorItem]];
+    [appMenu addItemWithTitle:[NSString stringWithFormat:NSLocalizedString(@"Quit %@", nil), appName]
+                       action:@selector(terminate:)
+                keyEquivalent:@"q"];
+
+    // Window Menu
+    [NSApp.mainMenu addItemWithTitle:@"" action:nil keyEquivalent:@""].submenu = NSApp.windowsMenu;
+    [NSApp.windowsMenu addItemWithTitle:NSLocalizedString(@"Minimize", nil)
+                                 action:@selector(performMiniaturize:)
+                          keyEquivalent:@"m"];
+    [NSApp.windowsMenu addItemWithTitle:NSLocalizedString(@"Zoom", nil)
+                                 action:@selector(performZoom:)
+                          keyEquivalent:@""];
+}
+
+- (void)applicationWillFinishLaunching:(NSNotification *)notification {
+    _active = YES;
+    
+    // App name (used for menu bar and window title) is "CFBundleName" or the process name.
+    NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
+    NSString *appName = infoDictionary[@"CFBundleName"];
+    if (!appName || appName.length == 0) {
+        appName = [[NSProcessInfo processInfo] processName];
+    }
+
+    // Window style: Closable, miniaturizable, resizable.
+    NSWindowStyleMask windowStyle = (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
+                                     NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable);
+
+    // Create NSWindow centered on the main screen, One-half screen size.
+    double width, height, scale;
+    glfm__getDefaultDisplaySize(NULL, &width, &height, &scale);
+    CGRect screenFrame = [NSScreen mainScreen].frame;
+    CGRect contentFrame;
+    contentFrame.origin.x = screenFrame.origin.x + screenFrame.size.width / 2 - width / 2;
+    contentFrame.origin.y = screenFrame.origin.y + screenFrame.size.height / 2 - height / 2;
+    contentFrame.size.width = width;
+    contentFrame.size.height = height;
+    self.window = GLFM_AUTORELEASE([[NSWindow alloc] initWithContentRect:contentFrame
+                                                               styleMask:windowStyle
+                                                                 backing:NSBackingStoreBuffered
+                                                                   defer:NO]);
+    self.window.title = appName;
+    //self.window.titlebarSeparatorStyle = NSTitlebarSeparatorStyleNone; // Make the topmost row of the view visible
+    self.window.excludedFromWindowsMenu = YES; // Single-window app
+    self.window.tabbingMode = NSWindowTabbingModeDisallowed; // No tabs
+    self.window.releasedWhenClosed = NO;
+    self.window.delegate = self;
+    GLFMViewController *glfmViewController = GLFM_AUTORELEASE([[GLFMViewController alloc] init]);
+    
+    // Set the contentViewController and call glfmMain() (in loadView).
+    self.window.contentViewController = glfmViewController;
+    if (!self.window.contentViewController.isViewLoaded) {
+        [self.window.contentViewController loadView];
+    }
+    
+    // Check if window size should change (due to orientation setting)
+    glfm__getDefaultDisplaySize(glfmViewController.glfmDisplay, &width, &height, &scale);
+    if (!glfm__isCGFloatEqual(width, (double)contentFrame.size.width) ||
+        glfm__isCGFloatEqual(height, (double)contentFrame.size.height)) {
+        contentFrame.origin.x = screenFrame.origin.x + screenFrame.size.width / 2 - width / 2;
+        contentFrame.origin.y = screenFrame.origin.y + screenFrame.size.height / 2 - height / 2;
+        contentFrame.size.width = width;
+        contentFrame.size.height = height;
+        [self.window setFrame:[self.window frameRectForContentRect:contentFrame] display:NO];
+    }
+    
+    // Create default menu if one wasn't created in glfmMain()
+    if (!NSApp.mainMenu) {
+        [self createDefaultMenuWithAppName:appName];
+    }
+}
+
+- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    // Draw first before showing the window
+    GLFMViewController *glfmViewController = (GLFMViewController *)self.window.contentViewController;
+    [glfmViewController.glfmViewIfLoaded draw];
+    [self.window makeKeyAndOrderFront:nil];
+}
+
+- (void)setActive:(BOOL)active {
+    if (_active != active) {
+        _active = active;
+        
+        GLFMViewController *vc = (GLFMViewController *)self.window.contentViewController;
+        if (vc.glfmDisplay && vc.glfmDisplay->focusFunc) {
+            vc.glfmDisplay->focusFunc(vc.glfmDisplay, _active);
+        }
+        if (vc.isViewLoaded) {
+            if (!active) {
+                // Draw once when entering the background so that a game can show "paused" state.
+                [vc.glfmView requestRefresh];
+                [vc.glfmView draw];
+            }
+            vc.glfmView.animating = active;
+        }
+#if TARGET_OS_IOS
+        if (vc.isMotionManagerLoaded) {
+            [vc updateMotionManagerActiveState];
+        }
+#endif
+        [vc clearTouches];
+    }
+}
+
+- (void)applicationWillResignActive:(NSNotification *)notification {
+    self.active = NO;
+}
+
+- (void)applicationDidBecomeActive:(NSNotification *)notification {
+    self.active = self.window && !self.window.miniaturized;
+}
+
+- (void)windowWillMiniaturize:(NSNotification *)notification {
+    self.active = NO;
+}
+
+- (void)windowDidDeminiaturize:(NSNotification *)notification  {
+    self.active = NSApp.active;
+}
+
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
+    if (self.window) {
+        // Terminate later in windowWillClose:
+        [self.window close];
+        return NSTerminateCancel;
+    } else {
+        return NSTerminateNow;
+    }
+}
+
+- (void)windowWillClose:(NSNotification *)notification {
+    if (self.window == notification.object) {
+        self.active = NO;
+        self.window = nil;
+        // Dispatch later, after surfaceDestroyedFunc is called
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [NSApp terminate:nil];
+        });
+    }
+}
+
+- (void)dealloc {
+    self.window = nil;
+#if !__has_feature(objc_arc)
+    [super dealloc];
+#endif
+}
+
+@end
+
+#endif // TARGET_OS_OSX
+
 // MARK: - Main
+
+#if TARGET_OS_IOS || TARGET_OS_TV
 
 int main(int argc, char *argv[]) {
     @autoreleasepool {
@@ -1340,17 +1600,59 @@ int main(int argc, char *argv[]) {
     }
 }
 
-#endif // TARGET_OS_IOS || TARGET_OS_TV
+#else
+
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        // Create the sharedApplication instance from "NSPrincipalClass"
+        NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
+        NSString *principalClassName = infoDictionary[@"NSPrincipalClass"];
+        Class principalClass = NSClassFromString(principalClassName);
+        if ([principalClass respondsToSelector:@selector(sharedApplication)]) {
+            [principalClass sharedApplication];
+        } else {
+            [NSApplication sharedApplication];
+        }
+        
+        // Set the delegate and run
+        GLFMAppDelegate *delegate = [GLFMAppDelegate new];
+        [NSApp setDelegate:delegate];
+        [NSApp run];
+        GLFM_RELEASE(delegate);
+    }
+    return 0;
+}
+ 
+#endif // TARGET_OS_OSX
 
 // MARK: - GLFM private functions
 
 static void glfm__getDefaultDisplaySize(GLFMDisplay *display,
                                         double *width, double *height, double *scale) {
+#if TARGET_OS_IOS || TARGET_OS_TV
     (void)display;
     CGSize size = UIScreen.mainScreen.bounds.size;
     *width = (double)size.width;
     *height = (double)size.height;
     *scale = UIScreen.mainScreen.nativeScale;
+#else
+    NSScreen *screen = [NSScreen mainScreen];
+    *scale = screen.backingScaleFactor;
+    
+    // Create a window half the size of the screen.
+    // If portrait orientation (but not landscape) is specified, use a portrait-sized default window.
+    GLFMInterfaceOrientation supportedOrientations = !display ? GLFMInterfaceOrientationUnknown : display->supportedOrientations;
+    if (((supportedOrientations & GLFMInterfaceOrientationPortrait) != 0 ||
+         (supportedOrientations & GLFMInterfaceOrientationPortraitUpsideDown) != 0) &&
+        (supportedOrientations & GLFMInterfaceOrientationLandscapeLeft) == 0 &&
+        (supportedOrientations & GLFMInterfaceOrientationLandscapeRight) == 0) {
+        *width = screen.frame.size.height / 2;
+        *height = screen.frame.size.width / 2;
+    } else {
+        *width = screen.frame.size.width / 2;
+        *height = screen.frame.size.height / 2;
+    }
+#endif
 }
 
 /// Get drawable size in pixels from display dimensions in points.
@@ -1480,8 +1782,17 @@ void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
 }
 
 double glfmGetDisplayScale(GLFMDisplay *display) {
+#if TARGET_OS_OSX
+    NSWindow *window = nil;
+    if (display && display->platformData) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        window = vc.glfmViewIfLoaded.window;
+    }
+    return window ? window.backingScaleFactor : [NSScreen mainScreen].backingScaleFactor;
+#else
     (void)display;
     return (double)[UIScreen mainScreen].nativeScale;
+#endif
 }
 
 void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right, double *bottom,
@@ -1493,12 +1804,22 @@ void glfmGetDisplayChromeInsets(GLFMDisplay *display, double *top, double *right
             *right = 0.0;
             *bottom = 0.0;
             *left = 0.0;
-        } else if (@available(iOS 11, tvOS 11, *)) {
+        } else if (@available(iOS 11, tvOS 11, macOS 11, *)) {
+#if TARGET_OS_IOS || TARGET_OS_TV
             UIEdgeInsets insets = vc.view.safeAreaInsets;
             *top = (double)(insets.top * vc.view.contentScaleFactor);
             *right = (double)(insets.right * vc.view.contentScaleFactor);
             *bottom = (double)(insets.bottom * vc.view.contentScaleFactor);
             *left = (double)(insets.left * vc.view.contentScaleFactor);
+#else
+            // NOTE: This has not been tested.
+            // Run glfm_test_pattern fullscreen on a 2021-2022 MacBook Pro/Air with a notch.
+            NSEdgeInsets insets = vc.view.safeAreaInsets;
+            *top = (double)(insets.top * vc.view.layer.contentsScale);
+            *right = (double)(insets.right * vc.view.layer.contentsScale);
+            *bottom = (double)(insets.bottom * vc.view.layer.contentsScale);
+            *left = (double)(insets.left * vc.view.layer.contentsScale);
+#endif
         } else {
 #if TARGET_OS_IOS
 #pragma clang diagnostic push
@@ -1540,13 +1861,21 @@ GLFMRenderingAPI glfmGetRenderingAPI(GLFMDisplay *display) {
 
 bool glfmHasTouch(GLFMDisplay *display) {
     (void)display;
+#if TARGET_OS_IOS || TARGET_OS_TV
     return true;
+#else
+    return false;
+#endif
 }
 
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
     (void)display;
     (void)mouseCursor;
+#if TARGET_OS_OSX
+    // TODO: macOS mouse cursor
+#else
     // Do nothing
+#endif
 }
 
 void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
@@ -1563,15 +1892,21 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
 }
 
 bool glfmGetMultitouchEnabled(GLFMDisplay *display) {
+#if TARGET_OS_IOS || TARGET_OS_TV
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.multipleTouchEnabled;
     } else {
         return false;
     }
+#else
+    (void)display;
+    return false;
+#endif
 }
 
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
+#if TARGET_OS_IOS || TARGET_OS_TV
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         vc.keyboardRequested = visible;
@@ -1581,15 +1916,23 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
             [vc resignFirstResponder];
         }
     }
+#else
+    (void)display;
+    (void)visible;
+#endif
 }
 
 bool glfmIsKeyboardVisible(GLFMDisplay *display) {
+#if TARGET_OS_IOS || TARGET_OS_TV
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.keyboardRequested;
     } else {
         return false;
     }
+#else
+    return false;
+#endif
 }
 
 bool glfmIsSensorAvailable(GLFMDisplay *display, GLFMSensor sensor) {
@@ -1670,7 +2013,7 @@ void *glfmGetMetalView(GLFMDisplay *display) {
 #if GLFM_INCLUDE_METAL
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        UIView *view = vc.glfmViewIfLoaded;
+        UIView<GLFMView> *view = vc.glfmViewIfLoaded;
         if ([view isKindOfClass:[MTKView class]]) {
             return (__bridge void *)view;
         }

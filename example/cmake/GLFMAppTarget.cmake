@@ -46,25 +46,25 @@ if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 elseif (CMAKE_SYSTEM_NAME MATCHES "Android")
     add_library(${GLFM_APP_TARGET_NAME} SHARED ${GLFM_APP_SRC})
     target_link_libraries(${GLFM_APP_TARGET_NAME} glfm)
-else()
-    # iOS. If you change this section, test archiving too.
+elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    # If you change this section, test archiving too.
     set(CMAKE_MACOSX_BUNDLE YES)
 
     add_executable(${GLFM_APP_TARGET_NAME} ${GLFM_APP_SRC} ${GLFM_APP_ASSETS})
 
     set_target_properties(${GLFM_APP_TARGET_NAME} PROPERTIES
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${GLFM_APP_ORGANIZATION_IDENTIFIER}.\${PRODUCT_NAME:rfc1034identifier}"
-        XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos iphonesimulator appletvos appletvsimulator"
+        XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos iphonesimulator appletvos appletvsimulator macosx"
         XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 11.0
         XCODE_ATTRIBUTE_TVOS_DEPLOYMENT_TARGET 11.0
+        XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET 10.13
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
-        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2,3"          # iPhone, iPad, tvOS
-        XCODE_ATTRIBUTE_USE_HEADERMAP YES                       # Avoid header search paths
         XCODE_ATTRIBUTE_COMBINE_HIDPI_IMAGES NO                 # For Archiving
         XCODE_ATTRIBUTE_OTHER_LDFLAGS ""                        # For Archiving
         XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"        # For Archiving
         XCODE_ATTRIBUTE_SKIP_INSTALL NO                         # For Archiving
         XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"   # For convenience
+        XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY[sdk=macosx*] "-"     # For convenience
     )
     set_source_files_properties(${GLFM_APP_ASSETS} LaunchScreen.storyboard PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set_property(TARGET ${GLFM_APP_TARGET_NAME} PROPERTY MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/CMake-Info.plist.in)

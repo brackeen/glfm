@@ -14,7 +14,7 @@
 
 #if defined(__APPLE__)
 #  include <TargetConditionals.h>
-#  if !(TARGET_OS_IOS || TARGET_OS_TV)
+#  if !(TARGET_OS_IOS || TARGET_OS_TV || TARGET_OS_OSX)
 #    error Unsupported Apple platform
 #  endif
 #  if !defined(GL_SILENCE_DEPRECATION)
@@ -40,8 +40,12 @@
 #  endif
 #elif defined(GLFM_INCLUDE_ES3)
 #  if defined(__APPLE__)
-#    include <OpenGLES/ES3/gl.h>
-#    include <OpenGLES/ES3/glext.h>
+#    if TARGET_OS_OSX
+#      error OpenGL ES unavailable on macOS
+#    else
+#      include <OpenGLES/ES3/gl.h>
+#      include <OpenGLES/ES3/glext.h>
+#    endif
 #  elif defined(__EMSCRIPTEN__)
 #    include <GLES3/gl3.h>
 #    include <GLES3/gl2ext.h>
@@ -51,8 +55,12 @@
 #  endif
 #elif !defined(GLFM_INCLUDE_NONE)
 #  if defined(__APPLE__)
-#    include <OpenGLES/ES2/gl.h>
-#    include <OpenGLES/ES2/glext.h>
+#    if TARGET_OS_OSX
+#      include <OpenGL/gl3.h>
+#    else
+#      include <OpenGLES/ES2/gl.h>
+#      include <OpenGLES/ES2/glext.h>
+#    endif
 #  else
 #    include <GLES2/gl2.h>
 #    include <GLES2/gl2ext.h>
