@@ -623,9 +623,9 @@ bool glfmIsMetalSupported(GLFMDisplay *display);
 /// This will only return a valid reference after the surface was created.
 void *glfmGetMetalView(GLFMDisplay *display);
 
-/// *Apple platforms only*: Returns a pointer to the `UIViewController` instance used to display
-/// content.
-void *glfmGetUIViewController(GLFMDisplay *display);
+/// *Apple platforms only*: Returns a pointer to the `UIViewController` (iOS, tvOS) or the
+/// `NSViewController` (macOS) used to display content.
+void *glfmGetViewController(GLFMDisplay *display);
 
 #endif // GLFM_EXPOSE_NATIVE_APPLE
 

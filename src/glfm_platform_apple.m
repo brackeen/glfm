@@ -2030,7 +2030,7 @@ void *glfmGetMetalView(GLFMDisplay *display) {
     return NULL;
 }
 
-void *glfmGetUIViewController(GLFMDisplay *display) {
+void *glfmGetViewController(GLFMDisplay *display) {
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return (__bridge void *)vc;
