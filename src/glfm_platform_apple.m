@@ -1514,7 +1514,15 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     // Draw first before showing the window
     GLFMViewController *glfmViewController = (GLFMViewController *)self.window.contentViewController;
     [glfmViewController.glfmViewIfLoaded draw];
-    [self.window makeKeyAndOrderFront:nil];
+    
+    if (NSApp.activationPolicy == NSApplicationActivationPolicyRegular) {
+        [self.window makeKeyAndOrderFront:nil];
+    } else {
+        // Executable-only (unbundled) app
+        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+        [self.window makeKeyAndOrderFront:nil];
+        [NSApp activateIgnoringOtherApps:YES];
+    }
 }
 
 - (void)setActive:(BOOL)active {
