@@ -125,19 +125,19 @@ static jfieldID glfm__getJavaStaticFieldID(JNIEnv *jni, jclass class, const char
 }
 
 #define glfm__callJavaMethod(jni, object, methodName, methodSig, returnType) \
-    (*jni)->Call##returnType##Method(jni, object, \
+    (*(jni))->Call##returnType##Method(jni, object, \
         glfm__getJavaMethodID(jni, object, methodName, methodSig))
 
 #define glfm__callJavaMethodWithArgs(jni, object, methodName, methodSig, returnType, ...) \
-    (*jni)->Call##returnType##Method(jni, object, \
+    (*(jni))->Call##returnType##Method(jni, object, \
         glfm__getJavaMethodID(jni, object, methodName, methodSig), __VA_ARGS__)
 
 #define glfm__getJavaField(jni, object, fieldName, fieldSig, fieldType) \
-    (*jni)->Get##fieldType##Field(jni, object, \
+    (*(jni))->Get##fieldType##Field(jni, object, \
         glfm__getJavaFieldID(jni, object, fieldName, fieldSig))
 
 #define glfm__getJavaStaticField(jni, class, fieldName, fieldSig, fieldType) \
-    (*jni)->GetStatic##fieldType##Field(jni, class, \
+    (*(jni))->GetStatic##fieldType##Field(jni, class, \
         glfm__getJavaStaticFieldID(jni, class, fieldName, fieldSig))
 
 // MARK: - EGL
