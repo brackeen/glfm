@@ -50,7 +50,8 @@ static bool glfm__isCGFloatEqual(CGFloat a, CGFloat b) {
 #endif
 }
 
-static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor, int *width, int *height);
+static void glfm__getDrawableSize(double displayWidth, double displayHeight, double displayScale,
+                                  int *width, int *height);
 
 // MARK: - GLFMView protocol
 
@@ -669,7 +670,8 @@ static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFacto
 - (void)layoutSubviews {
     int newDrawableWidth;
     int newDrawableHeight;
-    glfm__preferredDrawableSize(self.bounds, self.contentScaleFactor, &newDrawableWidth, &newDrawableHeight);
+    glfm__getDrawableSize((double)self.bounds.size.width, (double)self.bounds.size.height,
+                          (double)self.contentScaleFactor, &newDrawableWidth, &newDrawableHeight);
 
     if (self.drawableWidth != newDrawableWidth || self.drawableHeight != newDrawableHeight) {
         [self deleteDrawable];
@@ -1342,13 +1344,24 @@ int main(int argc, char *argv[]) {
 
 // MARK: - GLFM private functions
 
-static void glfm__preferredDrawableSize(CGRect bounds, CGFloat contentScaleFactor, int *width, int *height) {
-    int newDrawableWidth = (int)(bounds.size.width * contentScaleFactor);
-    int newDrawableHeight = (int)(bounds.size.height * contentScaleFactor);
+static void glfm__getDefaultDisplaySize(GLFMDisplay *display,
+                                        double *width, double *height, double *scale) {
+    (void)display;
+    CGSize size = UIScreen.mainScreen.bounds.size;
+    *width = (double)size.width;
+    *height = (double)size.height;
+    *scale = UIScreen.mainScreen.nativeScale;
+}
+
+/// Get drawable size in pixels from display dimensions in points.
+static void glfm__getDrawableSize(double displayWidth, double displayHeight, double displayScale,
+                                  int *width, int *height) {
+    int newDrawableWidth = (int)(displayWidth * displayScale);
+    int newDrawableHeight = (int)(displayHeight * displayScale);
 
 #if TARGET_OS_IOS
     // On the iPhone 6 when "Display Zoom" is set, the size will be incorrect.
-    if (glfm__isCGFloatEqual(contentScaleFactor, (CGFloat)2.343750)) {
+    if (glfm__isCGFloatEqual(displayScale, (CGFloat)2.343750)) {
         if (newDrawableWidth == 750 && newDrawableHeight == 1331) {
             newDrawableHeight = 1334;
         } else if (newDrawableWidth == 1331 && newDrawableHeight == 750) {
@@ -1456,7 +1469,9 @@ void glfmGetDisplaySize(GLFMDisplay *display, int *width, int *height) {
             *width = vc.glfmView.drawableWidth;
             *height = vc.glfmView.drawableHeight;
         } else {
-            glfm__preferredDrawableSize(UIScreen.mainScreen.bounds, UIScreen.mainScreen.nativeScale, width, height);
+            double displayWidth, displayHeight, displayScale;
+            glfm__getDefaultDisplaySize(display, &displayWidth, &displayHeight, &displayScale);
+            glfm__getDrawableSize(displayWidth, displayHeight, displayScale, width, height);
         }
     } else {
         *width = 0;
