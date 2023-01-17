@@ -91,9 +91,9 @@ static GLuint compileShader(GLenum type, const char *shaderName) {
     }
 
     // Compile
-    const char *constChaderString = shaderString;
+    const char *constShaderString = shaderString;
     GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &constChaderString, NULL);
+    glShaderSource(shader, 1, &constShaderString, NULL);
     glCompileShader(shader);
     free(shaderString);
 
