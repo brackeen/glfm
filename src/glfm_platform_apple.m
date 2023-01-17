@@ -34,7 +34,7 @@
 
 #define MAX_SIMULTANEOUS_TOUCHES 10
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 #  define CHECK_GL_ERROR() ((void)0)
 #else
 #  define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
