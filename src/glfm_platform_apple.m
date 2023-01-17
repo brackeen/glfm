@@ -226,6 +226,15 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     metalLayer.drawableSize = drawableSize;
 }
 
+- (void)setFrameSize:(NSSize)newSize {
+    // For live resizing
+    [super setFrameSize:newSize];
+    if (self.surfaceCreatedNotified) {
+        [self requestRefresh];
+        [self draw];
+    }
+}
+
 #endif // TARGET_OS_OSX
 
 - (BOOL)animating {
