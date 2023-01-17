@@ -163,6 +163,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     if ((self = [super initWithFrame:frame device:device])) {
         self.contentScaleFactor = contentScaleFactor;
         self.delegate = self;
+#if TARGET_OS_OSX
+        // Improve live resize somewhat
+        self.layerContentsPlacement = NSViewLayerContentsPlacementTopLeft;
+#endif
         self.glfmDisplay = glfmDisplay;
         self.drawableWidth = (int)self.drawableSize.width;
         self.drawableHeight = (int)self.drawableSize.height;
@@ -245,14 +249,13 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     if (!self.surfaceCreatedNotified) {
         self.surfaceCreatedNotified = YES;
         [self requestRefresh];
-
         self.drawableWidth = newDrawableWidth;
         self.drawableHeight = newDrawableHeight;
         if (self.glfmDisplay->surfaceCreatedFunc) {
             self.glfmDisplay->surfaceCreatedFunc(self.glfmDisplay,
                                                  self.drawableWidth, self.drawableHeight);
         }
-    } else if (newDrawableWidth != self.drawableWidth || newDrawableHeight != self.drawableHeight) {
+    } else if (self.drawableWidth != newDrawableWidth || self.drawableHeight != newDrawableHeight) {
         [self requestRefresh];
         self.drawableWidth = newDrawableWidth;
         self.drawableHeight = newDrawableHeight;
@@ -286,6 +289,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     self.refreshRequested = YES;
 }
 
+#if TARGET_OS_IOS || TARGET_OS_TV
+
 - (void)layoutSubviews {
     // First render as soon as safeAreaInsets are set
     if (!self.surfaceCreatedNotified) {
@@ -293,6 +298,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         [self draw];
     }
 }
+
+#endif
 
 - (void)dealloc {
     GLFM_RELEASE(_preRenderCallback);
