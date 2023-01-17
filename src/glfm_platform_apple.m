@@ -606,7 +606,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     CHECK_GL_ERROR();
 }
 
-- (void)finishRender {
+- (void)swapBuffers {
     if (self.multisampling) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER_APPLE, _msaaFramebuffer);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER_APPLE, _defaultFramebuffer);
@@ -653,10 +653,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)render:(CADisplayLink *)displayLink {
+    
+    [EAGLContext setCurrentContext:self.context];
+    
     if (!self.surfaceCreatedNotified) {
         self.surfaceCreatedNotified = YES;
         [self requestRefresh];
-
         if (self.glfmDisplay->surfaceCreatedFunc) {
             self.glfmDisplay->surfaceCreatedFunc(self.glfmDisplay,
                                                  self.drawableWidth, self.drawableHeight);
@@ -664,7 +666,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
     
     if (self.surfaceSizeChanged) {
-        self.surfaceSizeChanged  = NO;
+        self.surfaceSizeChanged = NO;
         [self requestRefresh];
         if (self.glfmDisplay->surfaceResizedFunc) {
             self.glfmDisplay->surfaceResizedFunc(self.glfmDisplay,
@@ -676,7 +678,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         _preRenderCallback();
     }
     
-    [self prepareRender];
     if (self.refreshRequested) {
         self.refreshRequested = NO;
         if (self.glfmDisplay->surfaceRefreshFunc) {
@@ -684,12 +685,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         }
     }
     if (self.glfmDisplay->renderFunc) {
+        [self prepareRender];
         self.glfmDisplay->renderFunc(self.glfmDisplay);
     }
-}
-
-- (void)swapBuffers {
-    [self finishRender];
 }
 
 - (void)draw {
