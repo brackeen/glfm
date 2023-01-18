@@ -732,6 +732,265 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #endif // TARGET_OS_IOS || TARGET_OS_TV
 
+#if TARGET_OS_OSX
+
+// MARK: - GLFMOpenGLView (macOS)
+
+@interface GLFMOpenGLView : NSOpenGLView <GLFMView>
+
+@property(nonatomic, assign) GLFMDisplay *glfmDisplay;
+@property(nonatomic, assign) int drawableWidth;
+@property(nonatomic, assign) int drawableHeight;
+@property(nonatomic, assign) BOOL surfaceCreatedNotified;
+@property(nonatomic, assign) BOOL refreshRequested;
+
+@end
+
+@implementation GLFMOpenGLView {
+    CVDisplayLinkRef _displayLink;
+    dispatch_source_t _displaySource;
+}
+
+@synthesize glfmDisplay = _glfmDisplay, preRenderCallback = _preRenderCallback;
+@synthesize drawableWidth, drawableHeight;
+@synthesize surfaceCreatedNotified, refreshRequested;
+@dynamic renderingAPI, animating;
+
+- (instancetype)initWithFrame:(CGRect)frame
+                  glfmDisplay:(GLFMDisplay *)glfmDisplay {
+    
+    uint32_t colorBits = (glfmDisplay->colorFormat == GLFMColorFormatRGB565) ? 16 : 32;
+    uint32_t alphaBits = (glfmDisplay->colorFormat == GLFMColorFormatRGB565) ? 0 : 8;
+    uint32_t stencilBits = (glfmDisplay->stencilFormat == GLFMStencilFormat8) ? 8 : 0;
+    uint32_t sampleCount = (glfmDisplay->multisample == GLFMMultisample4X) ? 4 : 1;
+    uint32_t depthBits;
+    switch (glfmDisplay->depthFormat) {
+        case GLFMDepthFormatNone:
+        default:
+            depthBits = 0;
+            break;
+        case GLFMDepthFormat16:
+            depthBits = 16;
+            break;
+        case GLFMDepthFormat24:
+            depthBits = 24;
+            break;
+    }
+    
+    // Set up attributes and create pixel format
+    NSOpenGLPixelFormatAttribute attributes[32];
+    size_t i = 0;
+    attributes[i++] = kCGLPFASupportsAutomaticGraphicsSwitching;
+    attributes[i++] = NSOpenGLPFAAccelerated;
+    attributes[i++] = NSOpenGLPFAAllowOfflineRenderers;
+    attributes[i++] = NSOpenGLPFAClosestPolicy;
+    attributes[i++] = NSOpenGLPFADoubleBuffer;
+    
+    if (glfmDisplay->swapBehavior == GLFMSwapBehaviorBufferPreserved) {
+        attributes[i++] = NSOpenGLPFABackingStore;
+    } else if (glfmDisplay->swapBehavior == GLFMSwapBehaviorBufferDestroyed) {
+        attributes[i++] = kCGLPFABackingVolatile;
+    }
+    
+    attributes[i++] = NSOpenGLPFAOpenGLProfile;
+    attributes[i++] = NSOpenGLProfileVersion3_2Core;
+    
+    attributes[i++] = NSOpenGLPFAColorSize;
+    attributes[i++] = colorBits;
+    if (alphaBits > 0) {
+        attributes[i++] = NSOpenGLPFAAlphaSize;
+        attributes[i++] = alphaBits;
+    }
+    if (depthBits > 0) {
+        attributes[i++] = NSOpenGLPFADepthSize;
+        attributes[i++] = depthBits;
+    }
+    if (stencilBits > 0) {
+        attributes[i++] = NSOpenGLPFAStencilSize;
+        attributes[i++] = stencilBits;
+    }
+    if (sampleCount > 1) {
+        attributes[i++] = NSOpenGLPFASampleBuffers;
+        attributes[i++] = 1;
+        attributes[i++] = NSOpenGLPFASamples;
+        attributes[i++] = sampleCount;
+    }
+    attributes[i] = 0;
+    assert(i < sizeof(attributes) / sizeof(attributes[0]));
+    
+    NSOpenGLPixelFormat *pixelFormat = GLFM_AUTORELEASE([[NSOpenGLPixelFormat alloc]
+                                                         initWithAttributes:attributes]);
+    if (!pixelFormat) {
+        glfm__reportSurfaceError(glfmDisplay, "Failed to create GL pixel format");
+        return nil;
+    }
+    
+    // Initialize view
+    self = [super initWithFrame:frame pixelFormat:pixelFormat];
+    if (!self) {
+        glfm__reportSurfaceError(glfmDisplay, "Failed to create GL context");
+        return nil;
+    }
+    GLint swapInterval = 1;
+    [self.openGLContext setValues:&swapInterval forParameter:NSOpenGLContextParameterSwapInterval];
+    self.wantsBestResolutionOpenGLSurface = YES;
+    self.layerContentsPlacement = NSViewLayerContentsPlacementTopLeft;
+    self.glfmDisplay = glfmDisplay;
+
+#if 0
+    // Print attributes
+    {
+#define printAttribute(attr) do { \
+    GLint virtualScreen = [self.openGLContext currentVirtualScreen]; \
+    [pixelFormat getValues:&value forAttribute:(attr) forVirtualScreen:virtualScreen]; \
+    printf("  " #attr ": %i\n", value); \
+} while (0)
+    
+        GLint value;
+        printAttribute(NSOpenGLPFAColorSize);
+        printAttribute(NSOpenGLPFAAlphaSize);
+        printAttribute(NSOpenGLPFADepthSize);
+        printAttribute(NSOpenGLPFAStencilSize);
+        printAttribute(NSOpenGLPFASampleBuffers);
+        printAttribute(NSOpenGLPFASamples);
+#undef printAttribute
+    }
+#endif
+
+    // Initialize display link
+    GLFM_WEAK __typeof(self) weakSelf = self;
+    _displaySource = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0,
+                                            dispatch_get_main_queue());
+    dispatch_source_set_event_handler(_displaySource, ^{
+        [weakSelf draw];
+    });
+    dispatch_resume(_displaySource);
+    CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
+    CVDisplayLinkSetOutputHandler(_displayLink, ^CVReturn(CVDisplayLinkRef displayLink,
+                                                          const CVTimeStamp *now,
+                                                          const CVTimeStamp *outputTime,
+                                                          CVOptionFlags flags,
+                                                          CVOptionFlags *flagsOut) {
+        __typeof(self) strongSelf = weakSelf;
+        if (strongSelf) {
+            dispatch_source_merge_data(strongSelf->_displaySource, 1);
+        }
+        return kCVReturnSuccess;
+    });
+    CGLContextObj cglContext = self.openGLContext.CGLContextObj;
+    CGLPixelFormatObj cglPixelFormat = self.pixelFormat.CGLPixelFormatObj;
+    CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
+    return self;
+}
+
+- (GLFMRenderingAPI)renderingAPI {
+    // TODO: Return correct API
+    return GLFMRenderingAPIOpenGLES2;
+}
+
+- (BOOL)animating {
+    return CVDisplayLinkIsRunning(_displayLink);
+}
+
+- (void)setAnimating:(BOOL)animating {
+    if (self.animating != animating) {
+        if (animating) {
+            CVDisplayLinkStart(_displayLink);
+        } else {
+            CVDisplayLinkStop(_displayLink);
+        }
+        [self requestRefresh];
+    }
+}
+
+- (void)drawRect:(NSRect)dirtyRect {
+    // For live resizing
+    NSRect viewRectPixels = [self convertRectToBacking:self.bounds];
+    int newDrawableWidth = (int)viewRectPixels.size.width;
+    int newDrawableHeight = (int)viewRectPixels.size.height;
+    if (self.surfaceCreatedNotified &&
+        (self.drawableWidth != newDrawableWidth || self.drawableHeight != newDrawableHeight)) {
+        [self requestRefresh];
+        if (self.animating) {
+            CVDisplayLinkStop(_displayLink);
+            [self draw];
+            CVDisplayLinkStart(_displayLink);
+        } else {
+            [self draw];
+        }
+    }
+}
+
+- (void)draw {
+    NSRect viewRectPixels = [self convertRectToBacking:self.bounds];
+    int newDrawableWidth = (int)viewRectPixels.size.width;
+    int newDrawableHeight = (int)viewRectPixels.size.height;
+    
+    assert([NSThread isMainThread]);
+
+    [self.openGLContext makeCurrentContext];
+
+    if (!self.surfaceCreatedNotified) {
+        self.surfaceCreatedNotified = YES;
+        [self requestRefresh];
+        self.drawableWidth = newDrawableWidth;
+        self.drawableHeight = newDrawableHeight;
+        if (self.glfmDisplay->surfaceCreatedFunc) {
+            self.glfmDisplay->surfaceCreatedFunc(self.glfmDisplay,
+                                                 self.drawableWidth, self.drawableHeight);
+        }
+    } else if (self.drawableWidth != newDrawableWidth || self.drawableHeight != newDrawableHeight) {
+        self.drawableWidth = newDrawableWidth;
+        self.drawableHeight = newDrawableHeight;
+        [self requestRefresh];
+        if (self.glfmDisplay->surfaceResizedFunc) {
+            self.glfmDisplay->surfaceResizedFunc(self.glfmDisplay,
+                                                 self.drawableWidth, self.drawableHeight);
+        }
+    }
+    
+    if (_preRenderCallback) {
+        _preRenderCallback();
+    }
+        
+    if (self.refreshRequested) {
+        self.refreshRequested = NO;
+        if (self.glfmDisplay->surfaceRefreshFunc) {
+            self.glfmDisplay->surfaceRefreshFunc(self.glfmDisplay);
+        }
+    }
+    
+    if (self.glfmDisplay->renderFunc) {
+        self.glfmDisplay->renderFunc(self.glfmDisplay);
+    }
+}
+
+- (void)swapBuffers {
+    [self.openGLContext flushBuffer];
+}
+
+- (void)requestRefresh {
+    self.refreshRequested = YES;
+}
+
+- (void)dealloc {
+    self.animating = NO;
+    if ([NSOpenGLContext currentContext] == self.openGLContext) {
+        [NSOpenGLContext clearCurrentContext];
+    }
+    dispatch_source_cancel(_displaySource);
+    CVDisplayLinkRelease(_displayLink);
+    GLFM_RELEASE(_preRenderCallback);
+#if !__has_feature(objc_arc)
+    dispatch_release(_displaySource);
+    [super dealloc];
+#endif
+}
+
+@end
+
+#endif // TARGET_OS_OSX
+
 // MARK: - GLFMAppDelegate interface
 
 @interface GLFMAppDelegate : NSObject <UIApplicationDelegate>
@@ -840,6 +1099,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     CGFloat scale = [UIScreen mainScreen].nativeScale;
 #else
     CGRect frame = [delegate.window contentRectForFrameRect:delegate.window.frame];
+    frame.origin = CGPointZero;
     CGFloat scale = delegate.window.backingScaleFactor;
 #endif
     
@@ -858,6 +1118,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         glfmView = GLFM_AUTORELEASE([[GLFMOpenGLESView alloc] initWithFrame:frame
                                                          contentScaleFactor:scale
                                                                 glfmDisplay:self.glfmDisplay]);
+    }
+#endif
+#if TARGET_OS_OSX
+    if (!glfmView) {
+        glfmView = GLFM_AUTORELEASE([[GLFMOpenGLView alloc] initWithFrame:frame
+                                                              glfmDisplay:self.glfmDisplay]);
     }
 #endif
     if (!glfmView) {
