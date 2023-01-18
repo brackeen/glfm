@@ -201,7 +201,7 @@ static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
             eglQueryContext(platformData->eglDisplay, platformData->eglContext,
                             EGL_CONTEXT_MAJOR_VERSION_KHR, &majorVersion);
             if (majorVersion >= 3) { 
-                // This call fails on many (all?) devices.
+                // This call fails on many devices.
                 // When it fails, `minorVersion` is left unchanged.
                 eglQueryContext(platformData->eglDisplay, platformData->eglContext,
                                 EGL_CONTEXT_MINOR_VERSION_KHR, &minorVersion);
