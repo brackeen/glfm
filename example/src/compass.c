@@ -26,6 +26,7 @@ static const char *FRAG_SHADER =
 typedef struct {
     GLuint program;
     GLuint vertexBuffer;
+    GLuint vertexArray;
     bool sensorDataReceived;
     struct {
         double m00, m01, m02;
@@ -68,6 +69,13 @@ static void drawCompass(CompassApp *app, int width, int height) {
         glDeleteShader(vertShader);
         glDeleteShader(fragShader);
     }
+    
+#if defined(GL_VERSION_3_0) && GL_VERSION_3_0
+    if (app->vertexArray == 0) {
+        glGenVertexArrays(1, &app->vertexArray);
+    }
+    glBindVertexArray(app->vertexArray);
+#endif
 
     // Set up triangle attributes
     glUseProgram(app->program);
@@ -145,6 +153,7 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
     CompassApp *app = glfmGetUserData(display);
     app->program = 0;
     app->vertexBuffer = 0;
+    app->vertexArray = 0;
 }
 
 static void onSensor(GLFMDisplay *display, GLFMSensorEvent event) {

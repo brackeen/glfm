@@ -10,6 +10,7 @@ typedef struct {
     Renderer renderer;
     GLuint textureProgram;
     GLuint textureVertexBuffer;
+    GLuint textureVertexArray;
 } RendererGLES2;
 
 #define impl_of(this_renderer) ((RendererGLES2 *)(void *)((uint8_t *)this_renderer - offsetof(RendererGLES2, renderer)))
@@ -48,6 +49,11 @@ static void drawQuad(Renderer *renderer, Texture texture, const Vertex (*vertice
     // NOTE: This function draws one quad at a time, which is slow. Don't use in production.
     RendererGLES2 *impl = impl_of(renderer);
     glUseProgram(impl->textureProgram);
+
+#if defined(GL_VERSION_3_0) && GL_VERSION_3_0
+    glBindVertexArray(impl->textureVertexArray);
+#endif
+
     glBindBuffer(GL_ARRAY_BUFFER, impl->textureVertexBuffer);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, position));
@@ -139,6 +145,10 @@ Renderer *createRendererGLES2() {
     }
     
     glGenBuffers(1, &impl->textureVertexBuffer);
+    
+#if defined(GL_VERSION_3_0) && GL_VERSION_3_0
+    glGenVertexArrays(1, &impl->textureVertexArray);
+#endif
     
     Renderer *renderer = &impl->renderer;
     renderer->textureUpload = textureUpload;

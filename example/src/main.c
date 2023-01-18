@@ -9,6 +9,7 @@
 typedef struct {
     GLuint program;
     GLuint vertexBuffer;
+    GLuint vertexArray;
 
     double lastTouchX;
     double lastTouchY;
@@ -190,6 +191,13 @@ static void draw(ExampleApp *app, int width, int height) {
     glViewport(0, 0, width, height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+    
+#if defined(GL_VERSION_3_0) && GL_VERSION_3_0
+    if (app->vertexArray == 0) {
+        glGenVertexArrays(1, &app->vertexArray);
+    }
+    glBindVertexArray(app->vertexArray);
+#endif
     
     // Draw triangle
     glUseProgram(app->program);
