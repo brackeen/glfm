@@ -1,3 +1,5 @@
+#version 100
+
 attribute highp vec4 position;
 attribute mediump vec2 texCoord;
 

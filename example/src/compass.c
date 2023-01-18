@@ -7,6 +7,7 @@
 #include "file_compat.h"
 
 static const char *VERT_SHADER =
+"#version 100\n"
 "attribute highp vec3 a_position;"
 "attribute lowp vec3 a_color;"
 "varying lowp vec3 v_color;"
@@ -16,6 +17,7 @@ static const char *VERT_SHADER =
 "}";
 
 static const char *FRAG_SHADER =
+"#version 100\n"
 "varying lowp vec3 v_color;"
 "void main() {"
 "    gl_FragColor = vec4(v_color, 1);"

@@ -1,3 +1,5 @@
+#version 100
+
 varying lowp vec3 v_color;
 
 void main() {

@@ -1,3 +1,5 @@
+#version 100
+
 attribute highp vec3 a_position;
 attribute lowp vec3 a_color;
 
