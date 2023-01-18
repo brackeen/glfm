@@ -130,12 +130,8 @@ static void onFrame(GLFMDisplay *display) {
     CompassApp *app = glfmGetUserData(display);
     int width, height;
     glfmGetDisplaySize(display, &width, &height);
-    if (glfmIsSensorAvailable(display, GLFMSensorRotationMatrix)) {
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    } else {
-        glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
-    }
     glViewport(0, 0, width, height);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     if (app->sensorDataReceived) {
         drawCompass(app, width, height);
@@ -221,6 +217,17 @@ void glfmMain(GLFMDisplay *display) {
         // Enable sensor for the device's rotation matrix. To disable, set the callback function to NULL.
         glfmSetSensorFunc(display, GLFMSensorRotationMatrix, onSensor);
     } else {
-        printf("Warning: Rotation sensor not available on this device\n");
+        printf("Warning: Rotation sensor not available on this device.\n");
+        // North points up
+        app->sensorDataReceived = true;
+        app->rotation.m00 = 0.0f;
+        app->rotation.m01 = -1.0f;
+        app->rotation.m02 = 0.0f;
+        app->rotation.m10 = 1.0f;
+        app->rotation.m11 = 0.0f;
+        app->rotation.m12 = 0.0f;
+        app->rotation.m20 = 0.0f;
+        app->rotation.m21 = 0.0f;
+        app->rotation.m22 = 1.0f;
     }
 }
