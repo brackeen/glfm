@@ -108,8 +108,8 @@ static void drawCompass(CompassApp *app, int width, int height) {
     };
     
     // Transform triangle vertices
-    int triangleCount = sizeof(vertices) / stride;
-    for (int i = 0; i < triangleCount; i++) {
+    int vertexCount = sizeof(vertices) / stride;
+    for (int i = 0; i < vertexCount; i++) {
         GLfloat *t = vertices + i * stride / sizeof(GLfloat);
         applyRotation(app, t + 0,  t + 1,  t + 2);
         if (height < width) {
@@ -123,7 +123,7 @@ static void drawCompass(CompassApp *app, int width, int height) {
 
     // Draw triangles
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
+    glDrawArrays(GL_TRIANGLES, 0, vertexCount);
 }
 
 static void onFrame(GLFMDisplay *display) {
