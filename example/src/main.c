@@ -26,6 +26,8 @@ static void onSurfaceRefresh(GLFMDisplay *display);
 static void onSurfaceDestroyed(GLFMDisplay *display);
 static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, double x, double y);
 static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, int modifiers);
+static bool onScroll(GLFMDisplay *display, double x, double y, GLFMMouseWheelDeltaType deltaType,
+                     double deltaX, double deltaY, double deltaZ);
 
 // Main entry point
 void glfmMain(GLFMDisplay *display) {
@@ -44,6 +46,7 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetRenderFunc(display, onFrame);
     glfmSetTouchFunc(display, onTouch);
     glfmSetKeyFunc(display, onKey);
+    glfmSetMouseWheelFunc(display, onScroll);
 }
 
 static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, double x, double y) {
@@ -85,11 +88,30 @@ static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, i
                 app->offsetY -= 0.1f;
                 handled = true;
                 break;
+            case GLFMKeyEscape:
+                app->offsetX = 0.0f;
+                app->offsetY = 0.0f;
+                handled = true;
             default:
                 break;
         }
     }
     return handled;
+}
+
+static bool onScroll(GLFMDisplay *display, double x, double y, GLFMMouseWheelDeltaType deltaType,
+                     double deltaX, double deltaY, double deltaZ) {
+    ExampleApp *app = glfmGetUserData(display);
+    int width, height;
+    glfmGetDisplaySize(display, &width, &height);
+    if (deltaType != GLFMMouseWheelDeltaPixel) {
+        deltaX *= 20;
+        deltaY *= 20;
+    }
+    app->offsetX -= deltaX / width;
+    app->offsetY += deltaY / height;
+    app->needsRedraw = true;
+    return true;
 }
 
 static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
