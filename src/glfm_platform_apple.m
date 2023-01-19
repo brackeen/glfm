@@ -1008,7 +1008,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #if GLFM_INCLUDE_METAL
 @property(nonatomic, strong) id<MTLDevice> metalDevice;
 #endif
-
+#if TARGET_OS_OSX
+@property(nonatomic, strong) NSCursor *transparentCursor;
+@property(nonatomic, strong) NSCursor *currentCursor;
+@property(nonatomic, assign) BOOL mouseInside;
+#endif
 @end
 
 #if TARGET_OS_IOS || TARGET_OS_TV
@@ -1028,7 +1032,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #endif // TARGET_OS_IOS || TARGET_OS_TV
 
 @implementation GLFMViewController {
+#if TARGET_OS_IOS || TARGET_OS_TV
     const void *activeTouches[MAX_SIMULTANEOUS_TOUCHES];
+#endif
 }
 
 @synthesize glfmDisplay;
@@ -1042,13 +1048,29 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #if TARGET_OS_IOS
 @synthesize motionManager = _motionManager, orientation;
 #endif
+#if TARGET_OS_OSX
+@synthesize transparentCursor, currentCursor, mouseInside;
+#endif
 
 - (id)init {
     if ((self = [super init])) {
-        [self clearTouches];
         self.glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         self.glfmDisplay->platformData = (__bridge void *)self;
         self.glfmDisplay->supportedOrientations = GLFMInterfaceOrientationAll;
+        
+#if TARGET_OS_OSX
+        // Use a transparent image for the hidden cursor
+        NSImage *transparentImage = [NSImage imageWithSize:NSMakeSize(16, 16) flipped:NO
+                                            drawingHandler:^BOOL(NSRect dstRect) {
+            NSRectFillUsingOperation(dstRect, NSCompositingOperationClear);
+            return YES;
+        }];
+        self.transparentCursor = GLFM_AUTORELEASE([[NSCursor alloc] initWithImage:transparentImage
+                                                                          hotSpot:NSZeroPoint]);
+        self.currentCursor = NSCursor.arrowCursor;
+#else
+        [self clearTouches];
+#endif
     }
     return self;
 }
@@ -1136,6 +1158,19 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     };
     self.view = glfmView;
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    
+#if TARGET_OS_OSX
+    // Get mouse-move events and cursor events
+    NSTrackingAreaOptions trackingOptions = (NSTrackingMouseMoved |
+                                             NSTrackingMouseEnteredAndExited |
+                                             NSTrackingCursorUpdate |
+                                             NSTrackingInVisibleRect |
+                                             NSTrackingActiveInKeyWindow);
+    [self.view addTrackingArea:GLFM_AUTORELEASE([[NSTrackingArea alloc] initWithRect:NSZeroRect
+                                                                             options:trackingOptions
+                                                                               owner:self
+                                                                            userInfo:nil])];
+#endif
 }
 
 - (void)viewDidLoad {
@@ -1321,12 +1356,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #endif
 }
 
-- (void)clearTouches {
-    for (int i = 0; i < MAX_SIMULTANEOUS_TOUCHES; i++) {
-        activeTouches[i] = NULL;
-    }
-}
-
 #if TARGET_OS_IOS || TARGET_OS_TV
 
 - (void)didReceiveMemoryWarning {
@@ -1337,6 +1366,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 // MARK: UIResponder
+
+- (void)clearTouches {
+    for (int i = 0; i < MAX_SIMULTANEOUS_TOUCHES; i++) {
+        activeTouches[i] = NULL;
+    }
+}
 
 - (void)addTouchEvent:(UITouch *)touch withType:(GLFMTouchPhase)phase {
     int firstNullIndex = -1;
@@ -1599,6 +1634,147 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #endif // TARGET_OS_IOS || TARGET_OS_TV
 
+#if TARGET_OS_OSX
+
+// MARK: NSResponder (Mouse)
+
+- (NSCursor *)getCursor:(GLFMMouseCursor)cursor {
+    switch (cursor) {
+        case GLFMMouseCursorAuto:
+        case GLFMMouseCursorDefault:
+        default:
+            return NSCursor.arrowCursor;
+        case GLFMMouseCursorPointer:
+            return NSCursor.pointingHandCursor;
+        case GLFMMouseCursorCrosshair:
+            return NSCursor.crosshairCursor;
+        case GLFMMouseCursorText:
+            return NSCursor.IBeamCursor;
+        case GLFMMouseCursorNone:
+            return self.transparentCursor;
+    }
+}
+
+// Returns NO if location could not be determined
+- (BOOL)getLocationForEvent:(NSEvent *)event outX:(double *)outX outY:(double *)outY {
+    NSWindow *window = event.window;
+    CGPoint locationInWindow;
+    if (window) {
+        locationInWindow = event.locationInWindow;
+    } else {
+        window = self.view.window;
+        if (!window) {
+            return NO;
+        }
+        // When event.window is nil, the locationInWindow property "contains the
+        // event location in screen coordinates."
+        CGPoint locationInScreen = event.locationInWindow;
+        locationInWindow = [window convertPointFromScreen:locationInScreen];
+    }
+    CGFloat scale = event.window.backingScaleFactor;
+    CGFloat contentHeight = window.contentLayoutRect.size.height;
+    *outX = locationInWindow.x * scale;
+    *outY = (contentHeight - locationInWindow.y) * scale; // Flip y
+    
+    return YES;
+}
+
+- (void)sendMouseEvent:(NSEvent *)event withType:(GLFMTouchPhase)phase {
+    if (!self.glfmDisplay->touchFunc) {
+        return;
+    }
+
+    double x, y;
+    if (![self getLocationForEvent:event outX:&x outY:&y]) {
+        return;
+    }
+    
+    GLFMAppDelegate *appDelegate = (GLFMAppDelegate *)NSApp.delegate;
+    if (phase == GLFMTouchPhaseEnded && !appDelegate.active) {
+        phase = GLFMTouchPhaseCancelled;
+    }
+    
+    self.glfmDisplay->touchFunc(self.glfmDisplay, (int)event.buttonNumber, phase, x, y);
+}
+
+- (void)mouseMoved:(NSEvent *)event {
+    [self sendMouseEvent:event withType:GLFMTouchPhaseHover];
+}
+
+- (void)mouseDown:(NSEvent *)event {
+    [self sendMouseEvent:event withType:GLFMTouchPhaseBegan];
+}
+
+- (void)mouseDragged:(NSEvent *)event {
+    [self sendMouseEvent:event withType:GLFMTouchPhaseMoved];
+}
+
+- (void)mouseUp:(NSEvent *)event {
+    [self sendMouseEvent:event withType:GLFMTouchPhaseEnded];
+}
+
+- (void)rightMouseDown:(NSEvent *)event {
+    [self sendMouseEvent:event withType:GLFMTouchPhaseBegan];
+}
+
+- (void)rightMouseDragged:(NSEvent *)event {
+    [self sendMouseEvent:event withType:GLFMTouchPhaseMoved];
+}
+
+- (void)rightMouseUp:(NSEvent *)event {
+    [self sendMouseEvent:event withType:GLFMTouchPhaseEnded];
+}
+
+- (void)otherMouseDown:(NSEvent *)event {
+    [self sendMouseEvent:event withType:GLFMTouchPhaseBegan];
+}
+
+- (void)otherMouseDragged:(NSEvent *)event {
+    [self sendMouseEvent:event withType:GLFMTouchPhaseMoved];
+}
+
+- (void)otherMouseUp:(NSEvent *)event {
+    [self sendMouseEvent:event withType:GLFMTouchPhaseEnded];
+}
+
+- (void)scrollWheel:(NSEvent *)event {
+    if (!self.glfmDisplay->mouseWheelFunc) {
+        return;
+    }
+
+    double x, y;
+    if (![self getLocationForEvent:event outX:&x outY:&y]) {
+        return;
+    }
+    
+    // Invert to match web browser behavior
+    double deltaX = -event.scrollingDeltaX;
+    double deltaY = -event.scrollingDeltaY;
+    GLFMMouseWheelDeltaType deltaType = (event.hasPreciseScrollingDeltas ? GLFMMouseWheelDeltaPixel
+                                         : GLFMMouseWheelDeltaLine);
+
+    self.glfmDisplay->mouseWheelFunc(self.glfmDisplay, x, y, deltaType, deltaX, deltaY, 0.0);
+}
+
+- (void)cursorUpdate:(NSEvent *)event {
+    if (event.trackingArea) {
+        [self.currentCursor set];
+    } else {
+        [super cursorUpdate:event];
+    }
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+    self.mouseInside = YES;
+}
+
+- (void)mouseExited:(NSEvent *)event {
+    self.mouseInside = NO;
+    [NSCursor.arrowCursor set];
+}
+
+#endif // TARGET_OS_OSX
+
 @end
 
 #if TARGET_OS_IOS || TARGET_OS_TV
@@ -1764,6 +1940,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     self.window.excludedFromWindowsMenu = YES; // Single-window app
     self.window.tabbingMode = NSWindowTabbingModeDisallowed; // No tabs
     self.window.releasedWhenClosed = NO;
+    self.window.acceptsMouseMovedEvents = YES;
     self.window.delegate = self;
     GLFMViewController *glfmViewController = GLFM_AUTORELEASE([[GLFMViewController alloc] init]);
     
@@ -1821,12 +1998,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             }
             vc.glfmView.animating = active;
         }
-#if TARGET_OS_IOS
-        if (vc.isMotionManagerLoaded) {
-            [vc updateMotionManagerActiveState];
-        }
-#endif
-        [vc clearTouches];
     }
 }
 
@@ -2157,11 +2328,40 @@ bool glfmHasTouch(const GLFMDisplay *display) {
 }
 
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
+#if TARGET_OS_OSX
+    if (display) {
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        NSCursor *cursor;
+        switch (mouseCursor) {
+            case GLFMMouseCursorAuto:
+            case GLFMMouseCursorDefault:
+            default:
+                cursor = NSCursor.arrowCursor;
+                break;
+            case GLFMMouseCursorPointer:
+                cursor = NSCursor.pointingHandCursor;
+                break;
+            case GLFMMouseCursorCrosshair:
+                cursor = NSCursor.crosshairCursor;
+                break;
+            case GLFMMouseCursorText:
+                cursor = NSCursor.IBeamCursor;
+                break;
+            case GLFMMouseCursorNone:
+                cursor = vc.transparentCursor;
+                break;
+        }
+        if (vc.currentCursor != cursor) {
+            vc.currentCursor = cursor;
+            GLFMAppDelegate *appDelegate = (GLFMAppDelegate *)NSApp.delegate;
+            if (vc.mouseInside && appDelegate.active) {
+                [cursor set];
+            }
+        }
+    }
+#else
     (void)display;
     (void)mouseCursor;
-#if TARGET_OS_OSX
-    // TODO: macOS mouse cursor
-#else
     // Do nothing
 #endif
 }
