@@ -32,15 +32,6 @@
 #include <dlfcn.h>
 #include "glfm_platform.h"
 
-#define MAX_SIMULTANEOUS_TOUCHES 10
-
-#ifdef NDEBUG
-#  define CHECK_GL_ERROR() ((void)0)
-#else
-#  define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
-   NSLog(@"OpenGL error 0x%04x at glfm_platform_apple.m:%i", error, __LINE__); } while(0)
-#endif
-
 #if __has_feature(objc_arc)
 #  define GLFM_AUTORELEASE(value) value
 #  define GLFM_RELEASE(value) ((void)0)
@@ -49,6 +40,16 @@
 #  define GLFM_AUTORELEASE(value) [value autorelease]
 #  define GLFM_RELEASE(value) [value release]
 #  define GLFM_WEAK __unsafe_unretained
+#endif
+
+#if TARGET_OS_IOS || TARGET_OS_TV
+#  define MAX_SIMULTANEOUS_TOUCHES 10
+#  ifdef NDEBUG
+#    define CHECK_GL_ERROR() ((void)0)
+#  else
+#    define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
+       NSLog(@"OpenGL error 0x%04x at glfm_platform_apple.m:%i", error, __LINE__); } while(0)
+#  endif
 #endif
 
 static bool glfm__isCGFloatEqual(CGFloat a, CGFloat b) {
