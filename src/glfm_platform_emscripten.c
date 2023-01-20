@@ -17,6 +17,9 @@
 
 #define MAX_ACTIVE_TOUCHES 10
 
+// If 1, test if keyboard event arrays are sorted.
+#define TEST_KEYBOARD_EVENT_ARRAYS 0
+
 typedef struct {
     long identifier;
     bool active;
@@ -40,6 +43,37 @@ typedef struct {
 } GLFMPlatformData;
 
 // MARK: - GLFM private functions
+
+#if TEST_KEYBOARD_EVENT_ARRAYS
+
+static bool glfm__listIsSorted(const char *list[], size_t size) {
+    for (size_t i = 1; i < size; i++) {
+        if (strcmp(list[i - 1], list[i]) > 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+#endif
+
+static int glfm__sortedListSearch(const char *list[], size_t size, const char *word) {
+    int left = 0;
+    int right = (int)size - 1;
+
+    while (left <= right) {
+        int index = (left + right) / 2;
+        int result = strcmp(list[index], word);
+        if (result == 0) {
+            return index;
+        } else if (result > 0) {
+            right = index - 1;
+        } else if (result < 0) {
+            left = index + 1;
+        }
+    }
+    return -1;
+}
 
 static void glfm__clearActiveTouches(GLFMPlatformData *platformData) {
     for (int i = 0; i < MAX_ACTIVE_TOUCHES; i++) {
@@ -412,8 +446,9 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         // not one of the pre-defined key values.
         // This list of pre-defined key values is from https://www.w3.org/TR/uievents-key/
         // (Added functions keys F13-F20 and Soft5-Soft10)
+        // This array must be sorted for binary search. See TEST_KEYBOARD_EVENT_ARRAYS.
         // egrep -o '<code class="key" id="key-.*?</code>' uievents-key.html | sort | awk -F"[><]" '{print $3}' | awk 1 ORS=', '
-        static const char *PREDEFINED_KEYS[] = {
+        static const char *KEYBOARD_EVENT_KEYS[] = {
             "AVRInput", "AVRPower", "Accept", "Again", "AllCandidates", "Alphanumeric", "Alt", "AltGraph", "AppSwitch",
             "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp", "Attn", "AudioBalanceLeft", "AudioBalanceRight",
             "AudioBassBoostDown", "AudioBassBoostToggle", "AudioBassBoostUp", "AudioFaderFront", "AudioFaderRear",
@@ -424,7 +459,8 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
             "CodeInput", "ColorF0Red", "ColorF1Green", "ColorF2Yellow", "ColorF3Blue", "ColorF4Grey", "ColorF5Brown",
             "Compose", "ContextMenu", "Control", "Convert", "Copy", "CrSel", "Cut", "DVR", "Dead", "Delete", "Dimmer",
             "DisplaySwap", "Eisu", "Eject", "End", "EndCall", "Enter", "EraseEof", "Escape", "ExSel", "Execute", "Exit",
-            "F1", "F10", "F11", "F12", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "FavoriteClear0",
+            "F1", "F10", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F2",
+            "F20", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "FavoriteClear0",
             "FavoriteClear1", "FavoriteClear2", "FavoriteClear3", "FavoriteRecall0", "FavoriteRecall1",
             "FavoriteRecall2", "FavoriteRecall3", "FavoriteStore0", "FavoriteStore1", "FavoriteStore2",
             "FavoriteStore3", "FinalMode", "Find", "Fn", "FnLock", "GoBack", "GoHome", "GroupFirst", "GroupLast",
@@ -445,8 +481,9 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
             "PinPUp", "Play", "PlaySpeedDown", "PlaySpeedReset", "PlaySpeedUp", "Power", "PowerOff",
             "PreviousCandidate", "Print", "PrintScreen", "Process", "Props", "RandomToggle", "RcLowBattery",
             "RecordSpeedNext", "Redo", "RfBypass", "Romaji", "STBInput", "STBPower", "Save", "ScanChannelsToggle",
-            "ScreenModeNext", "ScrollLock", "Select", "Settings", "Shift", "SingleCandidate", "Soft1", "Soft2", "Soft3",
-            "Soft4", "SpeechCorrectionList", "SpeechInputToggle", "SpellCheck", "SplitScreenToggle", "Standby",
+            "ScreenModeNext", "ScrollLock", "Select", "Settings", "Shift", "SingleCandidate",
+            "Soft1", "Soft10", "Soft2", "Soft3", "Soft4", "Soft5", "Soft6", "Soft7", "Soft8", "Soft9",
+            "SpeechCorrectionList", "SpeechInputToggle", "SpellCheck", "SplitScreenToggle", "Standby",
             "Subtitle", "Super", "Symbol", "SymbolLock", "TV", "TV3DMode", "TVAntennaCable", "TVAudioDescription",
             "TVAudioDescriptionMixDown", "TVAudioDescriptionMixUp", "TVContentsMenu", "TVDataService", "TVInput",
             "TVInputComponent1", "TVInputComponent2", "TVInputComposite1", "TVInputComposite2", "TVInputHDMI1",
@@ -455,27 +492,65 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
             "TVSatelliteToggle", "TVTerrestrialAnalog", "TVTerrestrialDigital", "TVTimer", "Tab", "Teletext",
             "Undo", "Unidentified", "VideoModeNext", "VoiceDial", "WakeUp", "Wink", "Zenkaku", "ZenkakuHankaku",
             "ZoomIn", "ZoomOut", "ZoomToggle",
-            "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20",
-            "Soft5", "Soft6", "Soft7", "Soft8", "Soft9", "Soft10",
         };
-        size_t length = strlen(e->key);
-        int isChar = length > 0;
-        if (length > 1) {
-            for (size_t i = 0; i < sizeof(PREDEFINED_KEYS) / sizeof(*PREDEFINED_KEYS); i++) {
-                if (strcmp(e->key, PREDEFINED_KEYS[i]) == 0) {
-                    isChar = 0;
-                    break;
-                }
+        static const size_t KEYBOARD_EVENT_KEYS_LENGTH = sizeof(KEYBOARD_EVENT_KEYS) / sizeof(*KEYBOARD_EVENT_KEYS);
+
+#if TEST_KEYBOARD_EVENT_ARRAYS
+        static bool KEYBOARD_EVENT_KEYS_TESTED = false;
+        if (!KEYBOARD_EVENT_KEYS_TESTED) {
+            KEYBOARD_EVENT_KEYS_TESTED = true;
+            if (glfm__listIsSorted(KEYBOARD_EVENT_KEYS, KEYBOARD_EVENT_KEYS_LENGTH)) {
+                printf("Success: KEYBOARD_EVENT_KEYS is sorted\n");
+            } else {
+                printf("Failure: KEYBOARD_EVENT_KEYS is not sorted\n");
             }
         }
-        if (isChar) {
-            display->charFunc(display, e->key, modifiers);
-            handled = 1;
+#endif
+        if (e->key[0] != '\0') {
+            bool isSingleChar = (e->key[1] == '\0');
+            bool isPredefinedKey = false;
+            if (!isSingleChar) {
+                isPredefinedKey = glfm__sortedListSearch(KEYBOARD_EVENT_KEYS, KEYBOARD_EVENT_KEYS_LENGTH, e->key) >= 0;
+            }
+            if (isSingleChar || !isPredefinedKey) {
+                display->charFunc(display, e->key, modifiers);
+                handled = 1;
+            }
         }
     }
     
     // Key input
     if (display->keyFunc && (eventType == EMSCRIPTEN_EVENT_KEYDOWN || eventType == EMSCRIPTEN_EVENT_KEYUP)) {
+        // This list of code values is from https://www.w3.org/TR/uievents-code/
+        // This array must be sorted for binary search. See TEST_KEYBOARD_EVENT_ARRAYS.
+        // NOTE: e->keyCode is obsolete. Only e->key or e->code should be used.
+        static const char *KEYBOARD_EVENT_CODES[] = {
+            "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp", "Backspace", "Delete", "End",
+            "Enter", "Escape", "Home", "PageDown", "PageUp", "Space", "Tab",
+        };
+        static const size_t KEYBOARD_EVENT_CODES_LENGTH = sizeof(KEYBOARD_EVENT_CODES) / sizeof(*KEYBOARD_EVENT_CODES);
+        static const GLFMKey GLFM_KEY_CODES[] = {
+            GLFMKeyDown, GLFMKeyLeft, GLFMKeyRight, GLFMKeyUp, GLFMKeyBackspace, GLFMKeyDelete, GLFMKeyEnd,
+            GLFMKeyEnter, GLFMKeyEscape, GLFMKeyHome, GLFMKeyPageDown, GLFMKeyPageUp, GLFMKeySpace, GLFMKeyTab,
+        };
+
+#if TEST_KEYBOARD_EVENT_ARRAYS
+        static bool KEYBOARD_EVENT_CODES_TESTED = false;
+        if (!KEYBOARD_EVENT_CODES_TESTED) {
+            KEYBOARD_EVENT_CODES_TESTED = true;
+            if (glfm__listIsSorted(KEYBOARD_EVENT_CODES, KEYBOARD_EVENT_CODES_LENGTH)) {
+                printf("Success: KEYBOARD_EVENT_CODES is sorted\n");
+            } else {
+                printf("Failure: KEYBOARD_EVENT_CODES is not sorted\n");
+            }
+            if (KEYBOARD_EVENT_CODES_LENGTH == sizeof(GLFM_KEY_CODES) / sizeof(*GLFM_KEY_CODES)) {
+                printf("Success: GLFM_KEYBOARD_EVENT_CODES is the correct length\n");
+            } else {
+                printf("Failure: GLFM_KEYBOARD_EVENT_CODES is not the correct length\n");
+            }
+        }
+#endif
+
         GLFMKeyAction action;
         if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
             if (e->repeat) {
@@ -487,38 +562,10 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
             action = GLFMKeyActionReleased;
         }
         
-        // NOTE: e->keyCode is deprecated. Only e->key or e->code should be used.
-        GLFMKey keyCode = (GLFMKey)e->keyCode;
-        if (strlen(e->key) > 1) {
-            if (strcmp("Backspace", e->key) == 0) {
-                keyCode = GLFMKeyBackspace;
-            } else if (strcmp("Delete", e->key) == 0) {
-                keyCode = GLFMKeyDelete;
-            } else if (strcmp("Tab", e->key) == 0) {
-                keyCode = GLFMKeyTab;
-            } else if (strcmp("Enter", e->key) == 0) {
-                keyCode = GLFMKeyEnter;
-            } else if (strcmp("Escape", e->key) == 0) {
-                keyCode = GLFMKeyEscape;
-            } else if (strcmp("Left", e->key) == 0) {
-                keyCode = GLFMKeyLeft;
-            } else if (strcmp("Up", e->key) == 0) {
-                keyCode = GLFMKeyUp;
-            } else if (strcmp("Right", e->key) == 0) {
-                keyCode = GLFMKeyRight;
-            } else if (strcmp("Down", e->key) == 0) {
-                keyCode = GLFMKeyDown;
-            } else if (strcmp("PageUp", e->key) == 0) {
-                keyCode = GLFMKeyPageUp;
-            } else if (strcmp("PageDown", e->key) == 0) {
-                keyCode = GLFMKeyPageDown;
-            } else if (strcmp("Home", e->key) == 0) {
-                keyCode = GLFMKeyHome;
-            } else if (strcmp("End", e->key) == 0) {
-                keyCode = GLFMKeyEnd;
-            }
+        int codeIndex = glfm__sortedListSearch(KEYBOARD_EVENT_CODES, KEYBOARD_EVENT_CODES_LENGTH, e->code);
+        if (codeIndex != -1) {
+            handled = display->keyFunc(display, GLFM_KEY_CODES[codeIndex], action, modifiers) || handled;
         }
-        handled = display->keyFunc(display, keyCode, action, modifiers) || handled;
     }
     
     return handled;
