@@ -427,6 +427,9 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
     int modifiers = 0;
     
     // Modifiers
+    // Note, Emscripten doesn't provide a way to get extended modifiers like the function key.
+    // (See KeyboardEvent's getModifierState() function).
+    // Commands like "fn-f" ("Fullscreen" on macOS) will be treated as text input.
     if (e->shiftKey) {
         modifiers |= GLFMKeyModifierShift;
     }
@@ -441,11 +444,11 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
     }
     
     // Character input
-    if (display->charFunc && eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
+    if (display->charFunc && eventType == EMSCRIPTEN_EVENT_KEYDOWN && !e->ctrlKey && !e->metaKey) {
         // It appears the only way to detect printable character input is to check if the "key" value is
         // not one of the pre-defined key values.
         // This list of pre-defined key values is from https://www.w3.org/TR/uievents-key/
-        // (Added functions keys F13-F20 and Soft5-Soft10)
+        // (Added functions keys F13-F24 and Soft5-Soft10)
         // This array must be sorted for binary search. See TEST_KEYBOARD_EVENT_ARRAYS.
         // egrep -o '<code class="key" id="key-.*?</code>' uievents-key.html | sort | awk -F"[><]" '{print $3}' | awk 1 ORS=', '
         static const char *KEYBOARD_EVENT_KEYS[] = {
@@ -460,7 +463,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
             "Compose", "ContextMenu", "Control", "Convert", "Copy", "CrSel", "Cut", "DVR", "Dead", "Delete", "Dimmer",
             "DisplaySwap", "Eisu", "Eject", "End", "EndCall", "Enter", "EraseEof", "Escape", "ExSel", "Execute", "Exit",
             "F1", "F10", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F2",
-            "F20", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "FavoriteClear0",
+            "F20", "F21", "F22", "F23", "F24", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "FavoriteClear0",
             "FavoriteClear1", "FavoriteClear2", "FavoriteClear3", "FavoriteRecall0", "FavoriteRecall1",
             "FavoriteRecall2", "FavoriteRecall3", "FavoriteStore0", "FavoriteStore1", "FavoriteStore2",
             "FavoriteStore3", "FinalMode", "Find", "Fn", "FnLock", "GoBack", "GoHome", "GroupFirst", "GroupLast",
