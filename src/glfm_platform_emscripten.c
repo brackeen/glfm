@@ -62,14 +62,14 @@ static int glfm__sortedListSearch(const char *list[], size_t size, const char *w
     int right = (int)size - 1;
 
     while (left <= right) {
-        int index = (left + right) / 2;
-        int result = strcmp(list[index], word);
-        if (result == 0) {
-            return index;
-        } else if (result > 0) {
-            right = index - 1;
+        int i = (left + right) / 2;
+        int result = strcmp(list[i], word);
+        if (result > 0) {
+            right = i - 1;
         } else if (result < 0) {
-            left = index + 1;
+            left = i + 1;
+        } else {
+            return i;
         }
     }
     return -1;
