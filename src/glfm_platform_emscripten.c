@@ -525,16 +525,44 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
     // Key input
     if (display->keyFunc && (eventType == EMSCRIPTEN_EVENT_KEYDOWN || eventType == EMSCRIPTEN_EVENT_KEYUP)) {
         // This list of code values is from https://www.w3.org/TR/uievents-code/
+        // (Added functions keys F13-F24)
+        // egrep -o '<code class="code" id="code-.*?</code>' uievents-code.html | sort | awk -F"[><]" '{print $3}' | awk 1 ORS=', '
         // This array must be sorted for binary search. See TEST_KEYBOARD_EVENT_ARRAYS.
         // NOTE: e->keyCode is obsolete. Only e->key or e->code should be used.
         static const char *KEYBOARD_EVENT_CODES[] = {
-            "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp", "Backspace", "Delete", "End",
-            "Enter", "Escape", "Home", "PageDown", "PageUp", "Space", "Tab",
+            "AltLeft", "AltRight", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp",
+            "Backquote", "Backslash", "Backspace", "BracketLeft", "BracketRight", "BrowserBack",
+            "CapsLock", "Comma", "ContextMenu", "ControlLeft", "ControlRight", "Delete", "Digit0",
+            "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8",
+            "Digit9", "End", "Enter", "Equal", "Escape", "F1", "F10", "F11", "F12", "F13", "F14",
+            "F15", "F16", "F17", "F18", "F19", "F2", "F20", "F21", "F22", "F23", "F24", "F3", "F4",
+            "F5", "F6", "F7", "F8", "F9", "Fn", "Home", "Insert", "KeyA", "KeyB", "KeyC", "KeyD",
+            "KeyE", "KeyF", "KeyG", "KeyH", "KeyI", "KeyJ", "KeyK", "KeyL", "KeyM", "KeyN", "KeyO",
+            "KeyP", "KeyQ", "KeyR", "KeyS", "KeyT", "KeyU", "KeyV", "KeyW", "KeyX", "KeyY", "KeyZ",
+            "MediaPlayPause", "MetaLeft", "MetaRight", "Minus", "NumLock", "Numpad0", "Numpad1",
+            "Numpad2", "Numpad3", "Numpad4", "Numpad5", "Numpad6", "Numpad7", "Numpad8", "Numpad9",
+            "NumpadAdd", "NumpadDecimal", "NumpadDivide", "NumpadEnter", "NumpadEqual",
+            "NumpadMultiply", "NumpadSubtract", "PageDown", "PageUp", "Pause", "Period",
+            "Power", "PrintScreen", "Quote", "ScrollLock", "Semicolon", "ShiftLeft", "ShiftRight",
+            "Slash", "Space", "Tab",
         };
         static const size_t KEYBOARD_EVENT_CODES_LENGTH = sizeof(KEYBOARD_EVENT_CODES) / sizeof(*KEYBOARD_EVENT_CODES);
         static const GLFMKey GLFM_KEY_CODES[] = {
-            GLFMKeyDown, GLFMKeyLeft, GLFMKeyRight, GLFMKeyUp, GLFMKeyBackspace, GLFMKeyDelete, GLFMKeyEnd,
-            GLFMKeyEnter, GLFMKeyEscape, GLFMKeyHome, GLFMKeyPageDown, GLFMKeyPageUp, GLFMKeySpace, GLFMKeyTab,
+            GLFMKeyAltLeft, GLFMKeyAltRight, GLFMKeyArrowDown, GLFMKeyArrowLeft, GLFMKeyArrowRight, GLFMKeyArrowUp,
+            GLFMKeyBackquote, GLFMKeyBackslash, GLFMKeyBackspace, GLFMKeyBracketLeft, GLFMKeyBracketRight, GLFMKeyNavigationBack,
+            GLFMKeyCapsLock, GLFMKeyComma, GLFMKeyContextMenu, GLFMKeyControlLeft, GLFMKeyControlRight, GLFMKeyDelete, GLFMKeyDigit0,
+            GLFMKeyDigit1, GLFMKeyDigit2, GLFMKeyDigit3, GLFMKeyDigit4, GLFMKeyDigit5, GLFMKeyDigit6, GLFMKeyDigit7, GLFMKeyDigit8,
+            GLFMKeyDigit9, GLFMKeyEnd, GLFMKeyEnter, GLFMKeyEqual, GLFMKeyEscape, GLFMKeyF1, GLFMKeyF10, GLFMKeyF11, GLFMKeyF12, GLFMKeyF13, GLFMKeyF14,
+            GLFMKeyF15, GLFMKeyF16, GLFMKeyF17, GLFMKeyF18, GLFMKeyF19, GLFMKeyF2, GLFMKeyF20, GLFMKeyF21, GLFMKeyF22, GLFMKeyF23, GLFMKeyF24, GLFMKeyF3, GLFMKeyF4,
+            GLFMKeyF5, GLFMKeyF6, GLFMKeyF7, GLFMKeyF8, GLFMKeyF9, GLFMKeyFunction, GLFMKeyHome, GLFMKeyInsert, GLFMKeyA, GLFMKeyB, GLFMKeyC, GLFMKeyD,
+            GLFMKeyE, GLFMKeyF, GLFMKeyG, GLFMKeyH, GLFMKeyI, GLFMKeyJ, GLFMKeyK, GLFMKeyL, GLFMKeyM, GLFMKeyN, GLFMKeyO,
+            GLFMKeyP, GLFMKeyQ, GLFMKeyR, GLFMKeyS, GLFMKeyT, GLFMKeyU, GLFMKeyV, GLFMKeyW, GLFMKeyX, GLFMKeyY, GLFMKeyZ,
+            GLFMKeyMediaPlayPause, GLFMKeyMetaLeft, GLFMKeyMetaRight, GLFMKeyMinus, GLFMKeyNumLock, GLFMKeyNumpad0, GLFMKeyNumpad1,
+            GLFMKeyNumpad2, GLFMKeyNumpad3, GLFMKeyNumpad4, GLFMKeyNumpad5, GLFMKeyNumpad6, GLFMKeyNumpad7, GLFMKeyNumpad8, GLFMKeyNumpad9,
+            GLFMKeyNumpadAdd, GLFMKeyNumpadDecimal, GLFMKeyNumpadDivide, GLFMKeyNumpadEnter, GLFMKeyNumpadEqual,
+            GLFMKeyNumpadMultiply, GLFMKeyNumpadSubtract, GLFMKeyPageDown, GLFMKeyPageUp, GLFMKeyPause ,GLFMKeyPeriod,
+            GLFMKeyPower, GLFMKeyPrintScreen, GLFMKeyQuote, GLFMKeyScrollLock, GLFMKeySemicolon, GLFMKeyShiftLeft, GLFMKeyShiftRight,
+            GLFMKeySlash, GLFMKeySpace, GLFMKeyTab,
         };
 
 #if TEST_KEYBOARD_EVENT_ARRAYS
@@ -566,9 +594,8 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         }
         
         int codeIndex = glfm__sortedListSearch(KEYBOARD_EVENT_CODES, KEYBOARD_EVENT_CODES_LENGTH, e->code);
-        if (codeIndex != -1) {
-            handled = display->keyFunc(display, GLFM_KEY_CODES[codeIndex], action, modifiers) || handled;
-        }
+        GLFMKey key = codeIndex >= 0 ? GLFM_KEY_CODES[codeIndex] : GLFMKeyUnknown;
+        handled = display->keyFunc(display, key, action, modifiers) || handled;
     }
     
     return handled;

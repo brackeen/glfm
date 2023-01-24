@@ -185,31 +185,160 @@ typedef enum {
 } GLFMMouseWheelDeltaType;
 
 typedef enum {
-    GLFMKeyBackspace = 0x08,
-    GLFMKeyTab = 0x09,
-    GLFMKeyEnter = 0x0d,
-    GLFMKeyEscape = 0x1b,
-    GLFMKeySpace = 0x20,
-    GLFMKeyPageUp = 0x21,
-    GLFMKeyPageDown = 0x22,
-    GLFMKeyEnd = 0x23,
-    GLFMKeyHome = 0x24,
-    GLFMKeyLeft = 0x25,
-    GLFMKeyUp = 0x26,
-    GLFMKeyRight = 0x27,
-    GLFMKeyDown = 0x28,
-    GLFMKeyDelete = 0x2E,
-    GLFMKeyNavBack = 0x1000,
-    GLFMKeyNavMenu = 0x1001,
-    GLFMKeyNavSelect = 0x1002,
-    GLFMKeyPlayPause = 0x2000,
+    GLFMKeyUnknown           = 0x00,
+
+    // The key codes below have the same values as ASCII codes (uppercase)
+
+    GLFMKeyBackspace         = 0x08, // Apple: Delete
+    GLFMKeyTab               = 0x09,
+    GLFMKeyEnter             = 0x0D, // Apple: Return
+    GLFMKeyEscape            = 0x1B,
+    GLFMKeySpace             = 0x20,
+    GLFMKeyQuote             = 0x27,
+    GLFMKeyComma             = 0x2C,
+    GLFMKeyMinus             = 0x2D,
+    GLFMKeyPeriod            = 0x2E,
+    GLFMKeySlash             = 0x2F,
+    GLFMKeyDigit0            = 0x30,
+    GLFMKeyDigit1            = 0x31,
+    GLFMKeyDigit2            = 0x32,
+    GLFMKeyDigit3            = 0x33,
+    GLFMKeyDigit4            = 0x34,
+    GLFMKeyDigit5            = 0x35,
+    GLFMKeyDigit6            = 0x36,
+    GLFMKeyDigit7            = 0x37,
+    GLFMKeyDigit8            = 0x38,
+    GLFMKeyDigit9            = 0x39,
+    GLFMKeySemicolon         = 0x3B,
+    GLFMKeyEqual             = 0x3D,
+    GLFMKeyA                 = 0x41,
+    GLFMKeyB                 = 0x42,
+    GLFMKeyC                 = 0x43,
+    GLFMKeyD                 = 0x44,
+    GLFMKeyE                 = 0x45,
+    GLFMKeyF                 = 0x46,
+    GLFMKeyG                 = 0x47,
+    GLFMKeyH                 = 0x48,
+    GLFMKeyI                 = 0x49,
+    GLFMKeyJ                 = 0x4A,
+    GLFMKeyK                 = 0x4B,
+    GLFMKeyL                 = 0x4C,
+    GLFMKeyM                 = 0x4D,
+    GLFMKeyN                 = 0x4E,
+    GLFMKeyO                 = 0x4F,
+    GLFMKeyP                 = 0x50,
+    GLFMKeyQ                 = 0x51,
+    GLFMKeyR                 = 0x52,
+    GLFMKeyS                 = 0x53,
+    GLFMKeyT                 = 0x54,
+    GLFMKeyU                 = 0x55,
+    GLFMKeyV                 = 0x56,
+    GLFMKeyW                 = 0x57,
+    GLFMKeyX                 = 0x58,
+    GLFMKeyY                 = 0x59,
+    GLFMKeyZ                 = 0x5A,
+    GLFMKeyBracketLeft       = 0x5B,
+    GLFMKeyBackslash         = 0x5C,
+    GLFMKeyBracketRight      = 0x5D,
+    GLFMKeyBackquote         = 0x60, // Grave
+    GLFMKeyDelete            = 0x7F, // Apple: Forward Delete
+
+    // Non-ASCII keys
+
+    GLFMKeyCapsLock,
+    GLFMKeyShiftLeft,
+    GLFMKeyShiftRight,
+    GLFMKeyControlLeft,
+    GLFMKeyControlRight,
+    GLFMKeyAltLeft,          // Apple: Option
+    GLFMKeyAltRight,         // Apple: Option
+    GLFMKeyMetaLeft,         // Apple: Command
+    GLFMKeyMetaRight,        // Apple: Command
+    GLFMKeyContextMenu,
+
+    GLFMKeyInsert,
+    GLFMKeyPageUp,
+    GLFMKeyPageDown,
+    GLFMKeyEnd,
+    GLFMKeyHome,
+
+    GLFMKeyArrowLeft,
+    GLFMKeyArrowUp,
+    GLFMKeyArrowRight,
+    GLFMKeyArrowDown,
+
+    GLFMKeyNumLock,          // Apple: Clear
+    GLFMKeyNumpadDecimal,
+    GLFMKeyNumpadMultiply,
+    GLFMKeyNumpadAdd,
+    GLFMKeyNumpadDivide,
+    GLFMKeyNumpadEnter,
+    GLFMKeyNumpadSubtract,
+    GLFMKeyNumpadEqual,
+
+    GLFMKeyNumpad0,
+    GLFMKeyNumpad1,
+    GLFMKeyNumpad2,
+    GLFMKeyNumpad3,
+    GLFMKeyNumpad4,
+    GLFMKeyNumpad5,
+    GLFMKeyNumpad6,
+    GLFMKeyNumpad7,
+    GLFMKeyNumpad8,
+    GLFMKeyNumpad9,
+
+    GLFMKeyF1,
+    GLFMKeyF2,
+    GLFMKeyF3,
+    GLFMKeyF4,
+    GLFMKeyF5,
+    GLFMKeyF6,
+    GLFMKeyF7,
+    GLFMKeyF8,
+    GLFMKeyF9,
+    GLFMKeyF10,
+    GLFMKeyF11,
+    GLFMKeyF12,
+    GLFMKeyF13,
+    GLFMKeyF14,
+    GLFMKeyF15,
+    GLFMKeyF16,
+    GLFMKeyF17,
+    GLFMKeyF18,
+    GLFMKeyF19,
+    GLFMKeyF20,
+    GLFMKeyF21,
+    GLFMKeyF22,
+    GLFMKeyF23,
+    GLFMKeyF24,
+
+    GLFMKeyPower,
+    GLFMKeyFunction,         // Apple: Fn
+    GLFMKeyPrintScreen,      // System Request
+    GLFMKeyScrollLock,
+    GLFMKeyPause,            // Break
+
+    GLFMKeyNavigationBack,   // Android, tvOS
+    GLFMKeyMediaSelect,      // tvOS
+    GLFMKeyMediaPlayPause,   // tvOS
 } GLFMKey;
 
+enum {
+    GLFMKeyLeft GLFM_DEPRECATED = GLFMKeyArrowLeft,
+    GLFMKeyUp GLFM_DEPRECATED = GLFMKeyArrowUp,
+    GLFMKeyRight GLFM_DEPRECATED = GLFMKeyArrowRight,
+    GLFMKeyDown GLFM_DEPRECATED = GLFMKeyArrowDown,
+    GLFMKeyPlayPause GLFM_DEPRECATED = GLFMKeyMediaPlayPause,
+    GLFMKeyNavBack GLFM_DEPRECATED = GLFMKeyNavigationBack,
+    GLFMKeyNavSelect GLFM_DEPRECATED = GLFMKeyMediaSelect,
+};
+
 typedef enum {
-    GLFMKeyModifierShift = (1 << 0),
-    GLFMKeyModifierCtrl = (1 << 1),
-    GLFMKeyModifierAlt = (1 << 2),
-    GLFMKeyModifierMeta = (1 << 3),
+    GLFMKeyModifierShift    = (1 << 0),
+    GLFMKeyModifierCtrl     = (1 << 1),
+    GLFMKeyModifierAlt      = (1 << 2), // Apple: Option
+    GLFMKeyModifierMeta     = (1 << 3), // Apple: Command
+    GLFMKeyModifierFunction = (1 << 4), // Apple: Fn
 } GLFMKeyModifier;
 
 typedef enum {
@@ -268,9 +397,9 @@ typedef bool (*GLFMTouchFunc)(GLFMDisplay *display, int touch, GLFMTouchPhase ph
 
 /// Callback function when key events occur. See ``glfmSetKeyFunc``.
 ///
-/// - Android: When the user presses the back button (`GLFMKeyNavBack`), this function should
-/// return `false` to allow the user to exit the app, or return `true` if the back button was
-/// handled in-app.
+/// - Android and tvOS: When the user presses the back button (`GLFMKeyNavigationBack`), this
+/// function should return `false` to allow the user to exit the app, or return `true` if the back
+/// button was handled in-app.
 /// - Returns: `true` if the event was handled, `false` otherwise.
 typedef bool (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action,
                             int modifiers);
@@ -568,9 +697,9 @@ GLFMTouchFunc glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc);
 ///
 /// - iOS: Only pressed events are sent (no repeated or released events) and with no modifiers.
 ///
-/// - Android: When the user presses the back button (`GLFMKeyNavBack`), the `GLFMKeyFunc` function
-/// should return `false` to allow the user to exit the app, or return `true` if the back button
-/// was handled in-app.
+/// - Android and tvOS: When the user presses the back button (`GLFMKeyNavigationBack`), the
+/// `GLFMKeyFunc` function should return `false` to allow the user to exit the app, or return `true`
+/// if the back button was handled in-app.
 GLFMKeyFunc glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
 
 /// Sets the function to call when character input events occur.

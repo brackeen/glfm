@@ -70,31 +70,33 @@ static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, i
     bool handled = false;
     if (action == GLFMKeyActionPressed) {
         ExampleApp *app = glfmGetUserData(display);
-        app->needsRedraw = true;
         switch (keyCode) {
-            case GLFMKeyLeft:
+            case GLFMKeyArrowLeft:
                 app->offsetX -= 0.1f;
                 handled = true;
                 break;
-            case GLFMKeyRight:
+            case GLFMKeyArrowRight:
                 app->offsetX += 0.1f;
                 handled = true;
                 break;
-            case GLFMKeyUp:
+            case GLFMKeyArrowUp:
                 app->offsetY += 0.1f;
                 handled = true;
                 break;
-            case GLFMKeyDown:
+            case GLFMKeyArrowDown:
                 app->offsetY -= 0.1f;
                 handled = true;
                 break;
-            case GLFMKeyEscape:
+            case GLFMKeySpace:
+            case GLFMKeyEnter:
+            case GLFMKeyBackspace:
                 app->offsetX = 0.0f;
                 app->offsetY = 0.0f;
                 handled = true;
             default:
                 break;
         }
+        app->needsRedraw |= handled;
     }
     return handled;
 }

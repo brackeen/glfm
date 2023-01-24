@@ -1436,28 +1436,28 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 - (BOOL)handlePress:(UIPress *)press withAction:(GLFMKeyAction)action {
     if (self.glfmDisplay->keyFunc) {
-        GLFMKey key = (GLFMKey)0;
+        GLFMKey key = GLFMKeyUnknown;
         switch (press.type) {
             case UIPressTypeUpArrow:
-                key = GLFMKeyUp;
+                key = GLFMKeyArrowUp;
                 break;
             case UIPressTypeDownArrow:
-                key = GLFMKeyDown;
+                key = GLFMKeyArrowDown;
                 break;
             case UIPressTypeLeftArrow:
-                key = GLFMKeyLeft;
+                key = GLFMKeyArrowLeft;
                 break;
             case UIPressTypeRightArrow:
-                key = GLFMKeyRight;
+                key = GLFMKeyArrowRight;
                 break;
             case UIPressTypeSelect:
-                key = GLFMKeyNavSelect;
+                key = GLFMKeyMediaSelect;
                 break;
             case UIPressTypeMenu:
-                key = GLFMKeyNavMenu;
+                key = GLFMKeyNavigationBack;
                 break;
             case UIPressTypePlayPause:
-                key = GLFMKeyPlayPause;
+                key = GLFMKeyMediaPlayPause;
                 break;
             case UIPressTypePageUp:
                 key = GLFMKeyPageUp;
@@ -1466,11 +1466,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                 key = GLFMKeyPageDown;
                 break;
         }
-        if (key != 0) {
-            return self.glfmDisplay->keyFunc(self.glfmDisplay, key, action, 0);
-        } else {
-            return NO;
-        }
+        return self.glfmDisplay->keyFunc(self.glfmDisplay, key, action, 0);
     } else {
         return NO;
     }
@@ -1582,7 +1578,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             keyInputs = [keyInputs arrayByAddingObjectsFromArray: @[
                 UIKeyInputHome, UIKeyInputEnd,
             ]];
-                           
         }
         NSMutableArray *mutableKeyCommands = GLFM_AUTORELEASE([NSMutableArray new]);
         [keyInputs enumerateObjectsUsingBlock:^(NSString *keyInput, NSUInteger idx, BOOL *stop) {
@@ -1601,15 +1596,15 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (void)keyPressed:(UIKeyCommand *)keyCommand {
     if (self.glfmDisplay->keyFunc) {
         NSString *key = [keyCommand input];
-        GLFMKey keyCode = (GLFMKey)0;
+        GLFMKey keyCode = GLFMKeyUnknown;
         if (key == UIKeyInputUpArrow) {
-            keyCode = GLFMKeyUp;
+            keyCode = GLFMKeyArrowUp;
         } else if (key == UIKeyInputDownArrow) {
-            keyCode = GLFMKeyDown;
+            keyCode = GLFMKeyArrowDown;
         } else if (key == UIKeyInputLeftArrow) {
-            keyCode = GLFMKeyLeft;
+            keyCode = GLFMKeyArrowLeft;
         } else if (key == UIKeyInputRightArrow) {
-            keyCode = GLFMKeyRight;
+            keyCode = GLFMKeyArrowRight;
         } else if (key == UIKeyInputEscape) {
             keyCode = GLFMKeyEscape;
         } else if (key == UIKeyInputPageUp) {
@@ -1626,10 +1621,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             }
         }
 
-        if (keyCode != 0) {
-            self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, GLFMKeyActionPressed, 0);
-            self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, GLFMKeyActionReleased, 0);
-        }
+        self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, GLFMKeyActionPressed, 0);
+        self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, GLFMKeyActionReleased, 0);
     }
 }
 
