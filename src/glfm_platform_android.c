@@ -1546,69 +1546,28 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
             int32_t aKeyCode = AKeyEvent_getKeyCode(event);
             int32_t aAction = AKeyEvent_getAction(event);
             if (aKeyCode != 0) {
-                GLFMKey key;
-                switch (aKeyCode) {
-                    case AKEYCODE_DEL:
-                        key = GLFMKeyBackspace;
-                        break;
-                    case AKEYCODE_TAB:
-                        key = GLFMKeyTab;
-                        break;
-                    case AKEYCODE_ENTER:
-                    case AKEYCODE_DPAD_CENTER:
-                        key = GLFMKeyEnter;
-                        break;
-                    case AKEYCODE_ESCAPE:
-                        key = GLFMKeyEscape;
-                        break;
-                    case AKEYCODE_SPACE:
-                        key = GLFMKeySpace;
-                        break;
-                    case AKEYCODE_PAGE_UP:
-                        key = GLFMKeyPageUp;
-                        break;
-                    case AKEYCODE_PAGE_DOWN:
-                        key = GLFMKeyPageDown;
-                        break;
-                    case AKEYCODE_MOVE_END:
-                        key = GLFMKeyEnd;
-                        break;
-                    case AKEYCODE_MOVE_HOME:
-                        key = GLFMKeyHome;
-                        break;
-                    case AKEYCODE_DPAD_LEFT:
-                        key = GLFMKeyLeft;
-                        break;
-                    case AKEYCODE_DPAD_UP:
-                        key = GLFMKeyUp;
-                        break;
-                    case AKEYCODE_DPAD_RIGHT:
-                        key = GLFMKeyRight;
-                        break;
-                    case AKEYCODE_DPAD_DOWN:
-                        key = GLFMKeyDown;
-                        break;
-                    case AKEYCODE_FORWARD_DEL:
-                        key = GLFMKeyDelete;
-                        break;
-                    case AKEYCODE_BACK:
-                        key = GLFMKeyNavBack;
-                        break;
-                    case AKEYCODE_MENU:
-                        key = GLFMKeyNavMenu;
-                        break;
-                    default:
-                        // TODO: Send all keycodes?
-                        if (aKeyCode >= AKEYCODE_0 && aKeyCode <= AKEYCODE_9) {
-                            key = (GLFMKey)(aKeyCode - AKEYCODE_0 + '0');
-                        } else if (aKeyCode >= AKEYCODE_A && aKeyCode <= AKEYCODE_Z) {
-                            key = (GLFMKey)(aKeyCode - AKEYCODE_A + 'A');
-                        } else {
-                            key = (GLFMKey)0;
-                        }
-                        break;
+                static GLFMKey AKEYCODE_MAP[] = {
+                    [AKEYCODE_DEL] = GLFMKeyBackspace,
+                    [AKEYCODE_TAB] = GLFMKeyTab,
+                    [AKEYCODE_ENTER] = GLFMKeyEnter,
+                    [AKEYCODE_ESCAPE] = GLFMKeyEscape,
+                    [AKEYCODE_SPACE] = GLFMKeySpace,
+                    [AKEYCODE_PAGE_UP] = GLFMKeyPageUp,
+                    [AKEYCODE_PAGE_DOWN] = GLFMKeyPageDown,
+                    [AKEYCODE_MOVE_HOME] = GLFMKeyHome,
+                    [AKEYCODE_MOVE_END] = GLFMKeyEnd,
+                    [AKEYCODE_DPAD_LEFT] = GLFMKeyLeft,
+                    [AKEYCODE_DPAD_UP] = GLFMKeyUp,
+                    [AKEYCODE_DPAD_RIGHT] = GLFMKeyRight,
+                    [AKEYCODE_DPAD_DOWN] = GLFMKeyDown,
+                    [AKEYCODE_FORWARD_DEL] = GLFMKeyDelete,
+                    [AKEYCODE_BACK] = GLFMKeyNavBack,
+                    [AKEYCODE_MENU] = GLFMKeyNavMenu,
+                };
+                GLFMKey key = (GLFMKey)0;
+                if (aKeyCode >= 0 && aKeyCode < (int32_t)(sizeof(AKEYCODE_MAP) / sizeof(*AKEYCODE_MAP))) {
+                    key = AKEYCODE_MAP[aKeyCode];
                 }
-
                 if (key != 0) {
                     if (aAction == AKEY_EVENT_ACTION_UP) {
                         handled = platformData->display->keyFunc(platformData->display, key,
