@@ -31,7 +31,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
             "          --glfm-chrome-left: env(safe-area-inset-left);\n"
             "      }\n"
             "      body, html { border: 0px none; padding: 0px; margin: 0px; width: 100%; height: 100%; overflow: hidden; position: fixed; }\n"
-            "      canvas.emscripten { background: black; width: 100%; height: 100%; }\n"
+            "      canvas.emscripten { background: black; outline: none; width: 100%; height: 100%; }\n"
             "      .emscripten_border { width: 100%; height: 100%; border: 0px none !important;}\n"
             "      hr { display: none; }\n"
             "      /* GLFM: End changes */"
