@@ -1614,7 +1614,7 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
                         [AKEYCODE_APOSTROPHE]      = GLFMKeyQuote,
                         [AKEYCODE_SLASH]           = GLFMKeySlash,
 
-                        [AKEYCODE_MENU]            = GLFMKeyContextMenu,
+                        [AKEYCODE_MENU]            = GLFMKeyMenu,
 
                         [AKEYCODE_PAGE_UP]         = GLFMKeyPageUp,
                         [AKEYCODE_PAGE_DOWN]       = GLFMKeyPageDown,

@@ -550,7 +550,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         static const GLFMKey GLFM_KEY_CODES[] = {
             GLFMKeyAltLeft, GLFMKeyAltRight, GLFMKeyArrowDown, GLFMKeyArrowLeft, GLFMKeyArrowRight, GLFMKeyArrowUp,
             GLFMKeyBackquote, GLFMKeyBackslash, GLFMKeyBackspace, GLFMKeyBracketLeft, GLFMKeyBracketRight, GLFMKeyNavigationBack,
-            GLFMKeyCapsLock, GLFMKeyComma, GLFMKeyContextMenu, GLFMKeyControlLeft, GLFMKeyControlRight, GLFMKeyDelete, GLFMKeyDigit0,
+            GLFMKeyCapsLock, GLFMKeyComma, GLFMKeyMenu, GLFMKeyControlLeft, GLFMKeyControlRight, GLFMKeyDelete, GLFMKeyDigit0,
             GLFMKeyDigit1, GLFMKeyDigit2, GLFMKeyDigit3, GLFMKeyDigit4, GLFMKeyDigit5, GLFMKeyDigit6, GLFMKeyDigit7, GLFMKeyDigit8,
             GLFMKeyDigit9, GLFMKeyEnd, GLFMKeyEnter, GLFMKeyEqual, GLFMKeyEscape, GLFMKeyF1, GLFMKeyF10, GLFMKeyF11, GLFMKeyF12, GLFMKeyF13, GLFMKeyF14,
             GLFMKeyF15, GLFMKeyF16, GLFMKeyF17, GLFMKeyF18, GLFMKeyF19, GLFMKeyF2, GLFMKeyF20, GLFMKeyF21, GLFMKeyF22, GLFMKeyF23, GLFMKeyF24, GLFMKeyF3, GLFMKeyF4,

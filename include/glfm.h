@@ -254,7 +254,7 @@ typedef enum {
     GLFMKeyAltRight,         // Apple: Option
     GLFMKeyMetaLeft,         // Apple: Command
     GLFMKeyMetaRight,        // Apple: Command
-    GLFMKeyContextMenu,
+    GLFMKeyMenu,             // Context menu
 
     GLFMKeyInsert,
     GLFMKeyPageUp,
