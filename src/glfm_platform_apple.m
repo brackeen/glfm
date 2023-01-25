@@ -13,6 +13,8 @@
 #  import <UIKit/UIKit.h>
 #elif TARGET_OS_OSX
 #  import <AppKit/AppKit.h>
+#  import <Carbon/Carbon.h> // For kVK key codes in HIToolbox/Events.h
+#  import <IOKit/hidsystem/IOLLEvent.h> // For NX_DEVICE modifier keys
 #  define UIApplication NSApplication
 #  define UIApplicationDelegate NSApplicationDelegate
 #  define UIView NSView
@@ -234,6 +236,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         [self requestRefresh];
         [self draw];
     }
+}
+
+- (BOOL)acceptsFirstResponder {
+    return YES;
 }
 
 #endif // TARGET_OS_OSX
@@ -884,6 +890,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     return self;
 }
 
+- (BOOL)acceptsFirstResponder {
+    return YES;
+}
+
 - (GLFMRenderingAPI)renderingAPI {
     // TODO: Return correct API
     return GLFMRenderingAPIOpenGLES2;
@@ -1013,6 +1023,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @property(nonatomic, strong) NSCursor *transparentCursor;
 @property(nonatomic, strong) NSCursor *currentCursor;
 @property(nonatomic, assign) BOOL mouseInside;
+@property(nonatomic, assign) BOOL fnModifier;
 #endif
 @end
 
@@ -1050,7 +1061,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @synthesize motionManager = _motionManager, orientation;
 #endif
 #if TARGET_OS_OSX
-@synthesize transparentCursor, currentCursor, mouseInside;
+@synthesize transparentCursor, currentCursor, mouseInside, fnModifier;
 #endif
 
 - (id)init {
@@ -1767,6 +1778,231 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     [NSCursor.arrowCursor set];
 }
 
+// MARK: NSResponder (Keyboard)
+
+- (BOOL)sendKeyEvent:(NSEvent *)event withAction:(GLFMKeyAction)action {
+    BOOL canSendKeyEvent = (self.glfmDisplay->keyFunc != nil);
+    BOOL canSendCharEvent = (self.glfmDisplay->charFunc && event.type == NSEventTypeKeyDown &&
+                             (event.modifierFlags & NSEventModifierFlagFunction) == 0 &&
+                             (event.modifierFlags & NSEventModifierFlagCommand) == 0 &&
+                             (event.modifierFlags & NSEventModifierFlagControl) == 0);
+    if (!canSendKeyEvent && !canSendCharEvent) {
+        return NO;
+    }
+
+    BOOL sendReleaseEvent = NO;
+    BOOL handled = NO;
+    int modifiers = 0;
+    if ((event.modifierFlags & NSEventModifierFlagShift) != 0) {
+        modifiers |= GLFMKeyModifierShift;
+    }
+    if ((event.modifierFlags & NSEventModifierFlagControl) != 0) {
+        modifiers |= GLFMKeyModifierCtrl;
+    }
+    if ((event.modifierFlags & NSEventModifierFlagOption) != 0) {
+        modifiers |= GLFMKeyModifierAlt;
+    }
+    if ((event.modifierFlags & NSEventModifierFlagCommand) != 0) {
+        modifiers |= GLFMKeyModifierMeta;
+        // The keyUp: method is not called when the "command" key is held.
+        sendReleaseEvent = event.type == NSEventTypeKeyDown;
+    }
+    if (self.fnModifier) {
+        modifiers |= GLFMKeyModifierFunction;
+    }
+
+    if (canSendKeyEvent) {
+        static const GLFMKey VK_MAP[] = {
+            [kVK_Return]                    = GLFMKeyEnter,
+            [kVK_Tab]                       = GLFMKeyTab,
+            [kVK_Space]                     = GLFMKeySpace,
+            [kVK_Delete]                    = GLFMKeyDelete,
+            [kVK_Escape]                    = GLFMKeyEscape,
+            [kVK_Command]                   = GLFMKeyMetaLeft,
+            [kVK_Shift]                     = GLFMKeyShiftLeft,
+            [kVK_CapsLock]                  = GLFMKeyCapsLock,
+            [kVK_Option]                    = GLFMKeyAltLeft,
+            [kVK_Control]                   = GLFMKeyControlLeft,
+            [kVK_RightCommand]              = GLFMKeyMetaRight,
+            [kVK_RightShift]                = GLFMKeyShiftRight,
+            [kVK_RightOption]               = GLFMKeyAltRight,
+            [kVK_RightControl]              = GLFMKeyControlRight,
+            [kVK_Function]                  = GLFMKeyFunction,
+            [kVK_Home]                      = GLFMKeyHome,
+            [kVK_PageUp]                    = GLFMKeyPageUp,
+            [kVK_ForwardDelete]             = GLFMKeyDelete,
+            [kVK_End]                       = GLFMKeyEnd,
+            [kVK_PageDown]                  = GLFMKeyPageDown,
+            [kVK_LeftArrow]                 = GLFMKeyArrowLeft,
+            [kVK_RightArrow]                = GLFMKeyArrowRight,
+            [kVK_DownArrow]                 = GLFMKeyArrowDown,
+            [kVK_UpArrow]                   = GLFMKeyArrowUp,
+            [kVK_ANSI_A]                    = GLFMKeyA,
+            [kVK_ANSI_B]                    = GLFMKeyB,
+            [kVK_ANSI_C]                    = GLFMKeyC,
+            [kVK_ANSI_D]                    = GLFMKeyD,
+            [kVK_ANSI_E]                    = GLFMKeyE,
+            [kVK_ANSI_F]                    = GLFMKeyF,
+            [kVK_ANSI_G]                    = GLFMKeyG,
+            [kVK_ANSI_H]                    = GLFMKeyH,
+            [kVK_ANSI_I]                    = GLFMKeyI,
+            [kVK_ANSI_J]                    = GLFMKeyJ,
+            [kVK_ANSI_K]                    = GLFMKeyK,
+            [kVK_ANSI_L]                    = GLFMKeyL,
+            [kVK_ANSI_N]                    = GLFMKeyN,
+            [kVK_ANSI_M]                    = GLFMKeyM,
+            [kVK_ANSI_O]                    = GLFMKeyO,
+            [kVK_ANSI_P]                    = GLFMKeyP,
+            [kVK_ANSI_Q]                    = GLFMKeyQ,
+            [kVK_ANSI_R]                    = GLFMKeyR,
+            [kVK_ANSI_S]                    = GLFMKeyS,
+            [kVK_ANSI_T]                    = GLFMKeyT,
+            [kVK_ANSI_U]                    = GLFMKeyU,
+            [kVK_ANSI_V]                    = GLFMKeyV,
+            [kVK_ANSI_W]                    = GLFMKeyW,
+            [kVK_ANSI_X]                    = GLFMKeyX,
+            [kVK_ANSI_Y]                    = GLFMKeyY,
+            [kVK_ANSI_Z]                    = GLFMKeyZ,
+            [kVK_ANSI_0]                    = GLFMKeyDigit0,
+            [kVK_ANSI_1]                    = GLFMKeyDigit1,
+            [kVK_ANSI_2]                    = GLFMKeyDigit2,
+            [kVK_ANSI_3]                    = GLFMKeyDigit3,
+            [kVK_ANSI_4]                    = GLFMKeyDigit4,
+            [kVK_ANSI_5]                    = GLFMKeyDigit5,
+            [kVK_ANSI_6]                    = GLFMKeyDigit6,
+            [kVK_ANSI_7]                    = GLFMKeyDigit7,
+            [kVK_ANSI_8]                    = GLFMKeyDigit8,
+            [kVK_ANSI_9]                    = GLFMKeyDigit9,
+            [kVK_ANSI_Equal]                = GLFMKeyEqual,
+            [kVK_ANSI_Minus]                = GLFMKeyMinus,
+            [kVK_ANSI_RightBracket]         = GLFMKeyBracketRight,
+            [kVK_ANSI_LeftBracket]          = GLFMKeyBracketLeft,
+            [kVK_ANSI_Quote]                = GLFMKeyQuote,
+            [kVK_ANSI_Semicolon]            = GLFMKeySemicolon,
+            [kVK_ANSI_Backslash]            = GLFMKeyBackslash,
+            [kVK_ANSI_Comma]                = GLFMKeyComma,
+            [kVK_ANSI_Slash]                = GLFMKeySlash,
+            [kVK_ANSI_Period]               = GLFMKeyPeriod,
+            [kVK_ANSI_Grave]                = GLFMKeyBackquote,
+            [kVK_ANSI_KeypadClear]          = GLFMKeyNumLock,
+            [kVK_ANSI_KeypadDecimal]        = GLFMKeyNumpadDecimal,
+            [kVK_ANSI_KeypadMultiply]       = GLFMKeyNumpadMultiply,
+            [kVK_ANSI_KeypadPlus]           = GLFMKeyNumpadAdd,
+            [kVK_ANSI_KeypadDivide]         = GLFMKeyNumpadDivide,
+            [kVK_ANSI_KeypadEnter]          = GLFMKeyNumpadEnter,
+            [kVK_ANSI_KeypadMinus]          = GLFMKeyNumpadSubtract,
+            [kVK_ANSI_KeypadEquals]         = GLFMKeyNumpadEqual,
+            [kVK_ANSI_Keypad0]              = GLFMKeyNumpad0,
+            [kVK_ANSI_Keypad1]              = GLFMKeyNumpad1,
+            [kVK_ANSI_Keypad2]              = GLFMKeyNumpad2,
+            [kVK_ANSI_Keypad3]              = GLFMKeyNumpad3,
+            [kVK_ANSI_Keypad4]              = GLFMKeyNumpad4,
+            [kVK_ANSI_Keypad5]              = GLFMKeyNumpad5,
+            [kVK_ANSI_Keypad6]              = GLFMKeyNumpad6,
+            [kVK_ANSI_Keypad7]              = GLFMKeyNumpad7,
+            [kVK_ANSI_Keypad8]              = GLFMKeyNumpad8,
+            [kVK_ANSI_Keypad9]              = GLFMKeyNumpad9,
+            [kVK_F1]                        = GLFMKeyF1,
+            [kVK_F2]                        = GLFMKeyF2,
+            [kVK_F3]                        = GLFMKeyF3,
+            [kVK_F4]                        = GLFMKeyF4,
+            [kVK_F5]                        = GLFMKeyF5,
+            [kVK_F6]                        = GLFMKeyF6,
+            [kVK_F7]                        = GLFMKeyF7,
+            [kVK_F8]                        = GLFMKeyF8,
+            [kVK_F9]                        = GLFMKeyF9,
+            [kVK_F10]                       = GLFMKeyF10,
+            [kVK_F11]                       = GLFMKeyF11,
+            [kVK_F12]                       = GLFMKeyF12,
+            [kVK_F13]                       = GLFMKeyF13,
+            [kVK_F14]                       = GLFMKeyF14,
+            [kVK_F15]                       = GLFMKeyF15,
+            [kVK_F16]                       = GLFMKeyF16,
+            [kVK_F17]                       = GLFMKeyF17,
+            [kVK_F18]                       = GLFMKeyF18,
+            [kVK_F19]                       = GLFMKeyF19,
+            [kVK_F20]                       = GLFMKeyF20,
+        };
+
+        GLFMKey keyCode = GLFMKeyUnknown;
+        if (event.keyCode <= sizeof(VK_MAP) / sizeof(*VK_MAP)) {
+            keyCode = VK_MAP[event.keyCode];
+        }
+
+        handled = self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, modifiers);
+        if (sendReleaseEvent) {
+            handled = self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, GLFMKeyActionReleased, modifiers) || handled;
+        }
+    }
+
+    if (canSendCharEvent) {
+        BOOL isControlCode = NO;
+        NSString *characters = event.characters;
+
+        // Don't send control codes (Return, Tab, Esc, Delete, etc)
+        if (characters.length == 1) {
+            unichar ch = [characters characterAtIndex:0];
+            isControlCode = (ch < 0x20 ||
+                             ch == NSDeleteCharacter ||
+                             ch == NSLineSeparatorCharacter ||
+                             ch == NSParagraphSeparatorCharacter);
+        }
+        if (characters.length >= 1 && !isControlCode) {
+            self.glfmDisplay->charFunc(self.glfmDisplay, characters.UTF8String, modifiers);
+        }
+    }
+    return handled;
+}
+
+- (void)keyDown:(NSEvent *)event {
+    GLFMKeyAction action = (event.isARepeat ? GLFMKeyActionRepeated : GLFMKeyActionPressed);
+    BOOL handled = [self sendKeyEvent:event withAction:action];
+    if (!handled) {
+        // Interpret unhandled keys. For now, only interpretation is "Esc" to exit fullscreen.
+        if (event.keyCode == kVK_Escape) {
+            NSWindow *window = self.glfmViewIfLoaded.window;
+            if (window && (window.styleMask & NSWindowStyleMaskFullScreen) != 0) {
+                [window toggleFullScreen:nil];
+            }
+        }
+    }
+}
+
+- (void)keyUp:(NSEvent *)event {
+    [self sendKeyEvent:event withAction:GLFMKeyActionReleased];
+}
+
+- (void)flagsChanged:(NSEvent *)event {
+    NSEventModifierFlags modifier = 0;
+    switch (event.keyCode) {
+        case kVK_Command: modifier = NX_DEVICELCMDKEYMASK; break;
+        case kVK_Shift: modifier = NX_DEVICELSHIFTKEYMASK; break;
+        case kVK_CapsLock: modifier = NSEventModifierFlagCapsLock; break;
+        case kVK_Option: modifier = NX_DEVICELALTKEYMASK; break;
+        case kVK_Control: modifier = NX_DEVICELCTLKEYMASK; break;
+        case kVK_RightCommand: modifier = NX_DEVICERCMDKEYMASK; break;
+        case kVK_RightShift: modifier = NX_DEVICERSHIFTKEYMASK; break;
+        case kVK_RightOption: modifier = NX_DEVICERALTKEYMASK; break;
+        case kVK_RightControl: modifier = NX_DEVICERCTLKEYMASK; break;
+        case kVK_Function: modifier = NSEventModifierFlagFunction; break;
+    };
+    if (modifier != 0) {
+        BOOL pressed = ((event.modifierFlags & modifier) != 0);
+        if (event.keyCode == kVK_Function) {
+            // The fn key cannot be determined from `modifierFlags` because the
+            // `NSEventModifierFlagFunction` flag is also used for other keys, like the arrow keys.
+            // So, keep track of it's state.
+            self.fnModifier = pressed;
+        }
+        GLFMKeyAction action = pressed ? GLFMKeyActionPressed : GLFMKeyActionReleased;
+        [self sendKeyEvent:event withAction:action];
+    }
+}
+
+- (void)clearActiveKeys {
+    self.fnModifier = NO;
+}
+
 #endif // TARGET_OS_OSX
 
 @end
@@ -1992,6 +2228,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             }
             vc.glfmView.animating = active;
         }
+        [vc clearActiveKeys];
     }
 }
 
