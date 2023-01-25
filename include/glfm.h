@@ -243,84 +243,84 @@ typedef enum {
     GLFMKeyBackquote         = 0x60, // Grave
     GLFMKeyDelete            = 0x7F, // Apple: Forward Delete
 
-    // Non-ASCII keys
+    // Non-ASCII keys. These values may change in the future.
 
-    GLFMKeyCapsLock,
-    GLFMKeyShiftLeft,
-    GLFMKeyShiftRight,
-    GLFMKeyControlLeft,
-    GLFMKeyControlRight,
-    GLFMKeyAltLeft,          // Apple: Option
-    GLFMKeyAltRight,         // Apple: Option
-    GLFMKeyMetaLeft,         // Apple: Command
-    GLFMKeyMetaRight,        // Apple: Command
-    GLFMKeyMenu,             // Context menu
+    GLFMKeyCapsLock          = 0x80,
+    GLFMKeyShiftLeft         = 0x81,
+    GLFMKeyShiftRight        = 0x82,
+    GLFMKeyControlLeft       = 0x83,
+    GLFMKeyControlRight      = 0x84,
+    GLFMKeyAltLeft           = 0x85, // Apple: Option
+    GLFMKeyAltRight          = 0x86, // Apple: Option
+    GLFMKeyMetaLeft          = 0x87, // Apple: Command
+    GLFMKeyMetaRight         = 0x88, // Apple: Command
+    GLFMKeyMenu              = 0x89, // Context menu
 
-    GLFMKeyInsert,
-    GLFMKeyPageUp,
-    GLFMKeyPageDown,
-    GLFMKeyEnd,
-    GLFMKeyHome,
+    GLFMKeyInsert            = 0x90,
+    GLFMKeyPageUp            = 0x91,
+    GLFMKeyPageDown          = 0x92,
+    GLFMKeyEnd               = 0x93,
+    GLFMKeyHome              = 0x94,
+    GLFMKeyArrowLeft         = 0x95,
+    GLFMKeyArrowUp           = 0x96,
+    GLFMKeyArrowRight        = 0x97,
+    GLFMKeyArrowDown         = 0x98,
 
-    GLFMKeyArrowLeft,
-    GLFMKeyArrowUp,
-    GLFMKeyArrowRight,
-    GLFMKeyArrowDown,
+    GLFMKeyPower             = 0x99,
+    GLFMKeyFunction          = 0x9A, // Apple: Fn
+    GLFMKeyPrintScreen       = 0x9B, // System Request
+    GLFMKeyScrollLock        = 0x9C,
+    GLFMKeyPause             = 0x9D, // Break
 
-    GLFMKeyNumLock,          // Apple: Clear
-    GLFMKeyNumpadDecimal,
-    GLFMKeyNumpadMultiply,
-    GLFMKeyNumpadAdd,
-    GLFMKeyNumpadDivide,
-    GLFMKeyNumpadEnter,
-    GLFMKeyNumpadSubtract,
-    GLFMKeyNumpadEqual,
+    GLFMKeyNumLock           = 0xA0, // Apple: Clear
+    GLFMKeyNumpadDecimal     = 0xA1,
+    GLFMKeyNumpadMultiply    = 0xA2,
+    GLFMKeyNumpadAdd         = 0xA3,
+    GLFMKeyNumpadDivide      = 0xA4,
+    GLFMKeyNumpadEnter       = 0xA5,
+    GLFMKeyNumpadSubtract    = 0xA6,
+    GLFMKeyNumpadEqual       = 0xA7,
 
-    GLFMKeyNumpad0,
-    GLFMKeyNumpad1,
-    GLFMKeyNumpad2,
-    GLFMKeyNumpad3,
-    GLFMKeyNumpad4,
-    GLFMKeyNumpad5,
-    GLFMKeyNumpad6,
-    GLFMKeyNumpad7,
-    GLFMKeyNumpad8,
-    GLFMKeyNumpad9,
+    GLFMKeyNumpad0           = 0xB0,
+    GLFMKeyNumpad1           = 0xB1,
+    GLFMKeyNumpad2           = 0xB2,
+    GLFMKeyNumpad3           = 0xB3,
+    GLFMKeyNumpad4           = 0xB4,
+    GLFMKeyNumpad5           = 0xB5,
+    GLFMKeyNumpad6           = 0xB6,
+    GLFMKeyNumpad7           = 0xB7,
+    GLFMKeyNumpad8           = 0xB8,
+    GLFMKeyNumpad9           = 0xB9,
 
-    GLFMKeyF1,
-    GLFMKeyF2,
-    GLFMKeyF3,
-    GLFMKeyF4,
-    GLFMKeyF5,
-    GLFMKeyF6,
-    GLFMKeyF7,
-    GLFMKeyF8,
-    GLFMKeyF9,
-    GLFMKeyF10,
-    GLFMKeyF11,
-    GLFMKeyF12,
-    GLFMKeyF13,
-    GLFMKeyF14,
-    GLFMKeyF15,
-    GLFMKeyF16,
-    GLFMKeyF17,
-    GLFMKeyF18,
-    GLFMKeyF19,
-    GLFMKeyF20,
-    GLFMKeyF21,
-    GLFMKeyF22,
-    GLFMKeyF23,
-    GLFMKeyF24,
+    GLFMKeyF1                = 0xC1,
+    GLFMKeyF2                = 0xC2,
+    GLFMKeyF3                = 0xC3,
+    GLFMKeyF4                = 0xC4,
+    GLFMKeyF5                = 0xC5,
+    GLFMKeyF6                = 0xC6,
+    GLFMKeyF7                = 0xC7,
+    GLFMKeyF8                = 0xC8,
+    GLFMKeyF9                = 0xC9,
+    GLFMKeyF10               = 0xD0,
+    GLFMKeyF11               = 0xD1,
+    GLFMKeyF12               = 0xD2,
+    GLFMKeyF13               = 0xD3,
+    GLFMKeyF14               = 0xD4,
+    GLFMKeyF15               = 0xD5,
+    GLFMKeyF16               = 0xD6,
+    GLFMKeyF17               = 0xD7,
+    GLFMKeyF18               = 0xD8,
+    GLFMKeyF19               = 0xD9,
+    GLFMKeyF20               = 0xDA,
+    GLFMKeyF21               = 0xDB,
+    GLFMKeyF22               = 0xDC,
+    GLFMKeyF23               = 0xDD,
+    GLFMKeyF24               = 0xDE,
 
-    GLFMKeyPower,
-    GLFMKeyFunction,         // Apple: Fn
-    GLFMKeyPrintScreen,      // System Request
-    GLFMKeyScrollLock,
-    GLFMKeyPause,            // Break
+    GLFMKeyNavigationBack    = 0xE0, // Android (soft) back button, tvOS menu/back button.
+    GLFMKeyMediaSelect       = 0xE1, // tvOS
+    GLFMKeyMediaPlayPause    = 0xE2, // tvOS
 
-    GLFMKeyNavigationBack,   // Android, tvOS
-    GLFMKeyMediaSelect,      // tvOS
-    GLFMKeyMediaPlayPause,   // tvOS
 } GLFMKey;
 
 enum {
