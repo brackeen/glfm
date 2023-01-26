@@ -1816,7 +1816,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             [kVK_Return]                    = GLFMKeyCodeEnter,
             [kVK_Tab]                       = GLFMKeyCodeTab,
             [kVK_Space]                     = GLFMKeyCodeSpace,
-            [kVK_Delete]                    = GLFMKeyCodeDelete,
+            [kVK_Delete]                    = GLFMKeyCodeBackspace,
             [kVK_Escape]                    = GLFMKeyCodeEscape,
             [kVK_Command]                   = GLFMKeyCodeMetaLeft,
             [kVK_Shift]                     = GLFMKeyCodeShiftLeft,
