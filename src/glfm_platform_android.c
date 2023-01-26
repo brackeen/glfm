@@ -1545,6 +1545,7 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
         if (platformData->display && platformData->display->keyFunc) {
             int32_t aKeyCode = AKeyEvent_getKeyCode(event);
             int32_t aAction = AKeyEvent_getAction(event);
+            int32_t aMetaState = AKeyEvent_getMetaState(event);
             if (aKeyCode != 0) {
                 static const GLFMKeyCode AKEYCODE_MAP[] = {
                         [AKEYCODE_BACK]            = GLFMKeyCodeNavigationBack,
@@ -1666,13 +1667,31 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
                         [AKEYCODE_NUMPAD_EQUALS]   = GLFMKeyCodeNumpadEqual,
                 };
 
-                GLFMKeyCode key = GLFMKeyCodeUnknown;
+                GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
                 if (aKeyCode >= 0 && aKeyCode < (int32_t)(sizeof(AKEYCODE_MAP) / sizeof(*AKEYCODE_MAP))) {
-                    key = AKEYCODE_MAP[aKeyCode];
+                    keyCode = AKEYCODE_MAP[aKeyCode];
                 }
+
+                int modifiers = 0;
+                if ((aMetaState & AMETA_SHIFT_ON) != 0) {
+                    modifiers |= GLFMKeyModifierShift;
+                }
+                if ((aMetaState & AMETA_CTRL_ON) != 0) {
+                    modifiers |= GLFMKeyModifierControl;
+                }
+                if ((aMetaState & AMETA_ALT_ON) != 0) {
+                    modifiers |= GLFMKeyModifierAlt;
+                }
+                if ((aMetaState & AMETA_META_ON) != 0) {
+                    modifiers |= GLFMKeyModifierMeta;
+                }
+                if ((aMetaState & AMETA_FUNCTION_ON) != 0) {
+                    modifiers |= GLFMKeyModifierFunction;
+                }
+
                 if (aAction == AKEY_EVENT_ACTION_UP) {
-                    handled = platformData->display->keyFunc(platformData->display, key,
-                                                             GLFMKeyActionReleased, 0);
+                    handled = platformData->display->keyFunc(platformData->display, keyCode,
+                                                             GLFMKeyActionReleased, modifiers);
                     if (handled == 0 && aKeyCode == AKEYCODE_BACK) {
                         handled = glfm__handleBackButton(app) ? 1 : 0;
                     }
@@ -1683,15 +1702,15 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
                     } else {
                         keyAction = GLFMKeyActionPressed;
                     }
-                    handled = platformData->display->keyFunc(platformData->display, key,
-                                                             keyAction, 0);
+                    handled = platformData->display->keyFunc(platformData->display, keyCode,
+                                                             keyAction, modifiers);
                 } else if (aAction == AKEY_EVENT_ACTION_MULTIPLE) {
                     int32_t i;
                     for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
-                        handled |= platformData->display->keyFunc(platformData->display, key,
-                                                            GLFMKeyActionPressed, 0);
-                        handled |= platformData->display->keyFunc(platformData->display, key,
-                                                            GLFMKeyActionReleased, 0);
+                        handled |= platformData->display->keyFunc(platformData->display, keyCode,
+                                                            GLFMKeyActionPressed, modifiers);
+                        handled |= platformData->display->keyFunc(platformData->display, keyCode,
+                                                            GLFMKeyActionReleased, modifiers);
                     }
                 }
             }
