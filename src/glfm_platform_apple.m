@@ -1447,37 +1447,37 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 - (BOOL)handlePress:(UIPress *)press withAction:(GLFMKeyAction)action {
     if (self.glfmDisplay->keyFunc) {
-        GLFMKey key = GLFMKeyUnknown;
+        GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
         switch (press.type) {
             case UIPressTypeUpArrow:
-                key = GLFMKeyArrowUp;
+                keyCode = GLFMKeyCodeArrowUp;
                 break;
             case UIPressTypeDownArrow:
-                key = GLFMKeyArrowDown;
+                keyCode = GLFMKeyCodeArrowDown;
                 break;
             case UIPressTypeLeftArrow:
-                key = GLFMKeyArrowLeft;
+                keyCode = GLFMKeyCodeArrowLeft;
                 break;
             case UIPressTypeRightArrow:
-                key = GLFMKeyArrowRight;
+                keyCode = GLFMKeyCodeArrowRight;
                 break;
             case UIPressTypeSelect:
-                key = GLFMKeyMediaSelect;
+                keyCode = GLFMKeyCodeMediaSelect;
                 break;
             case UIPressTypeMenu:
-                key = GLFMKeyNavigationBack;
+                keyCode = GLFMKeyCodeNavigationBack;
                 break;
             case UIPressTypePlayPause:
-                key = GLFMKeyMediaPlayPause;
+                keyCode = GLFMKeyCodeMediaPlayPause;
                 break;
             case UIPressTypePageUp:
-                key = GLFMKeyPageUp;
+                keyCode = GLFMKeyCodePageUp;
                 break;
             case UIPressTypePageDown:
-                key = GLFMKeyPageDown;
+                keyCode = GLFMKeyCodePageDown;
                 break;
         }
-        return self.glfmDisplay->keyFunc(self.glfmDisplay, key, action, 0);
+        return self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, 0);
     } else {
         return NO;
     }
@@ -1569,8 +1569,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 - (void)deleteBackward {
     if (self.glfmDisplay->keyFunc) {
-        self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyBackspace, GLFMKeyActionPressed, 0);
-        self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyBackspace, GLFMKeyActionReleased, 0);
+        self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeBackspace, GLFMKeyActionPressed, 0);
+        self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeBackspace, GLFMKeyActionReleased, 0);
     }
 }
 
@@ -1607,28 +1607,28 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (void)keyPressed:(UIKeyCommand *)keyCommand {
     if (self.glfmDisplay->keyFunc) {
         NSString *key = [keyCommand input];
-        GLFMKey keyCode = GLFMKeyUnknown;
+        GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
         if (key == UIKeyInputUpArrow) {
-            keyCode = GLFMKeyArrowUp;
+            keyCode = GLFMKeyCodeArrowUp;
         } else if (key == UIKeyInputDownArrow) {
-            keyCode = GLFMKeyArrowDown;
+            keyCode = GLFMKeyCodeArrowDown;
         } else if (key == UIKeyInputLeftArrow) {
-            keyCode = GLFMKeyArrowLeft;
+            keyCode = GLFMKeyCodeArrowLeft;
         } else if (key == UIKeyInputRightArrow) {
-            keyCode = GLFMKeyArrowRight;
+            keyCode = GLFMKeyCodeArrowRight;
         } else if (key == UIKeyInputEscape) {
-            keyCode = GLFMKeyEscape;
+            keyCode = GLFMKeyCodeEscape;
         } else if (key == UIKeyInputPageUp) {
-            keyCode = GLFMKeyPageUp;
+            keyCode = GLFMKeyCodePageUp;
         } else if (key == UIKeyInputPageDown) {
-            keyCode = GLFMKeyPageDown;
+            keyCode = GLFMKeyCodePageDown;
         }
         
         if (@available(iOS 13.4, tvOS 13.4, *)) {
             if (key == UIKeyInputHome) {
-                keyCode = GLFMKeyHome;
+                keyCode = GLFMKeyCodeHome;
             } else if (key == UIKeyInputEnd) {
-                keyCode = GLFMKeyEnd;
+                keyCode = GLFMKeyCodeEnd;
             }
         }
 
@@ -1797,7 +1797,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         modifiers |= GLFMKeyModifierShift;
     }
     if ((event.modifierFlags & NSEventModifierFlagControl) != 0) {
-        modifiers |= GLFMKeyModifierCtrl;
+        modifiers |= GLFMKeyModifierControl;
     }
     if ((event.modifierFlags & NSEventModifierFlagOption) != 0) {
         modifiers |= GLFMKeyModifierAlt;
@@ -1812,119 +1812,119 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
 
     if (canSendKeyEvent) {
-        static const GLFMKey VK_MAP[] = {
-            [kVK_Return]                    = GLFMKeyEnter,
-            [kVK_Tab]                       = GLFMKeyTab,
-            [kVK_Space]                     = GLFMKeySpace,
-            [kVK_Delete]                    = GLFMKeyDelete,
-            [kVK_Escape]                    = GLFMKeyEscape,
-            [kVK_Command]                   = GLFMKeyMetaLeft,
-            [kVK_Shift]                     = GLFMKeyShiftLeft,
-            [kVK_CapsLock]                  = GLFMKeyCapsLock,
-            [kVK_Option]                    = GLFMKeyAltLeft,
-            [kVK_Control]                   = GLFMKeyControlLeft,
-            [kVK_RightCommand]              = GLFMKeyMetaRight,
-            [kVK_RightShift]                = GLFMKeyShiftRight,
-            [kVK_RightOption]               = GLFMKeyAltRight,
-            [kVK_RightControl]              = GLFMKeyControlRight,
-            [kVK_Function]                  = GLFMKeyFunction,
-            [kVK_Home]                      = GLFMKeyHome,
-            [kVK_PageUp]                    = GLFMKeyPageUp,
-            [kVK_ForwardDelete]             = GLFMKeyDelete,
-            [kVK_End]                       = GLFMKeyEnd,
-            [kVK_PageDown]                  = GLFMKeyPageDown,
-            [kVK_LeftArrow]                 = GLFMKeyArrowLeft,
-            [kVK_RightArrow]                = GLFMKeyArrowRight,
-            [kVK_DownArrow]                 = GLFMKeyArrowDown,
-            [kVK_UpArrow]                   = GLFMKeyArrowUp,
-            [kVK_ANSI_A]                    = GLFMKeyA,
-            [kVK_ANSI_B]                    = GLFMKeyB,
-            [kVK_ANSI_C]                    = GLFMKeyC,
-            [kVK_ANSI_D]                    = GLFMKeyD,
-            [kVK_ANSI_E]                    = GLFMKeyE,
-            [kVK_ANSI_F]                    = GLFMKeyF,
-            [kVK_ANSI_G]                    = GLFMKeyG,
-            [kVK_ANSI_H]                    = GLFMKeyH,
-            [kVK_ANSI_I]                    = GLFMKeyI,
-            [kVK_ANSI_J]                    = GLFMKeyJ,
-            [kVK_ANSI_K]                    = GLFMKeyK,
-            [kVK_ANSI_L]                    = GLFMKeyL,
-            [kVK_ANSI_N]                    = GLFMKeyN,
-            [kVK_ANSI_M]                    = GLFMKeyM,
-            [kVK_ANSI_O]                    = GLFMKeyO,
-            [kVK_ANSI_P]                    = GLFMKeyP,
-            [kVK_ANSI_Q]                    = GLFMKeyQ,
-            [kVK_ANSI_R]                    = GLFMKeyR,
-            [kVK_ANSI_S]                    = GLFMKeyS,
-            [kVK_ANSI_T]                    = GLFMKeyT,
-            [kVK_ANSI_U]                    = GLFMKeyU,
-            [kVK_ANSI_V]                    = GLFMKeyV,
-            [kVK_ANSI_W]                    = GLFMKeyW,
-            [kVK_ANSI_X]                    = GLFMKeyX,
-            [kVK_ANSI_Y]                    = GLFMKeyY,
-            [kVK_ANSI_Z]                    = GLFMKeyZ,
-            [kVK_ANSI_0]                    = GLFMKeyDigit0,
-            [kVK_ANSI_1]                    = GLFMKeyDigit1,
-            [kVK_ANSI_2]                    = GLFMKeyDigit2,
-            [kVK_ANSI_3]                    = GLFMKeyDigit3,
-            [kVK_ANSI_4]                    = GLFMKeyDigit4,
-            [kVK_ANSI_5]                    = GLFMKeyDigit5,
-            [kVK_ANSI_6]                    = GLFMKeyDigit6,
-            [kVK_ANSI_7]                    = GLFMKeyDigit7,
-            [kVK_ANSI_8]                    = GLFMKeyDigit8,
-            [kVK_ANSI_9]                    = GLFMKeyDigit9,
-            [kVK_ANSI_Equal]                = GLFMKeyEqual,
-            [kVK_ANSI_Minus]                = GLFMKeyMinus,
-            [kVK_ANSI_RightBracket]         = GLFMKeyBracketRight,
-            [kVK_ANSI_LeftBracket]          = GLFMKeyBracketLeft,
-            [kVK_ANSI_Quote]                = GLFMKeyQuote,
-            [kVK_ANSI_Semicolon]            = GLFMKeySemicolon,
-            [kVK_ANSI_Backslash]            = GLFMKeyBackslash,
-            [kVK_ANSI_Comma]                = GLFMKeyComma,
-            [kVK_ANSI_Slash]                = GLFMKeySlash,
-            [kVK_ANSI_Period]               = GLFMKeyPeriod,
-            [kVK_ANSI_Grave]                = GLFMKeyBackquote,
-            [kVK_ANSI_KeypadClear]          = GLFMKeyNumLock,
-            [kVK_ANSI_KeypadDecimal]        = GLFMKeyNumpadDecimal,
-            [kVK_ANSI_KeypadMultiply]       = GLFMKeyNumpadMultiply,
-            [kVK_ANSI_KeypadPlus]           = GLFMKeyNumpadAdd,
-            [kVK_ANSI_KeypadDivide]         = GLFMKeyNumpadDivide,
-            [kVK_ANSI_KeypadEnter]          = GLFMKeyNumpadEnter,
-            [kVK_ANSI_KeypadMinus]          = GLFMKeyNumpadSubtract,
-            [kVK_ANSI_KeypadEquals]         = GLFMKeyNumpadEqual,
-            [kVK_ANSI_Keypad0]              = GLFMKeyNumpad0,
-            [kVK_ANSI_Keypad1]              = GLFMKeyNumpad1,
-            [kVK_ANSI_Keypad2]              = GLFMKeyNumpad2,
-            [kVK_ANSI_Keypad3]              = GLFMKeyNumpad3,
-            [kVK_ANSI_Keypad4]              = GLFMKeyNumpad4,
-            [kVK_ANSI_Keypad5]              = GLFMKeyNumpad5,
-            [kVK_ANSI_Keypad6]              = GLFMKeyNumpad6,
-            [kVK_ANSI_Keypad7]              = GLFMKeyNumpad7,
-            [kVK_ANSI_Keypad8]              = GLFMKeyNumpad8,
-            [kVK_ANSI_Keypad9]              = GLFMKeyNumpad9,
-            [kVK_F1]                        = GLFMKeyF1,
-            [kVK_F2]                        = GLFMKeyF2,
-            [kVK_F3]                        = GLFMKeyF3,
-            [kVK_F4]                        = GLFMKeyF4,
-            [kVK_F5]                        = GLFMKeyF5,
-            [kVK_F6]                        = GLFMKeyF6,
-            [kVK_F7]                        = GLFMKeyF7,
-            [kVK_F8]                        = GLFMKeyF8,
-            [kVK_F9]                        = GLFMKeyF9,
-            [kVK_F10]                       = GLFMKeyF10,
-            [kVK_F11]                       = GLFMKeyF11,
-            [kVK_F12]                       = GLFMKeyF12,
-            [kVK_F13]                       = GLFMKeyF13,
-            [kVK_F14]                       = GLFMKeyF14,
-            [kVK_F15]                       = GLFMKeyF15,
-            [kVK_F16]                       = GLFMKeyF16,
-            [kVK_F17]                       = GLFMKeyF17,
-            [kVK_F18]                       = GLFMKeyF18,
-            [kVK_F19]                       = GLFMKeyF19,
-            [kVK_F20]                       = GLFMKeyF20,
+        static const GLFMKeyCode VK_MAP[] = {
+            [kVK_Return]                    = GLFMKeyCodeEnter,
+            [kVK_Tab]                       = GLFMKeyCodeTab,
+            [kVK_Space]                     = GLFMKeyCodeSpace,
+            [kVK_Delete]                    = GLFMKeyCodeDelete,
+            [kVK_Escape]                    = GLFMKeyCodeEscape,
+            [kVK_Command]                   = GLFMKeyCodeMetaLeft,
+            [kVK_Shift]                     = GLFMKeyCodeShiftLeft,
+            [kVK_CapsLock]                  = GLFMKeyCodeCapsLock,
+            [kVK_Option]                    = GLFMKeyCodeAltLeft,
+            [kVK_Control]                   = GLFMKeyCodeControlLeft,
+            [kVK_RightCommand]              = GLFMKeyCodeMetaRight,
+            [kVK_RightShift]                = GLFMKeyCodeShiftRight,
+            [kVK_RightOption]               = GLFMKeyCodeAltRight,
+            [kVK_RightControl]              = GLFMKeyCodeControlRight,
+            [kVK_Function]                  = GLFMKeyCodeFunction,
+            [kVK_Home]                      = GLFMKeyCodeHome,
+            [kVK_PageUp]                    = GLFMKeyCodePageUp,
+            [kVK_ForwardDelete]             = GLFMKeyCodeDelete,
+            [kVK_End]                       = GLFMKeyCodeEnd,
+            [kVK_PageDown]                  = GLFMKeyCodePageDown,
+            [kVK_LeftArrow]                 = GLFMKeyCodeArrowLeft,
+            [kVK_RightArrow]                = GLFMKeyCodeArrowRight,
+            [kVK_DownArrow]                 = GLFMKeyCodeArrowDown,
+            [kVK_UpArrow]                   = GLFMKeyCodeArrowUp,
+            [kVK_ANSI_A]                    = GLFMKeyCodeA,
+            [kVK_ANSI_B]                    = GLFMKeyCodeB,
+            [kVK_ANSI_C]                    = GLFMKeyCodeC,
+            [kVK_ANSI_D]                    = GLFMKeyCodeD,
+            [kVK_ANSI_E]                    = GLFMKeyCodeE,
+            [kVK_ANSI_F]                    = GLFMKeyCodeF,
+            [kVK_ANSI_G]                    = GLFMKeyCodeG,
+            [kVK_ANSI_H]                    = GLFMKeyCodeH,
+            [kVK_ANSI_I]                    = GLFMKeyCodeI,
+            [kVK_ANSI_J]                    = GLFMKeyCodeJ,
+            [kVK_ANSI_K]                    = GLFMKeyCodeK,
+            [kVK_ANSI_L]                    = GLFMKeyCodeL,
+            [kVK_ANSI_N]                    = GLFMKeyCodeN,
+            [kVK_ANSI_M]                    = GLFMKeyCodeM,
+            [kVK_ANSI_O]                    = GLFMKeyCodeO,
+            [kVK_ANSI_P]                    = GLFMKeyCodeP,
+            [kVK_ANSI_Q]                    = GLFMKeyCodeQ,
+            [kVK_ANSI_R]                    = GLFMKeyCodeR,
+            [kVK_ANSI_S]                    = GLFMKeyCodeS,
+            [kVK_ANSI_T]                    = GLFMKeyCodeT,
+            [kVK_ANSI_U]                    = GLFMKeyCodeU,
+            [kVK_ANSI_V]                    = GLFMKeyCodeV,
+            [kVK_ANSI_W]                    = GLFMKeyCodeW,
+            [kVK_ANSI_X]                    = GLFMKeyCodeX,
+            [kVK_ANSI_Y]                    = GLFMKeyCodeY,
+            [kVK_ANSI_Z]                    = GLFMKeyCodeZ,
+            [kVK_ANSI_0]                    = GLFMKeyCode0,
+            [kVK_ANSI_1]                    = GLFMKeyCode1,
+            [kVK_ANSI_2]                    = GLFMKeyCode2,
+            [kVK_ANSI_3]                    = GLFMKeyCode3,
+            [kVK_ANSI_4]                    = GLFMKeyCode4,
+            [kVK_ANSI_5]                    = GLFMKeyCode5,
+            [kVK_ANSI_6]                    = GLFMKeyCode6,
+            [kVK_ANSI_7]                    = GLFMKeyCode7,
+            [kVK_ANSI_8]                    = GLFMKeyCode8,
+            [kVK_ANSI_9]                    = GLFMKeyCode9,
+            [kVK_ANSI_Equal]                = GLFMKeyCodeEqual,
+            [kVK_ANSI_Minus]                = GLFMKeyCodeMinus,
+            [kVK_ANSI_RightBracket]         = GLFMKeyCodeBracketRight,
+            [kVK_ANSI_LeftBracket]          = GLFMKeyCodeBracketLeft,
+            [kVK_ANSI_Quote]                = GLFMKeyCodeQuote,
+            [kVK_ANSI_Semicolon]            = GLFMKeyCodeSemicolon,
+            [kVK_ANSI_Backslash]            = GLFMKeyCodeBackslash,
+            [kVK_ANSI_Comma]                = GLFMKeyCodeComma,
+            [kVK_ANSI_Slash]                = GLFMKeyCodeSlash,
+            [kVK_ANSI_Period]               = GLFMKeyCodePeriod,
+            [kVK_ANSI_Grave]                = GLFMKeyCodeBackquote,
+            [kVK_ANSI_KeypadClear]          = GLFMKeyCodeNumLock,
+            [kVK_ANSI_KeypadDecimal]        = GLFMKeyCodeNumpadDecimal,
+            [kVK_ANSI_KeypadMultiply]       = GLFMKeyCodeNumpadMultiply,
+            [kVK_ANSI_KeypadPlus]           = GLFMKeyCodeNumpadAdd,
+            [kVK_ANSI_KeypadDivide]         = GLFMKeyCodeNumpadDivide,
+            [kVK_ANSI_KeypadEnter]          = GLFMKeyCodeNumpadEnter,
+            [kVK_ANSI_KeypadMinus]          = GLFMKeyCodeNumpadSubtract,
+            [kVK_ANSI_KeypadEquals]         = GLFMKeyCodeNumpadEqual,
+            [kVK_ANSI_Keypad0]              = GLFMKeyCodeNumpad0,
+            [kVK_ANSI_Keypad1]              = GLFMKeyCodeNumpad1,
+            [kVK_ANSI_Keypad2]              = GLFMKeyCodeNumpad2,
+            [kVK_ANSI_Keypad3]              = GLFMKeyCodeNumpad3,
+            [kVK_ANSI_Keypad4]              = GLFMKeyCodeNumpad4,
+            [kVK_ANSI_Keypad5]              = GLFMKeyCodeNumpad5,
+            [kVK_ANSI_Keypad6]              = GLFMKeyCodeNumpad6,
+            [kVK_ANSI_Keypad7]              = GLFMKeyCodeNumpad7,
+            [kVK_ANSI_Keypad8]              = GLFMKeyCodeNumpad8,
+            [kVK_ANSI_Keypad9]              = GLFMKeyCodeNumpad9,
+            [kVK_F1]                        = GLFMKeyCodeF1,
+            [kVK_F2]                        = GLFMKeyCodeF2,
+            [kVK_F3]                        = GLFMKeyCodeF3,
+            [kVK_F4]                        = GLFMKeyCodeF4,
+            [kVK_F5]                        = GLFMKeyCodeF5,
+            [kVK_F6]                        = GLFMKeyCodeF6,
+            [kVK_F7]                        = GLFMKeyCodeF7,
+            [kVK_F8]                        = GLFMKeyCodeF8,
+            [kVK_F9]                        = GLFMKeyCodeF9,
+            [kVK_F10]                       = GLFMKeyCodeF10,
+            [kVK_F11]                       = GLFMKeyCodeF11,
+            [kVK_F12]                       = GLFMKeyCodeF12,
+            [kVK_F13]                       = GLFMKeyCodeF13,
+            [kVK_F14]                       = GLFMKeyCodeF14,
+            [kVK_F15]                       = GLFMKeyCodeF15,
+            [kVK_F16]                       = GLFMKeyCodeF16,
+            [kVK_F17]                       = GLFMKeyCodeF17,
+            [kVK_F18]                       = GLFMKeyCodeF18,
+            [kVK_F19]                       = GLFMKeyCodeF19,
+            [kVK_F20]                       = GLFMKeyCodeF20,
         };
 
-        GLFMKey keyCode = GLFMKeyUnknown;
+        GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
         if (event.keyCode <= sizeof(VK_MAP) / sizeof(*VK_MAP)) {
             keyCode = VK_MAP[event.keyCode];
         }

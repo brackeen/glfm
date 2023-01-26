@@ -25,7 +25,7 @@ static void onSurfaceCreated(GLFMDisplay *display, int width, int height);
 static void onSurfaceRefresh(GLFMDisplay *display);
 static void onSurfaceDestroyed(GLFMDisplay *display);
 static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, double x, double y);
-static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, int modifiers);
+static bool onKey(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAction action, int modifiers);
 static bool onScroll(GLFMDisplay *display, double x, double y, GLFMMouseWheelDeltaType deltaType,
                      double deltaX, double deltaY, double deltaZ);
 
@@ -66,30 +66,30 @@ static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, doubl
     return true;
 }
 
-static bool onKey(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action, int modifiers) {
+static bool onKey(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAction action, int modifiers) {
     bool handled = false;
     if (action == GLFMKeyActionPressed) {
         ExampleApp *app = glfmGetUserData(display);
         switch (keyCode) {
-            case GLFMKeyArrowLeft:
+            case GLFMKeyCodeArrowLeft:
                 app->offsetX -= 0.1f;
                 handled = true;
                 break;
-            case GLFMKeyArrowRight:
+            case GLFMKeyCodeArrowRight:
                 app->offsetX += 0.1f;
                 handled = true;
                 break;
-            case GLFMKeyArrowUp:
+            case GLFMKeyCodeArrowUp:
                 app->offsetY += 0.1f;
                 handled = true;
                 break;
-            case GLFMKeyArrowDown:
+            case GLFMKeyCodeArrowDown:
                 app->offsetY -= 0.1f;
                 handled = true;
                 break;
-            case GLFMKeySpace:
-            case GLFMKeyEnter:
-            case GLFMKeyBackspace:
+            case GLFMKeyCodeSpace:
+            case GLFMKeyCodeEnter:
+            case GLFMKeyCodeBackspace:
                 app->offsetX = 0.0f;
                 app->offsetY = 0.0f;
                 handled = true;

@@ -185,161 +185,177 @@ typedef enum {
 } GLFMMouseWheelDeltaType;
 
 typedef enum {
-    GLFMKeyUnknown           = 0x00,
+    GLFMKeyCodeUnknown           = 0x00,
 
     // The key codes below have the same values as ASCII codes (uppercase)
 
-    GLFMKeyBackspace         = 0x08, // Apple: Delete
-    GLFMKeyTab               = 0x09,
-    GLFMKeyEnter             = 0x0D, // Apple: Return
-    GLFMKeyEscape            = 0x1B,
-    GLFMKeySpace             = 0x20,
-    GLFMKeyQuote             = 0x27,
-    GLFMKeyComma             = 0x2C,
-    GLFMKeyMinus             = 0x2D,
-    GLFMKeyPeriod            = 0x2E,
-    GLFMKeySlash             = 0x2F,
-    GLFMKeyDigit0            = 0x30,
-    GLFMKeyDigit1            = 0x31,
-    GLFMKeyDigit2            = 0x32,
-    GLFMKeyDigit3            = 0x33,
-    GLFMKeyDigit4            = 0x34,
-    GLFMKeyDigit5            = 0x35,
-    GLFMKeyDigit6            = 0x36,
-    GLFMKeyDigit7            = 0x37,
-    GLFMKeyDigit8            = 0x38,
-    GLFMKeyDigit9            = 0x39,
-    GLFMKeySemicolon         = 0x3B,
-    GLFMKeyEqual             = 0x3D,
-    GLFMKeyA                 = 0x41,
-    GLFMKeyB                 = 0x42,
-    GLFMKeyC                 = 0x43,
-    GLFMKeyD                 = 0x44,
-    GLFMKeyE                 = 0x45,
-    GLFMKeyF                 = 0x46,
-    GLFMKeyG                 = 0x47,
-    GLFMKeyH                 = 0x48,
-    GLFMKeyI                 = 0x49,
-    GLFMKeyJ                 = 0x4A,
-    GLFMKeyK                 = 0x4B,
-    GLFMKeyL                 = 0x4C,
-    GLFMKeyM                 = 0x4D,
-    GLFMKeyN                 = 0x4E,
-    GLFMKeyO                 = 0x4F,
-    GLFMKeyP                 = 0x50,
-    GLFMKeyQ                 = 0x51,
-    GLFMKeyR                 = 0x52,
-    GLFMKeyS                 = 0x53,
-    GLFMKeyT                 = 0x54,
-    GLFMKeyU                 = 0x55,
-    GLFMKeyV                 = 0x56,
-    GLFMKeyW                 = 0x57,
-    GLFMKeyX                 = 0x58,
-    GLFMKeyY                 = 0x59,
-    GLFMKeyZ                 = 0x5A,
-    GLFMKeyBracketLeft       = 0x5B,
-    GLFMKeyBackslash         = 0x5C,
-    GLFMKeyBracketRight      = 0x5D,
-    GLFMKeyBackquote         = 0x60, // Grave
-    GLFMKeyDelete            = 0x7F, // Apple: Forward Delete
+    GLFMKeyCodeBackspace         = 0x08, // Apple: Delete
+    GLFMKeyCodeTab               = 0x09,
+    GLFMKeyCodeEnter             = 0x0D, // Apple: Return
+    GLFMKeyCodeEscape            = 0x1B,
+    GLFMKeyCodeSpace             = 0x20,
+    GLFMKeyCodeQuote             = 0x27,
+    GLFMKeyCodeComma             = 0x2C,
+    GLFMKeyCodeMinus             = 0x2D,
+    GLFMKeyCodePeriod            = 0x2E,
+    GLFMKeyCodeSlash             = 0x2F,
+    GLFMKeyCode0                 = 0x30,
+    GLFMKeyCode1                 = 0x31,
+    GLFMKeyCode2                 = 0x32,
+    GLFMKeyCode3                 = 0x33,
+    GLFMKeyCode4                 = 0x34,
+    GLFMKeyCode5                 = 0x35,
+    GLFMKeyCode6                 = 0x36,
+    GLFMKeyCode7                 = 0x37,
+    GLFMKeyCode8                 = 0x38,
+    GLFMKeyCode9                 = 0x39,
+    GLFMKeyCodeSemicolon         = 0x3B,
+    GLFMKeyCodeEqual             = 0x3D,
+    GLFMKeyCodeA                 = 0x41,
+    GLFMKeyCodeB                 = 0x42,
+    GLFMKeyCodeC                 = 0x43,
+    GLFMKeyCodeD                 = 0x44,
+    GLFMKeyCodeE                 = 0x45,
+    GLFMKeyCodeF                 = 0x46,
+    GLFMKeyCodeG                 = 0x47,
+    GLFMKeyCodeH                 = 0x48,
+    GLFMKeyCodeI                 = 0x49,
+    GLFMKeyCodeJ                 = 0x4A,
+    GLFMKeyCodeK                 = 0x4B,
+    GLFMKeyCodeL                 = 0x4C,
+    GLFMKeyCodeM                 = 0x4D,
+    GLFMKeyCodeN                 = 0x4E,
+    GLFMKeyCodeO                 = 0x4F,
+    GLFMKeyCodeP                 = 0x50,
+    GLFMKeyCodeQ                 = 0x51,
+    GLFMKeyCodeR                 = 0x52,
+    GLFMKeyCodeS                 = 0x53,
+    GLFMKeyCodeT                 = 0x54,
+    GLFMKeyCodeU                 = 0x55,
+    GLFMKeyCodeV                 = 0x56,
+    GLFMKeyCodeW                 = 0x57,
+    GLFMKeyCodeX                 = 0x58,
+    GLFMKeyCodeY                 = 0x59,
+    GLFMKeyCodeZ                 = 0x5A,
+    GLFMKeyCodeBracketLeft       = 0x5B,
+    GLFMKeyCodeBackslash         = 0x5C,
+    GLFMKeyCodeBracketRight      = 0x5D,
+    GLFMKeyCodeBackquote         = 0x60, // Grave
+    GLFMKeyCodeDelete            = 0x7F, // Apple: Forward Delete
 
     // Non-ASCII keys. These values may change in the future.
 
-    GLFMKeyCapsLock          = 0x80,
-    GLFMKeyShiftLeft         = 0x81,
-    GLFMKeyShiftRight        = 0x82,
-    GLFMKeyControlLeft       = 0x83,
-    GLFMKeyControlRight      = 0x84,
-    GLFMKeyAltLeft           = 0x85, // Apple: Option
-    GLFMKeyAltRight          = 0x86, // Apple: Option
-    GLFMKeyMetaLeft          = 0x87, // Apple: Command
-    GLFMKeyMetaRight         = 0x88, // Apple: Command
-    GLFMKeyMenu              = 0x89, // Context menu
+    GLFMKeyCodeCapsLock          = 0x80,
+    GLFMKeyCodeShiftLeft         = 0x81,
+    GLFMKeyCodeShiftRight        = 0x82,
+    GLFMKeyCodeControlLeft       = 0x83,
+    GLFMKeyCodeControlRight      = 0x84,
+    GLFMKeyCodeAltLeft           = 0x85, // Apple: Option
+    GLFMKeyCodeAltRight          = 0x86, // Apple: Option
+    GLFMKeyCodeMetaLeft          = 0x87, // Apple: Command
+    GLFMKeyCodeMetaRight         = 0x88, // Apple: Command
+    GLFMKeyCodeMenu              = 0x89, // Context menu
 
-    GLFMKeyInsert            = 0x90,
-    GLFMKeyPageUp            = 0x91,
-    GLFMKeyPageDown          = 0x92,
-    GLFMKeyEnd               = 0x93,
-    GLFMKeyHome              = 0x94,
-    GLFMKeyArrowLeft         = 0x95,
-    GLFMKeyArrowUp           = 0x96,
-    GLFMKeyArrowRight        = 0x97,
-    GLFMKeyArrowDown         = 0x98,
+    GLFMKeyCodeInsert            = 0x90,
+    GLFMKeyCodePageUp            = 0x91,
+    GLFMKeyCodePageDown          = 0x92,
+    GLFMKeyCodeEnd               = 0x93,
+    GLFMKeyCodeHome              = 0x94,
+    GLFMKeyCodeArrowLeft         = 0x95,
+    GLFMKeyCodeArrowUp           = 0x96,
+    GLFMKeyCodeArrowRight        = 0x97,
+    GLFMKeyCodeArrowDown         = 0x98,
 
-    GLFMKeyPower             = 0x99,
-    GLFMKeyFunction          = 0x9A, // Apple: Fn
-    GLFMKeyPrintScreen       = 0x9B, // System Request
-    GLFMKeyScrollLock        = 0x9C,
-    GLFMKeyPause             = 0x9D, // Break
+    GLFMKeyCodePower             = 0x99,
+    GLFMKeyCodeFunction          = 0x9A, // Apple: Fn
+    GLFMKeyCodePrintScreen       = 0x9B, // System Request
+    GLFMKeyCodeScrollLock        = 0x9C,
+    GLFMKeyCodePause             = 0x9D, // Break
 
-    GLFMKeyNumLock           = 0xA0, // Apple: Clear
-    GLFMKeyNumpadDecimal     = 0xA1,
-    GLFMKeyNumpadMultiply    = 0xA2,
-    GLFMKeyNumpadAdd         = 0xA3,
-    GLFMKeyNumpadDivide      = 0xA4,
-    GLFMKeyNumpadEnter       = 0xA5,
-    GLFMKeyNumpadSubtract    = 0xA6,
-    GLFMKeyNumpadEqual       = 0xA7,
+    GLFMKeyCodeNumLock           = 0xA0, // Apple: Clear
+    GLFMKeyCodeNumpadDecimal     = 0xA1,
+    GLFMKeyCodeNumpadMultiply    = 0xA2,
+    GLFMKeyCodeNumpadAdd         = 0xA3,
+    GLFMKeyCodeNumpadDivide      = 0xA4,
+    GLFMKeyCodeNumpadEnter       = 0xA5,
+    GLFMKeyCodeNumpadSubtract    = 0xA6,
+    GLFMKeyCodeNumpadEqual       = 0xA7,
 
-    GLFMKeyNumpad0           = 0xB0,
-    GLFMKeyNumpad1           = 0xB1,
-    GLFMKeyNumpad2           = 0xB2,
-    GLFMKeyNumpad3           = 0xB3,
-    GLFMKeyNumpad4           = 0xB4,
-    GLFMKeyNumpad5           = 0xB5,
-    GLFMKeyNumpad6           = 0xB6,
-    GLFMKeyNumpad7           = 0xB7,
-    GLFMKeyNumpad8           = 0xB8,
-    GLFMKeyNumpad9           = 0xB9,
+    GLFMKeyCodeNumpad0           = 0xB0,
+    GLFMKeyCodeNumpad1           = 0xB1,
+    GLFMKeyCodeNumpad2           = 0xB2,
+    GLFMKeyCodeNumpad3           = 0xB3,
+    GLFMKeyCodeNumpad4           = 0xB4,
+    GLFMKeyCodeNumpad5           = 0xB5,
+    GLFMKeyCodeNumpad6           = 0xB6,
+    GLFMKeyCodeNumpad7           = 0xB7,
+    GLFMKeyCodeNumpad8           = 0xB8,
+    GLFMKeyCodeNumpad9           = 0xB9,
 
-    GLFMKeyF1                = 0xC1,
-    GLFMKeyF2                = 0xC2,
-    GLFMKeyF3                = 0xC3,
-    GLFMKeyF4                = 0xC4,
-    GLFMKeyF5                = 0xC5,
-    GLFMKeyF6                = 0xC6,
-    GLFMKeyF7                = 0xC7,
-    GLFMKeyF8                = 0xC8,
-    GLFMKeyF9                = 0xC9,
-    GLFMKeyF10               = 0xD0,
-    GLFMKeyF11               = 0xD1,
-    GLFMKeyF12               = 0xD2,
-    GLFMKeyF13               = 0xD3,
-    GLFMKeyF14               = 0xD4,
-    GLFMKeyF15               = 0xD5,
-    GLFMKeyF16               = 0xD6,
-    GLFMKeyF17               = 0xD7,
-    GLFMKeyF18               = 0xD8,
-    GLFMKeyF19               = 0xD9,
-    GLFMKeyF20               = 0xDA,
-    GLFMKeyF21               = 0xDB,
-    GLFMKeyF22               = 0xDC,
-    GLFMKeyF23               = 0xDD,
-    GLFMKeyF24               = 0xDE,
+    GLFMKeyCodeF1                = 0xC1,
+    GLFMKeyCodeF2                = 0xC2,
+    GLFMKeyCodeF3                = 0xC3,
+    GLFMKeyCodeF4                = 0xC4,
+    GLFMKeyCodeF5                = 0xC5,
+    GLFMKeyCodeF6                = 0xC6,
+    GLFMKeyCodeF7                = 0xC7,
+    GLFMKeyCodeF8                = 0xC8,
+    GLFMKeyCodeF9                = 0xC9,
+    GLFMKeyCodeF10               = 0xD0,
+    GLFMKeyCodeF11               = 0xD1,
+    GLFMKeyCodeF12               = 0xD2,
+    GLFMKeyCodeF13               = 0xD3,
+    GLFMKeyCodeF14               = 0xD4,
+    GLFMKeyCodeF15               = 0xD5,
+    GLFMKeyCodeF16               = 0xD6,
+    GLFMKeyCodeF17               = 0xD7,
+    GLFMKeyCodeF18               = 0xD8,
+    GLFMKeyCodeF19               = 0xD9,
+    GLFMKeyCodeF20               = 0xDA,
+    GLFMKeyCodeF21               = 0xDB,
+    GLFMKeyCodeF22               = 0xDC,
+    GLFMKeyCodeF23               = 0xDD,
+    GLFMKeyCodeF24               = 0xDE,
 
-    GLFMKeyNavigationBack    = 0xE0, // Android (soft) back button, tvOS menu/back button.
-    GLFMKeyMediaSelect       = 0xE1, // tvOS
-    GLFMKeyMediaPlayPause    = 0xE2, // tvOS
+    GLFMKeyCodeNavigationBack    = 0xE0, // Android (soft) back button, tvOS menu/back button.
+    GLFMKeyCodeMediaSelect       = 0xE1, // tvOS
+    GLFMKeyCodeMediaPlayPause    = 0xE2, // tvOS
+} GLFMKeyCode;
 
-} GLFMKey;
+typedef GLFMKeyCode GLFMKey GLFM_DEPRECATED("Replaced with GLFMKeyCode");
 
 enum {
-    GLFMKeyLeft GLFM_DEPRECATED("Replaced with GLFMKeyArrowLeft") = GLFMKeyArrowLeft,
-    GLFMKeyUp GLFM_DEPRECATED("Replaced with GLFMKeyArrowUp") = GLFMKeyArrowUp,
-    GLFMKeyRight GLFM_DEPRECATED("Replaced with GLFMKeyArrowRight") = GLFMKeyArrowRight,
-    GLFMKeyDown GLFM_DEPRECATED("Replaced with GLFMKeyArrowDown") = GLFMKeyArrowDown,
-    GLFMKeyPlayPause GLFM_DEPRECATED("Replaced with GLFMKeyMediaPlayPause") = GLFMKeyMediaPlayPause,
-    GLFMKeyNavBack GLFM_DEPRECATED("Replaced with GLFMKeyNavigationBack") = GLFMKeyNavigationBack,
-    GLFMKeyNavSelect GLFM_DEPRECATED("Replaced with GLFMKeyMediaSelect") = GLFMKeyMediaSelect,
+    GLFMKeyBackspace GLFM_DEPRECATED("Replaced with GLFMKeyCodeBackspace") = GLFMKeyCodeBackspace,
+    GLFMKeyTab GLFM_DEPRECATED("Replaced with GLFMKeyCodeTab") = GLFMKeyCodeTab,
+    GLFMKeyEnter GLFM_DEPRECATED("Replaced with GLFMKeyCodeEnter") = GLFMKeyCodeEnter,
+    GLFMKeyEscape GLFM_DEPRECATED("Replaced with GLFMKeyCodeEscape") = GLFMKeyCodeEscape,
+    GLFMKeySpace GLFM_DEPRECATED("Replaced with GLFMKeyCodeSpace") = GLFMKeyCodeSpace,
+    GLFMKeyPageUp GLFM_DEPRECATED("Replaced with GLFMKeyCodePageUp") = GLFMKeyCodePageUp,
+    GLFMKeyPageDown GLFM_DEPRECATED("Replaced with GLFMKeyCodePageDown") = GLFMKeyCodePageDown,
+    GLFMKeyEnd GLFM_DEPRECATED("Replaced with GLFMKeyCodeEnd") = GLFMKeyCodeEnd,
+    GLFMKeyHome GLFM_DEPRECATED("Replaced with GLFMKeyCodeHome") = GLFMKeyCodeHome,
+    GLFMKeyLeft GLFM_DEPRECATED("Replaced with GLFMKeyCodeArrowLeft") = GLFMKeyCodeArrowLeft,
+    GLFMKeyUp GLFM_DEPRECATED("Replaced with GLFMKeyCodeArrowUp") = GLFMKeyCodeArrowUp,
+    GLFMKeyRight GLFM_DEPRECATED("Replaced with GLFMKeyCodeArrowRight") = GLFMKeyCodeArrowRight,
+    GLFMKeyDown GLFM_DEPRECATED("Replaced with GLFMKeyCodeArrowDown") = GLFMKeyCodeArrowDown,
+    GLFMKeyDelete GLFM_DEPRECATED("Replaced with GLFMKeyCodeDelete") = GLFMKeyCodeDelete,
+    GLFMKeyNavBack GLFM_DEPRECATED("Replaced with GLFMKeyCodeNavigationBack") = GLFMKeyCodeNavigationBack,
+    GLFMKeyNavMenu GLFM_DEPRECATED("Replaced with GLFMKeyCodeMenu") = GLFMKeyCodeMenu,
+    GLFMKeyNavSelect GLFM_DEPRECATED("Replaced with GLFMKeyCodeMediaSelect") = GLFMKeyCodeMediaSelect,
+    GLFMKeyPlayPause GLFM_DEPRECATED("Replaced with GLFMKeyCodeMediaPlayPause") = GLFMKeyCodeMediaPlayPause,
 };
 
 typedef enum {
     GLFMKeyModifierShift    = (1 << 0),
-    GLFMKeyModifierCtrl     = (1 << 1),
+    GLFMKeyModifierControl  = (1 << 1),
     GLFMKeyModifierAlt      = (1 << 2), // Apple: Option
     GLFMKeyModifierMeta     = (1 << 3), // Apple: Command
     GLFMKeyModifierFunction = (1 << 4), // Apple: Fn
 } GLFMKeyModifier;
+
+enum {
+    GLFMKeyModifierCtrl GLFM_DEPRECATED("Replaced with GLFMKeyModifierControl") = GLFMKeyModifierControl,
+};
 
 typedef enum {
     GLFMKeyActionPressed,
@@ -402,7 +418,7 @@ typedef bool (*GLFMTouchFunc)(GLFMDisplay *display, int touch, GLFMTouchPhase ph
 /// function should return `false` to allow the user to exit the app, or return `true` if the back
 /// button was handled in-app.
 /// - Returns: `true` if the event was handled, `false` otherwise.
-typedef bool (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKey keyCode, GLFMKeyAction action,
+typedef bool (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAction action,
                             int modifiers);
 
 /// Callback function when character input events occur. See ``glfmSetCharFunc``.

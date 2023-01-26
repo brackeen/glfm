@@ -434,7 +434,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         modifiers |= GLFMKeyModifierShift;
     }
     if (e->ctrlKey) {
-        modifiers |= GLFMKeyModifierCtrl;
+        modifiers |= GLFMKeyModifierControl;
     }
     if (e->altKey) {
         modifiers |= GLFMKeyModifierAlt;
@@ -547,22 +547,22 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
             "Slash", "Space", "Tab",
         };
         static const size_t KEYBOARD_EVENT_CODES_LENGTH = sizeof(KEYBOARD_EVENT_CODES) / sizeof(*KEYBOARD_EVENT_CODES);
-        static const GLFMKey GLFM_KEY_CODES[] = {
-            GLFMKeyAltLeft, GLFMKeyAltRight, GLFMKeyArrowDown, GLFMKeyArrowLeft, GLFMKeyArrowRight, GLFMKeyArrowUp,
-            GLFMKeyBackquote, GLFMKeyBackslash, GLFMKeyBackspace, GLFMKeyBracketLeft, GLFMKeyBracketRight, GLFMKeyNavigationBack,
-            GLFMKeyCapsLock, GLFMKeyComma, GLFMKeyMenu, GLFMKeyControlLeft, GLFMKeyControlRight, GLFMKeyDelete, GLFMKeyDigit0,
-            GLFMKeyDigit1, GLFMKeyDigit2, GLFMKeyDigit3, GLFMKeyDigit4, GLFMKeyDigit5, GLFMKeyDigit6, GLFMKeyDigit7, GLFMKeyDigit8,
-            GLFMKeyDigit9, GLFMKeyEnd, GLFMKeyEnter, GLFMKeyEqual, GLFMKeyEscape, GLFMKeyF1, GLFMKeyF10, GLFMKeyF11, GLFMKeyF12, GLFMKeyF13, GLFMKeyF14,
-            GLFMKeyF15, GLFMKeyF16, GLFMKeyF17, GLFMKeyF18, GLFMKeyF19, GLFMKeyF2, GLFMKeyF20, GLFMKeyF21, GLFMKeyF22, GLFMKeyF23, GLFMKeyF24, GLFMKeyF3, GLFMKeyF4,
-            GLFMKeyF5, GLFMKeyF6, GLFMKeyF7, GLFMKeyF8, GLFMKeyF9, GLFMKeyFunction, GLFMKeyHome, GLFMKeyInsert, GLFMKeyA, GLFMKeyB, GLFMKeyC, GLFMKeyD,
-            GLFMKeyE, GLFMKeyF, GLFMKeyG, GLFMKeyH, GLFMKeyI, GLFMKeyJ, GLFMKeyK, GLFMKeyL, GLFMKeyM, GLFMKeyN, GLFMKeyO,
-            GLFMKeyP, GLFMKeyQ, GLFMKeyR, GLFMKeyS, GLFMKeyT, GLFMKeyU, GLFMKeyV, GLFMKeyW, GLFMKeyX, GLFMKeyY, GLFMKeyZ,
-            GLFMKeyMediaPlayPause, GLFMKeyMetaLeft, GLFMKeyMetaRight, GLFMKeyMinus, GLFMKeyNumLock, GLFMKeyNumpad0, GLFMKeyNumpad1,
-            GLFMKeyNumpad2, GLFMKeyNumpad3, GLFMKeyNumpad4, GLFMKeyNumpad5, GLFMKeyNumpad6, GLFMKeyNumpad7, GLFMKeyNumpad8, GLFMKeyNumpad9,
-            GLFMKeyNumpadAdd, GLFMKeyNumpadDecimal, GLFMKeyNumpadDivide, GLFMKeyNumpadEnter, GLFMKeyNumpadEqual,
-            GLFMKeyNumpadMultiply, GLFMKeyNumpadSubtract, GLFMKeyPageDown, GLFMKeyPageUp, GLFMKeyPause ,GLFMKeyPeriod,
-            GLFMKeyPower, GLFMKeyPrintScreen, GLFMKeyQuote, GLFMKeyScrollLock, GLFMKeySemicolon, GLFMKeyShiftLeft, GLFMKeyShiftRight,
-            GLFMKeySlash, GLFMKeySpace, GLFMKeyTab,
+        static const GLFMKeyCode GLFM_KEY_CODES[] = {
+            GLFMKeyCodeAltLeft, GLFMKeyCodeAltRight, GLFMKeyCodeArrowDown, GLFMKeyCodeArrowLeft, GLFMKeyCodeArrowRight, GLFMKeyCodeArrowUp,
+            GLFMKeyCodeBackquote, GLFMKeyCodeBackslash, GLFMKeyCodeBackspace, GLFMKeyCodeBracketLeft, GLFMKeyCodeBracketRight, GLFMKeyCodeNavigationBack,
+            GLFMKeyCodeCapsLock, GLFMKeyCodeComma, GLFMKeyCodeMenu, GLFMKeyCodeControlLeft, GLFMKeyCodeControlRight, GLFMKeyCodeDelete, GLFMKeyCode0,
+            GLFMKeyCode1, GLFMKeyCode2, GLFMKeyCode3, GLFMKeyCode4, GLFMKeyCode5, GLFMKeyCode6, GLFMKeyCode7, GLFMKeyCode8,
+            GLFMKeyCode9, GLFMKeyCodeEnd, GLFMKeyCodeEnter, GLFMKeyCodeEqual, GLFMKeyCodeEscape, GLFMKeyCodeF1, GLFMKeyCodeF10, GLFMKeyCodeF11, GLFMKeyCodeF12, GLFMKeyCodeF13, GLFMKeyCodeF14,
+            GLFMKeyCodeF15, GLFMKeyCodeF16, GLFMKeyCodeF17, GLFMKeyCodeF18, GLFMKeyCodeF19, GLFMKeyCodeF2, GLFMKeyCodeF20, GLFMKeyCodeF21, GLFMKeyCodeF22, GLFMKeyCodeF23, GLFMKeyCodeF24, GLFMKeyCodeF3, GLFMKeyCodeF4,
+            GLFMKeyCodeF5, GLFMKeyCodeF6, GLFMKeyCodeF7, GLFMKeyCodeF8, GLFMKeyCodeF9, GLFMKeyCodeFunction, GLFMKeyCodeHome, GLFMKeyCodeInsert, GLFMKeyCodeA, GLFMKeyCodeB, GLFMKeyCodeC, GLFMKeyCodeD,
+            GLFMKeyCodeE, GLFMKeyCodeF, GLFMKeyCodeG, GLFMKeyCodeH, GLFMKeyCodeI, GLFMKeyCodeJ, GLFMKeyCodeK, GLFMKeyCodeL, GLFMKeyCodeM, GLFMKeyCodeN, GLFMKeyCodeO,
+            GLFMKeyCodeP, GLFMKeyCodeQ, GLFMKeyCodeR, GLFMKeyCodeS, GLFMKeyCodeT, GLFMKeyCodeU, GLFMKeyCodeV, GLFMKeyCodeW, GLFMKeyCodeX, GLFMKeyCodeY, GLFMKeyCodeZ,
+            GLFMKeyCodeMediaPlayPause, GLFMKeyCodeMetaLeft, GLFMKeyCodeMetaRight, GLFMKeyCodeMinus, GLFMKeyCodeNumLock, GLFMKeyCodeNumpad0, GLFMKeyCodeNumpad1,
+            GLFMKeyCodeNumpad2, GLFMKeyCodeNumpad3, GLFMKeyCodeNumpad4, GLFMKeyCodeNumpad5, GLFMKeyCodeNumpad6, GLFMKeyCodeNumpad7, GLFMKeyCodeNumpad8, GLFMKeyCodeNumpad9,
+            GLFMKeyCodeNumpadAdd, GLFMKeyCodeNumpadDecimal, GLFMKeyCodeNumpadDivide, GLFMKeyCodeNumpadEnter, GLFMKeyCodeNumpadEqual,
+            GLFMKeyCodeNumpadMultiply, GLFMKeyCodeNumpadSubtract, GLFMKeyCodePageDown, GLFMKeyCodePageUp, GLFMKeyCodePause ,GLFMKeyCodePeriod,
+            GLFMKeyCodePower, GLFMKeyCodePrintScreen, GLFMKeyCodeQuote, GLFMKeyCodeScrollLock, GLFMKeyCodeSemicolon, GLFMKeyCodeShiftLeft, GLFMKeyCodeShiftRight,
+            GLFMKeyCodeSlash, GLFMKeyCodeSpace, GLFMKeyCodeTab,
         };
 
 #if TEST_KEYBOARD_EVENT_ARRAYS
@@ -594,7 +594,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         }
         
         int codeIndex = glfm__sortedListSearch(KEYBOARD_EVENT_CODES, KEYBOARD_EVENT_CODES_LENGTH, e->code);
-        GLFMKey key = codeIndex >= 0 ? GLFM_KEY_CODES[codeIndex] : GLFMKeyUnknown;
+        GLFMKeyCode key = codeIndex >= 0 ? GLFM_KEY_CODES[codeIndex] : GLFMKeyCodeUnknown;
         handled = display->keyFunc(display, key, action, modifiers) || handled;
     }
     
