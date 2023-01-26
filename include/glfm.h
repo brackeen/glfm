@@ -68,9 +68,9 @@
 #endif
 
 #ifdef __GNUC__
-#  define GLFM_DEPRECATED __attribute__((deprecated))
+#  define GLFM_DEPRECATED(message) __attribute__((deprecated(message)))
 #else
-#  define GLFM_DEPRECATED
+#  define GLFM_DEPRECATED(message)
 #endif
 
 #include <stdbool.h>
@@ -156,10 +156,10 @@ typedef enum {
 
 /// *Deprecated:* See ``GLFMInterfaceOrientation``.
 typedef enum {
-    GLFMUserInterfaceOrientationAny GLFM_DEPRECATED = GLFMInterfaceOrientationAll,
-    GLFMUserInterfaceOrientationPortrait GLFM_DEPRECATED = GLFMInterfaceOrientationPortrait,
-    GLFMUserInterfaceOrientationLandscape GLFM_DEPRECATED = GLFMInterfaceOrientationLandscape,
-} GLFMUserInterfaceOrientation GLFM_DEPRECATED;
+    GLFMUserInterfaceOrientationAny GLFM_DEPRECATED("Replaced with GLFMInterfaceOrientationAll") = GLFMInterfaceOrientationAll,
+    GLFMUserInterfaceOrientationPortrait GLFM_DEPRECATED("Replaced with GLFMInterfaceOrientationPortrait") = GLFMInterfaceOrientationPortrait,
+    GLFMUserInterfaceOrientationLandscape GLFM_DEPRECATED("Replaced with GLFMInterfaceOrientationLandscape") = GLFMInterfaceOrientationLandscape,
+} GLFMUserInterfaceOrientation GLFM_DEPRECATED("Replaced with GLFMInterfaceOrientation");
 
 typedef enum {
     GLFMTouchPhaseHover,
@@ -324,13 +324,13 @@ typedef enum {
 } GLFMKey;
 
 enum {
-    GLFMKeyLeft GLFM_DEPRECATED = GLFMKeyArrowLeft,
-    GLFMKeyUp GLFM_DEPRECATED = GLFMKeyArrowUp,
-    GLFMKeyRight GLFM_DEPRECATED = GLFMKeyArrowRight,
-    GLFMKeyDown GLFM_DEPRECATED = GLFMKeyArrowDown,
-    GLFMKeyPlayPause GLFM_DEPRECATED = GLFMKeyMediaPlayPause,
-    GLFMKeyNavBack GLFM_DEPRECATED = GLFMKeyNavigationBack,
-    GLFMKeyNavSelect GLFM_DEPRECATED = GLFMKeyMediaSelect,
+    GLFMKeyLeft GLFM_DEPRECATED("Replaced with GLFMKeyArrowLeft") = GLFMKeyArrowLeft,
+    GLFMKeyUp GLFM_DEPRECATED("Replaced with GLFMKeyArrowUp") = GLFMKeyArrowUp,
+    GLFMKeyRight GLFM_DEPRECATED("Replaced with GLFMKeyArrowRight") = GLFMKeyArrowRight,
+    GLFMKeyDown GLFM_DEPRECATED("Replaced with GLFMKeyArrowDown") = GLFMKeyArrowDown,
+    GLFMKeyPlayPause GLFM_DEPRECATED("Replaced with GLFMKeyMediaPlayPause") = GLFMKeyMediaPlayPause,
+    GLFMKeyNavBack GLFM_DEPRECATED("Replaced with GLFMKeyNavigationBack") = GLFMKeyNavigationBack,
+    GLFMKeyNavSelect GLFM_DEPRECATED("Replaced with GLFMKeyMediaSelect") = GLFMKeyMediaSelect,
 };
 
 typedef enum {
@@ -381,7 +381,8 @@ typedef void (*GLFMProc)(void);
 typedef void (*GLFMRenderFunc)(GLFMDisplay *display);
 
 /// *Deprecated:* Use ``GLFMRenderFunc``.
-typedef void (*GLFMMainLoopFunc)(GLFMDisplay *display, double frameTime) GLFM_DEPRECATED;
+typedef void (*GLFMMainLoopFunc)(GLFMDisplay *display, double frameTime)
+GLFM_DEPRECATED("See glfmSetRenderFunc and glfmSwapBuffers");
 
 /// Callback function when mouse or touch events occur. See ``glfmSetTouchFunc``.
 ///
@@ -523,11 +524,13 @@ void *glfmGetUserData(const GLFMDisplay *display);
 void glfmSwapBuffers(GLFMDisplay *display);
 
 /// *Deprecated:* Use ``glfmGetSupportedInterfaceOrientation``.
-GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *display) GLFM_DEPRECATED;
+GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *display)
+GLFM_DEPRECATED("Replaced with glfmGetSupportedInterfaceOrientation");
 
 /// *Deprecated:* Use ``glfmSetSupportedInterfaceOrientation``.
 void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
-                                     GLFMUserInterfaceOrientation supportedOrientations) GLFM_DEPRECATED;
+                                     GLFMUserInterfaceOrientation supportedOrientations)
+GLFM_DEPRECATED("Replaced with glfmSetSupportedInterfaceOrientation");
 
 /// Returns the supported user interface orientations. Default is `GLFMInterfaceOrientationAll`.
 ///
@@ -612,7 +615,8 @@ GLFMRenderFunc glfmSetRenderFunc(GLFMDisplay *display, GLFMRenderFunc renderFunc
 /// *Deprecated:* Use ``glfmSetRenderFunc``.
 ///
 /// If this function is set, ``glfmSwapBuffers`` is called after calling the `GLFMMainLoopFunc`.
-GLFMMainLoopFunc glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc) GLFM_DEPRECATED;
+GLFMMainLoopFunc glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc mainLoopFunc)
+GLFM_DEPRECATED("See glfmSetRenderFunc and glfmSwapBuffers");
 
 /// Sets the function to call when the surface could not be created.
 ///
