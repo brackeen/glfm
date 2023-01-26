@@ -1928,7 +1928,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         };
 
         GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
-        if (event.keyCode <= sizeof(VK_MAP) / sizeof(*VK_MAP)) {
+        if (event.keyCode < sizeof(VK_MAP) / sizeof(*VK_MAP)) {
             keyCode = VK_MAP[event.keyCode];
         }
 
