@@ -699,6 +699,9 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor);
 
 /// Requests to show or hide the onscreen virtual keyboard.
 ///
+/// On iPad, if a hardware keyboard is attached, this function will enable character input
+/// (see ``glfmSetCharFunc``) but not actually show the virtual keyboard.
+///
 /// - Emscripten: this function does nothing.
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible);
 
@@ -723,6 +726,8 @@ GLFMTouchFunc glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc);
 GLFMKeyFunc glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
 
 /// Sets the function to call when character input events occur.
+///
+/// Use ``glfmSetKeyboardVisible`` to enable this callback.
 GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
 
 /// Sets the function to call when the mouse wheel is moved.

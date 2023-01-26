@@ -1033,7 +1033,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @property(nonatomic, assign) BOOL multipleTouchEnabled;
 @property(nonatomic, assign) BOOL keyboardRequested;
-@property(nonatomic, assign) BOOL keyboardVisible;
 #if TARGET_OS_IOS
 @property(nonatomic, strong) CMMotionManager *motionManager;
 @property(nonatomic, assign) UIInterfaceOrientation orientation;
@@ -1055,7 +1054,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @synthesize metalDevice = _metalDevice;
 #endif
 #if TARGET_OS_IOS || TARGET_OS_TV
-@synthesize multipleTouchEnabled, keyboardRequested, keyboardVisible;
+@synthesize multipleTouchEnabled, keyboardRequested;
 #endif
 #if TARGET_OS_IOS
 @synthesize motionManager = _motionManager, orientation;
@@ -1197,7 +1196,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
     [self setNeedsStatusBarAppearanceUpdate];
 
-    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(keyboardFrameChanged:)
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(keyboardFrameWillChange:)
                                                name:UIKeyboardWillChangeFrameNotification
                                              object:self.view.window];
     
@@ -1517,14 +1516,18 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #if TARGET_OS_IOS
 
-- (void)keyboardFrameChanged:(NSNotification *)notification {
-    NSObject *value = notification.userInfo[UIKeyboardFrameEndUserInfoKey];
-    if ([value isKindOfClass:[NSValue class]]) {
-        NSValue *nsValue = (NSValue *)value;
-        CGRect keyboardFrame = [nsValue CGRectValue];
+- (void)keyboardFrameWillChange:(NSNotification *)notification {
+    NSObject *frameBeginValue = notification.userInfo[UIKeyboardFrameBeginUserInfoKey];
+    NSObject *frameEndValue = notification.userInfo[UIKeyboardFrameEndUserInfoKey];
+    if ([frameBeginValue isKindOfClass:[NSValue class]] &&
+        [frameEndValue isKindOfClass:[NSValue class]]) {
+        CGRect keyboardFrameBegin = [(NSValue *)frameBeginValue CGRectValue];
+        CGRect keyboardFrameEnd = [(NSValue *)frameEndValue CGRectValue];
 
-        self.keyboardVisible = CGRectIntersectsRect(self.view.window.frame, keyboardFrame);
-        if (!self.keyboardVisible) {
+        // If height is zero, the keyboard is hidden because a physical keyboard was attached.
+        BOOL keyboardWasVisible = CGRectIntersectsRect(self.view.window.frame, keyboardFrameBegin);
+        BOOL keyboardIsVisible = CGRectIntersectsRect(self.view.window.frame, keyboardFrameEnd);
+        if (keyboardWasVisible && !keyboardIsVisible && keyboardFrameEnd.size.height > (CGFloat)0.0) {
             // User hid keyboard (iPad)
             self.keyboardRequested = NO;
         }
@@ -1533,19 +1536,19 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
         if (self.glfmDisplay->keyboardVisibilityChangedFunc) {
             // Convert to view coordinates
-            keyboardFrame = [self.view convertRect:keyboardFrame fromView:nil];
+            keyboardFrameEnd = [self.view convertRect:keyboardFrameEnd fromView:nil];
 
             // Convert to pixels
-            keyboardFrame.origin.x *= self.view.contentScaleFactor;
-            keyboardFrame.origin.y *= self.view.contentScaleFactor;
-            keyboardFrame.size.width *= self.view.contentScaleFactor;
-            keyboardFrame.size.height *= self.view.contentScaleFactor;
+            keyboardFrameEnd.origin.x *= self.view.contentScaleFactor;
+            keyboardFrameEnd.origin.y *= self.view.contentScaleFactor;
+            keyboardFrameEnd.size.width *= self.view.contentScaleFactor;
+            keyboardFrameEnd.size.height *= self.view.contentScaleFactor;
 
-            self.glfmDisplay->keyboardVisibilityChangedFunc(self.glfmDisplay, self.keyboardVisible,
-                                                            (double)keyboardFrame.origin.x,
-                                                            (double)keyboardFrame.origin.y,
-                                                            (double)keyboardFrame.size.width,
-                                                            (double)keyboardFrame.size.height);
+            self.glfmDisplay->keyboardVisibilityChangedFunc(self.glfmDisplay, keyboardIsVisible,
+                                                            (double)keyboardFrameEnd.origin.x,
+                                                            (double)keyboardFrameEnd.origin.y,
+                                                            (double)keyboardFrameEnd.size.width,
+                                                            (double)keyboardFrameEnd.size.height);
         }
     }
 }
