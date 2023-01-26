@@ -1442,11 +1442,167 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
 }
 
-#if TARGET_OS_TV
-
 - (BOOL)handlePress:(UIPress *)press withAction:(GLFMKeyAction)action {
-    if (self.glfmDisplay->keyFunc) {
-        GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
+    if (!self.glfmDisplay->keyFunc) {
+        return NO;
+    }
+
+    GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
+    int modifierFlags = 0;
+    BOOL hasKey = NO;
+    if (@available(iOS 13.4, tvOS 13.4, *)) {
+        static const GLFMKeyCode HID_MAP[] = {
+            [UIKeyboardHIDUsageKeyboardReturnOrEnter]        = GLFMKeyCodeEnter,
+            [UIKeyboardHIDUsageKeyboardTab]                  = GLFMKeyCodeTab,
+            [UIKeyboardHIDUsageKeyboardSpacebar]             = GLFMKeyCodeSpace,
+            [UIKeyboardHIDUsageKeyboardDeleteOrBackspace]    = GLFMKeyCodeBackspace,
+            [UIKeyboardHIDUsageKeyboardEscape]               = GLFMKeyCodeEscape,
+
+            [UIKeyboardHIDUsageKeyboardCapsLock]             = GLFMKeyCodeCapsLock,
+            [UIKeyboardHIDUsageKeyboardLeftGUI]              = GLFMKeyCodeMetaLeft,
+            [UIKeyboardHIDUsageKeyboardLeftShift]            = GLFMKeyCodeShiftLeft,
+            [UIKeyboardHIDUsageKeyboardLeftAlt]              = GLFMKeyCodeAltLeft,
+            [UIKeyboardHIDUsageKeyboardLeftControl]          = GLFMKeyCodeControlLeft,
+            [UIKeyboardHIDUsageKeyboardRightGUI]             = GLFMKeyCodeMetaRight,
+            [UIKeyboardHIDUsageKeyboardRightShift]           = GLFMKeyCodeShiftRight,
+            [UIKeyboardHIDUsageKeyboardRightAlt]             = GLFMKeyCodeAltRight,
+            [UIKeyboardHIDUsageKeyboardRightControl]         = GLFMKeyCodeControlRight,
+
+            [UIKeyboardHIDUsageKeyboardPrintScreen]          = GLFMKeyCodePrintScreen,
+            [UIKeyboardHIDUsageKeyboardScrollLock]           = GLFMKeyCodeScrollLock,
+            [UIKeyboardHIDUsageKeyboardPause]                = GLFMKeyCodePause,
+
+            [UIKeyboardHIDUsageKeyboardInsert]               = GLFMKeyCodeInsert,
+            [UIKeyboardHIDUsageKeyboardHome]                 = GLFMKeyCodeHome,
+            [UIKeyboardHIDUsageKeyboardPageUp]               = GLFMKeyCodePageUp,
+            [UIKeyboardHIDUsageKeyboardDeleteForward]        = GLFMKeyCodeDelete,
+            [UIKeyboardHIDUsageKeyboardEnd]                  = GLFMKeyCodeEnd,
+            [UIKeyboardHIDUsageKeyboardPageDown]             = GLFMKeyCodePageDown,
+
+            [UIKeyboardHIDUsageKeyboardLeftArrow]            = GLFMKeyCodeArrowLeft,
+            [UIKeyboardHIDUsageKeyboardRightArrow]           = GLFMKeyCodeArrowRight,
+            [UIKeyboardHIDUsageKeyboardDownArrow]            = GLFMKeyCodeArrowDown,
+            [UIKeyboardHIDUsageKeyboardUpArrow]              = GLFMKeyCodeArrowUp,
+
+            [UIKeyboardHIDUsageKeyboardEqualSign]            = GLFMKeyCodeEqual,
+            [UIKeyboardHIDUsageKeyboardHyphen]               = GLFMKeyCodeMinus,
+            [UIKeyboardHIDUsageKeyboardOpenBracket]          = GLFMKeyCodeBracketLeft,
+            [UIKeyboardHIDUsageKeyboardCloseBracket]         = GLFMKeyCodeBracketRight,
+            [UIKeyboardHIDUsageKeyboardQuote]                = GLFMKeyCodeQuote,
+            [UIKeyboardHIDUsageKeyboardSemicolon]            = GLFMKeyCodeSemicolon,
+            [UIKeyboardHIDUsageKeyboardBackslash]            = GLFMKeyCodeBackslash,
+            [UIKeyboardHIDUsageKeyboardComma]                = GLFMKeyCodeComma,
+            [UIKeyboardHIDUsageKeyboardSlash]                = GLFMKeyCodeSlash,
+            [UIKeyboardHIDUsageKeyboardPeriod]               = GLFMKeyCodePeriod,
+            [UIKeyboardHIDUsageKeyboardGraveAccentAndTilde]  = GLFMKeyCodeBackquote,
+
+            [UIKeyboardHIDUsageKeyboardA]                    = GLFMKeyCodeA,
+            [UIKeyboardHIDUsageKeyboardB]                    = GLFMKeyCodeB,
+            [UIKeyboardHIDUsageKeyboardC]                    = GLFMKeyCodeC,
+            [UIKeyboardHIDUsageKeyboardD]                    = GLFMKeyCodeD,
+            [UIKeyboardHIDUsageKeyboardE]                    = GLFMKeyCodeE,
+            [UIKeyboardHIDUsageKeyboardF]                    = GLFMKeyCodeF,
+            [UIKeyboardHIDUsageKeyboardG]                    = GLFMKeyCodeG,
+            [UIKeyboardHIDUsageKeyboardH]                    = GLFMKeyCodeH,
+            [UIKeyboardHIDUsageKeyboardI]                    = GLFMKeyCodeI,
+            [UIKeyboardHIDUsageKeyboardJ]                    = GLFMKeyCodeJ,
+            [UIKeyboardHIDUsageKeyboardK]                    = GLFMKeyCodeK,
+            [UIKeyboardHIDUsageKeyboardL]                    = GLFMKeyCodeL,
+            [UIKeyboardHIDUsageKeyboardN]                    = GLFMKeyCodeN,
+            [UIKeyboardHIDUsageKeyboardM]                    = GLFMKeyCodeM,
+            [UIKeyboardHIDUsageKeyboardO]                    = GLFMKeyCodeO,
+            [UIKeyboardHIDUsageKeyboardP]                    = GLFMKeyCodeP,
+            [UIKeyboardHIDUsageKeyboardQ]                    = GLFMKeyCodeQ,
+            [UIKeyboardHIDUsageKeyboardR]                    = GLFMKeyCodeR,
+            [UIKeyboardHIDUsageKeyboardS]                    = GLFMKeyCodeS,
+            [UIKeyboardHIDUsageKeyboardT]                    = GLFMKeyCodeT,
+            [UIKeyboardHIDUsageKeyboardU]                    = GLFMKeyCodeU,
+            [UIKeyboardHIDUsageKeyboardV]                    = GLFMKeyCodeV,
+            [UIKeyboardHIDUsageKeyboardW]                    = GLFMKeyCodeW,
+            [UIKeyboardHIDUsageKeyboardX]                    = GLFMKeyCodeX,
+            [UIKeyboardHIDUsageKeyboardY]                    = GLFMKeyCodeY,
+            [UIKeyboardHIDUsageKeyboardZ]                    = GLFMKeyCodeZ,
+            [UIKeyboardHIDUsageKeyboard0]                    = GLFMKeyCode0,
+            [UIKeyboardHIDUsageKeyboard1]                    = GLFMKeyCode1,
+            [UIKeyboardHIDUsageKeyboard2]                    = GLFMKeyCode2,
+            [UIKeyboardHIDUsageKeyboard3]                    = GLFMKeyCode3,
+            [UIKeyboardHIDUsageKeyboard4]                    = GLFMKeyCode4,
+            [UIKeyboardHIDUsageKeyboard5]                    = GLFMKeyCode5,
+            [UIKeyboardHIDUsageKeyboard6]                    = GLFMKeyCode6,
+            [UIKeyboardHIDUsageKeyboard7]                    = GLFMKeyCode7,
+            [UIKeyboardHIDUsageKeyboard8]                    = GLFMKeyCode8,
+            [UIKeyboardHIDUsageKeyboard9]                    = GLFMKeyCode9,
+
+            [UIKeyboardHIDUsageKeyboardPower]                = GLFMKeyCodePower,
+
+            [UIKeyboardHIDUsageKeypadNumLock]                = GLFMKeyCodeNumLock,
+            [UIKeyboardHIDUsageKeypadPeriod]                 = GLFMKeyCodeNumpadDecimal,
+            [UIKeyboardHIDUsageKeypadAsterisk]               = GLFMKeyCodeNumpadMultiply,
+            [UIKeyboardHIDUsageKeypadPlus]                   = GLFMKeyCodeNumpadAdd,
+            [UIKeyboardHIDUsageKeypadSlash]                  = GLFMKeyCodeNumpadDivide,
+            [UIKeyboardHIDUsageKeypadEnter]                  = GLFMKeyCodeNumpadEnter,
+            [UIKeyboardHIDUsageKeypadHyphen]                 = GLFMKeyCodeNumpadSubtract,
+            [UIKeyboardHIDUsageKeypadEqualSign]              = GLFMKeyCodeNumpadEqual,
+            [UIKeyboardHIDUsageKeypad0]                      = GLFMKeyCodeNumpad0,
+            [UIKeyboardHIDUsageKeypad1]                      = GLFMKeyCodeNumpad1,
+            [UIKeyboardHIDUsageKeypad2]                      = GLFMKeyCodeNumpad2,
+            [UIKeyboardHIDUsageKeypad3]                      = GLFMKeyCodeNumpad3,
+            [UIKeyboardHIDUsageKeypad4]                      = GLFMKeyCodeNumpad4,
+            [UIKeyboardHIDUsageKeypad5]                      = GLFMKeyCodeNumpad5,
+            [UIKeyboardHIDUsageKeypad6]                      = GLFMKeyCodeNumpad6,
+            [UIKeyboardHIDUsageKeypad7]                      = GLFMKeyCodeNumpad7,
+            [UIKeyboardHIDUsageKeypad8]                      = GLFMKeyCodeNumpad8,
+            [UIKeyboardHIDUsageKeypad9]                      = GLFMKeyCodeNumpad9,
+
+            [UIKeyboardHIDUsageKeyboardF1]                   = GLFMKeyCodeF1,
+            [UIKeyboardHIDUsageKeyboardF2]                   = GLFMKeyCodeF2,
+            [UIKeyboardHIDUsageKeyboardF3]                   = GLFMKeyCodeF3,
+            [UIKeyboardHIDUsageKeyboardF4]                   = GLFMKeyCodeF4,
+            [UIKeyboardHIDUsageKeyboardF5]                   = GLFMKeyCodeF5,
+            [UIKeyboardHIDUsageKeyboardF6]                   = GLFMKeyCodeF6,
+            [UIKeyboardHIDUsageKeyboardF7]                   = GLFMKeyCodeF7,
+            [UIKeyboardHIDUsageKeyboardF8]                   = GLFMKeyCodeF8,
+            [UIKeyboardHIDUsageKeyboardF9]                   = GLFMKeyCodeF9,
+            [UIKeyboardHIDUsageKeyboardF10]                  = GLFMKeyCodeF10,
+            [UIKeyboardHIDUsageKeyboardF11]                  = GLFMKeyCodeF11,
+            [UIKeyboardHIDUsageKeyboardF12]                  = GLFMKeyCodeF12,
+            [UIKeyboardHIDUsageKeyboardF13]                  = GLFMKeyCodeF13,
+            [UIKeyboardHIDUsageKeyboardF14]                  = GLFMKeyCodeF14,
+            [UIKeyboardHIDUsageKeyboardF15]                  = GLFMKeyCodeF15,
+            [UIKeyboardHIDUsageKeyboardF16]                  = GLFMKeyCodeF16,
+            [UIKeyboardHIDUsageKeyboardF17]                  = GLFMKeyCodeF17,
+            [UIKeyboardHIDUsageKeyboardF18]                  = GLFMKeyCodeF18,
+            [UIKeyboardHIDUsageKeyboardF19]                  = GLFMKeyCodeF19,
+            [UIKeyboardHIDUsageKeyboardF20]                  = GLFMKeyCodeF20,
+            [UIKeyboardHIDUsageKeyboardF21]                  = GLFMKeyCodeF21,
+            [UIKeyboardHIDUsageKeyboardF22]                  = GLFMKeyCodeF22,
+            [UIKeyboardHIDUsageKeyboardF23]                  = GLFMKeyCodeF23,
+            [UIKeyboardHIDUsageKeyboardF24]                  = GLFMKeyCodeF24,
+        };
+
+        UIKey *key = press.key;
+        if (key) {
+            hasKey = YES;
+            if ((key.modifierFlags & UIKeyModifierShift) != 0) {
+                modifierFlags |= GLFMKeyModifierShift;
+            }
+            if ((key.modifierFlags & UIKeyModifierControl) != 0) {
+                modifierFlags |= GLFMKeyModifierControl;
+            }
+            if ((key.modifierFlags & UIKeyModifierAlternate) != 0) {
+                modifierFlags |= GLFMKeyModifierAlt;
+            }
+            if ((key.modifierFlags & UIKeyModifierCommand) != 0) {
+                modifierFlags |= GLFMKeyModifierMeta;
+            }
+            if (key.keyCode >= 0 && (size_t)key.keyCode < sizeof(HID_MAP) / sizeof(*HID_MAP)) {
+                keyCode = HID_MAP[key.keyCode];
+            }
+        }
+    }
+
+#if TARGET_OS_TV
+    if (keyCode == GLFMKeyCodeUnknown) {
         switch (press.type) {
             case UIPressTypeUpArrow:
                 keyCode = GLFMKeyCodeArrowUp;
@@ -1476,10 +1632,13 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                 keyCode = GLFMKeyCodePageDown;
                 break;
         }
-        return self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, 0);
-    } else {
+    }
+#endif
+    if (keyCode == GLFMKeyCodeUnknown && !hasKey) {
+        // The tab key on the Magic Keyboard sends two UIPress events. For the second one, press.key=nil and press.type=0xcb.
         return NO;
     }
+    return self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, modifierFlags);
 }
 
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
@@ -1509,8 +1668,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
     [super pressesCancelled:presses withEvent:event];
 }
-
-#endif // TARGET_OS_TV
 
 // MARK: UIKeyInput
 
@@ -1582,17 +1739,16 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (NSArray<UIKeyCommand *> *)keyCommands {
+    if (@available(iOS 13.4, tvOS 13.4, *)) {
+        // Using UIPress events
+        return @[];
+    }
     static NSArray<UIKeyCommand *> *keyCommands = NULL;
     if (!keyCommands) {
         NSArray<NSString *> *keyInputs = @[
             UIKeyInputUpArrow, UIKeyInputDownArrow, UIKeyInputLeftArrow, UIKeyInputRightArrow,
             UIKeyInputEscape, UIKeyInputPageUp, UIKeyInputPageDown,
         ];
-        if (@available(iOS 13.4, tvOS 13.4, *)) {
-            keyInputs = [keyInputs arrayByAddingObjectsFromArray: @[
-                UIKeyInputHome, UIKeyInputEnd,
-            ]];
-        }
         NSMutableArray *mutableKeyCommands = GLFM_AUTORELEASE([NSMutableArray new]);
         [keyInputs enumerateObjectsUsingBlock:^(NSString *keyInput, NSUInteger idx, BOOL *stop) {
             (void)idx;
@@ -1603,11 +1759,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         }];
         keyCommands = [mutableKeyCommands copy];
     }
-
     return keyCommands;
 }
 
 - (void)keyPressed:(UIKeyCommand *)keyCommand {
+    // Only invoked on iOS/tvOS 13.3 and older
     if (self.glfmDisplay->keyFunc) {
         NSString *key = [keyCommand input];
         GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
@@ -1625,14 +1781,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             keyCode = GLFMKeyCodePageUp;
         } else if (key == UIKeyInputPageDown) {
             keyCode = GLFMKeyCodePageDown;
-        }
-        
-        if (@available(iOS 13.4, tvOS 13.4, *)) {
-            if (key == UIKeyInputHome) {
-                keyCode = GLFMKeyCodeHome;
-            } else if (key == UIKeyInputEnd) {
-                keyCode = GLFMKeyCodeEnd;
-            }
         }
 
         self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, GLFMKeyActionPressed, 0);
