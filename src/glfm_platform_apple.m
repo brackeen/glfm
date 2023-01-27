@@ -164,12 +164,14 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (instancetype)initWithFrame:(CGRect)frame contentScaleFactor:(CGFloat)contentScaleFactor
                        device:(id<MTLDevice>)device glfmDisplay:(GLFMDisplay *)glfmDisplay {
     if ((self = [super initWithFrame:frame device:device])) {
+#if TARGET_OS_IOS || TARGET_OS_TV
         self.contentScaleFactor = contentScaleFactor;
-        self.delegate = self;
-#if TARGET_OS_OSX
+#else
+        self.layer.contentsScale = contentScaleFactor;
         // Improve live resize somewhat
         self.layerContentsPlacement = NSViewLayerContentsPlacementTopLeft;
 #endif
+        self.delegate = self;
         self.glfmDisplay = glfmDisplay;
         self.drawableWidth = (int)self.drawableSize.width;
         self.drawableHeight = (int)self.drawableSize.height;
@@ -220,13 +222,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #if TARGET_OS_OSX
 
-- (void)setContentScaleFactor:(CGFloat)contentScaleFactor {
-    self.layer.contentsScale = contentScaleFactor;
-    CAMetalLayer *metalLayer = (CAMetalLayer *)self.layer;
-    CGSize drawableSize = metalLayer.drawableSize;
-    drawableSize.width = self.layer.bounds.size.width * self.layer.contentsScale;
-    drawableSize.height = self.layer.bounds.size.height * self.layer.contentsScale;
-    metalLayer.drawableSize = drawableSize;
+- (void)viewDidChangeBackingProperties {
+    [super viewDidChangeBackingProperties];
+    if (self.window) {
+        self.layer.contentsScale = self.window.backingScaleFactor;
+    }
 }
 
 - (void)setFrameSize:(NSSize)newSize {
@@ -892,6 +892,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 - (BOOL)acceptsFirstResponder {
     return YES;
+}
+
+- (void)viewDidChangeBackingProperties {
+    [self requestRefresh];
+    [self update];
 }
 
 - (GLFMRenderingAPI)renderingAPI {
