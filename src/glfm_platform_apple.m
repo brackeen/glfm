@@ -743,6 +743,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 // MARK: - GLFMOpenGLView (macOS)
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 @interface GLFMOpenGLView : NSOpenGLView <GLFMView>
 
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
@@ -878,6 +881,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                                                           const CVTimeStamp *outputTime,
                                                           CVOptionFlags flags,
                                                           CVOptionFlags *flagsOut) {
+        (void)displayLink;
+        (void)now;
+        (void)outputTime;
+        (void)flags;
+        (void)flagsOut;
         __typeof(self) strongSelf = weakSelf;
         if (strongSelf) {
             dispatch_source_merge_data(strongSelf->_displaySource, 1);
@@ -905,7 +913,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (BOOL)animating {
-    return CVDisplayLinkIsRunning(_displayLink);
+    return CVDisplayLinkIsRunning(_displayLink) == TRUE;
 }
 
 - (void)setAnimating:(BOOL)animating {
@@ -1004,6 +1012,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 @end
+
+#pragma clang diagnostic pop // "-Wdeprecated-declarations"
 
 #endif // TARGET_OS_OSX
 
@@ -2458,6 +2468,8 @@ int main(int argc, char *argv[]) {
 #else
 
 int main(int argc, const char * argv[]) {
+    (void)argc;
+    (void)argv;
     @autoreleasepool {
         // Create the sharedApplication instance from "NSPrincipalClass"
         NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
@@ -2828,6 +2840,7 @@ bool glfmIsKeyboardVisible(const GLFMDisplay *display) {
         return false;
     }
 #else
+    (void)display;
     return false;
 #endif
 }
