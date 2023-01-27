@@ -1027,6 +1027,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #if TARGET_OS_OSX
 @property(nonatomic, strong) NSCursor *transparentCursor;
 @property(nonatomic, strong) NSCursor *currentCursor;
+@property(nonatomic, assign) BOOL hideMouseCursorWhileTyping;
 @property(nonatomic, assign) BOOL mouseInside;
 @property(nonatomic, assign) BOOL fnModifier;
 #endif
@@ -1065,7 +1066,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @synthesize motionManager = _motionManager, orientation;
 #endif
 #if TARGET_OS_OSX
-@synthesize transparentCursor, currentCursor, mouseInside, fnModifier;
+@synthesize transparentCursor, currentCursor, hideMouseCursorWhileTyping;
+@synthesize mouseInside, fnModifier;
 #endif
 
 - (id)init {
@@ -1084,6 +1086,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         self.transparentCursor = GLFM_AUTORELEASE([[NSCursor alloc] initWithImage:transparentImage
                                                                           hotSpot:NSZeroPoint]);
         self.currentCursor = NSCursor.arrowCursor;
+        self.hideMouseCursorWhileTyping = YES;
 #else
         [self clearTouches];
 #endif
@@ -2104,6 +2107,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                              ch == NSParagraphSeparatorCharacter);
         }
         if (characters.length >= 1 && !isControlCode) {
+            if (self.hideMouseCursorWhileTyping) {
+                [NSCursor setHiddenUntilMouseMoves:YES];
+            }
             self.glfmDisplay->charFunc(self.glfmDisplay, characters.UTF8String, modifiers);
         }
     }
@@ -2729,7 +2735,7 @@ bool glfmHasTouch(const GLFMDisplay *display) {
 
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
 #if TARGET_OS_OSX
-    if (display) {
+    if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         NSCursor *cursor;
         switch (mouseCursor) {
@@ -2758,6 +2764,9 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
                 [cursor set];
             }
         }
+        [NSCursor setHiddenUntilMouseMoves:NO];
+        vc.hideMouseCursorWhileTyping = (mouseCursor == GLFMMouseCursorAuto ||
+                                         mouseCursor == GLFMMouseCursorText);
     }
 #else
     (void)display;
