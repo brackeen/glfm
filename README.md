@@ -33,7 +33,7 @@ Without CMake:
 2. Include a `void glfmMain(GLFMDisplay *display)` function in a C/C++ file.
 
 ## Example
-This example initializes the display in `glfmMain()` and draws a triangle in `onFrame()`. A more detailed example is available [here](example/src/main.c).
+This example initializes the display in `glfmMain()` and draws a triangle in `onFrame()`. A more detailed example is available [here](examples/src/main.c).
 
 ```C
 #include "glfm.h"
@@ -135,7 +135,7 @@ Use `cmake` to generate an Xcode project:
 
 ```Shell
 mkdir -p build/ios && cd build/ios
-cmake -DGLFM_BUILD_EXAMPLE=ON -G Xcode ../..
+cmake -DGLFM_BUILD_EXAMPLES=ON -G Xcode ../..
 open GLFM.xcodeproj
 ```
 
@@ -147,13 +147,13 @@ Use `emcmake` to set environmental variables for `cmake`, then build:
 
 ```Shell
 mkdir -p build/emscripten && cd build/emscripten
-emcmake cmake -DGLFM_BUILD_EXAMPLE=ON ../..
+emcmake cmake -DGLFM_BUILD_EXAMPLES=ON ../..
 cmake --build .
 ```
 
 Then run locally:
 ```Shell
-emrun example/glfm_example.html
+emrun examples/glfm_example.html
 ```
 
 ## Build the GLFM examples with Android Studio
@@ -208,14 +208,14 @@ android {
         // Add externalNativeBuild in defaultConfig (1/2)
         externalNativeBuild {
             cmake {
-                arguments "-DGLFM_BUILD_EXAMPLE=ON"
+                arguments "-DGLFM_BUILD_EXAMPLES=ON"
             }
         }
     }
     
     // Add sourceSets.main and externalNativeBuild (2/2)
     sourceSets.main {
-        assets.srcDirs = ["../../../example/assets"]
+        assets.srcDirs = ["../../../examples/assets"]
     }
     externalNativeBuild {
         cmake {

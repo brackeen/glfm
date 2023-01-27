@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18.0)
 
 project(GLFM C)
 
-option(GLFM_BUILD_EXAMPLE "Build the GLFM examples" OFF)
+option(GLFM_BUILD_EXAMPLES "Build the GLFM examples" OFF)
 
 set(GLFM_HEADERS include/glfm.h)
 
@@ -60,6 +60,6 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
     )
 endif()
 
-if (GLFM_BUILD_EXAMPLE)
-    add_subdirectory(example)
+if (GLFM_BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
