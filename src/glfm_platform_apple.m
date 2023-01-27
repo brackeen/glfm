@@ -1835,7 +1835,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         CGPoint locationInScreen = event.locationInWindow;
         locationInWindow = [window convertPointFromScreen:locationInScreen];
     }
-    CGFloat scale = event.window.backingScaleFactor;
+    CGFloat scale = window.backingScaleFactor;
     CGFloat contentHeight = window.contentLayoutRect.size.height;
     *outX = locationInWindow.x * scale;
     *outY = (contentHeight - locationInWindow.y) * scale; // Flip y
