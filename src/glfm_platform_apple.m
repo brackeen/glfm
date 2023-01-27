@@ -2351,6 +2351,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     if (!NSApp.mainMenu) {
         [self createDefaultMenuWithAppName:appName];
     }
+
+    // Enter fullscreen if requested
+    glfm__displayChromeUpdated(glfmViewController.glfmDisplay);
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
@@ -2530,6 +2533,16 @@ static void glfm__displayChromeUpdated(GLFMDisplay *display) {
         [vc setNeedsStatusBarAppearanceUpdate];
         if (@available(iOS 11, *)) {
             [vc setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
+        }
+#elif TARGET_OS_OSX
+        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        NSWindow *window = vc.glfmViewIfLoaded.window;
+        if (window) {
+            bool isFullscreen = (window.styleMask & NSWindowStyleMaskFullScreen) != 0;
+            bool wantsFullscreen = display->uiChrome == GLFMUserInterfaceChromeFullscreen;
+            if (wantsFullscreen != isFullscreen) {
+                [window toggleFullScreen:nil];
+            }
         }
 #endif
     }
