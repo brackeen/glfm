@@ -134,6 +134,7 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
     ExampleApp *app = glfmGetUserData(display);
     app->program = 0;
     app->vertexBuffer = 0;
+    app->vertexArray = 0;
 }
 
 static GLuint compileShader(GLenum type, const char *shaderName) {
