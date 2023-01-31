@@ -166,8 +166,8 @@ extern EMSCRIPTEN_RESULT emscripten_get_orientation_status(EmscriptenOrientation
 
 void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height) {
     GLFMPlatformData *platformData = display->platformData;
-    *width = platformData->width;
-    *height = platformData->height;
+    if (width) *width = platformData->width;
+    if (height) *height = platformData->height;
 }
 
 double glfmGetDisplayScale(const GLFMDisplay *display) {
@@ -179,22 +179,22 @@ void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double 
                                 double *bottom, double *left) {
     GLFMPlatformData *platformData = display->platformData;
 
-    *top = platformData->scale * EM_ASM_DOUBLE_V( {
+    if (top) *top = platformData->scale * EM_ASM_DOUBLE_V( {
         var htmlStyles = window.getComputedStyle(document.querySelector("html"));
         return (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-top-old")) || 0) +
                (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-top")) || 0);
     } );
-    *right = platformData->scale * EM_ASM_DOUBLE_V( {
+    if (right) *right = platformData->scale * EM_ASM_DOUBLE_V( {
         var htmlStyles = window.getComputedStyle(document.querySelector("html"));
         return (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-right-old")) || 0) +
                (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-right")) || 0);
     } );
-    *bottom = platformData->scale * EM_ASM_DOUBLE_V( {
+    if (bottom) *bottom = platformData->scale * EM_ASM_DOUBLE_V( {
         var htmlStyles = window.getComputedStyle(document.querySelector("html"));
         return (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-bottom-old")) || 0) +
                (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-bottom")) || 0);
     } );
-    *left = platformData->scale * EM_ASM_DOUBLE_V( {
+    if (left) *left = platformData->scale * EM_ASM_DOUBLE_V( {
         var htmlStyles = window.getComputedStyle(document.querySelector("html"));
         return (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-left-old")) || 0) +
                (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-left")) || 0);

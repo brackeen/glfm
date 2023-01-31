@@ -570,6 +570,8 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display,
 GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display);
 
 /// Gets the display size, in pixels.
+///
+/// The arguments for the `width` and `height` parameters may be `NULL`.
 void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height);
 
 /// Gets the display scale.
@@ -582,6 +584,8 @@ double glfmGetDisplayScale(const GLFMDisplay *display);
 ///
 /// The "insets" are the space taken on the outer edges of the display by status bars,
 /// navigation bars, and other UI elements.
+///
+/// The arguments for the `top`, `right`, `bottom`, and `left` parameters may be `NULL`.
 void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
                                 double *bottom, double *left);
 

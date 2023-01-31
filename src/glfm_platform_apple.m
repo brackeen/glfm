@@ -2539,8 +2539,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
 #endif
 
-    *width = newDrawableWidth;
-    *height = newDrawableHeight;
+    if (width) *width = newDrawableWidth;
+    if (height) *height = newDrawableHeight;
 }
 
 static void glfm__displayChromeUpdated(GLFMDisplay *display) {
@@ -2645,16 +2645,16 @@ void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height) {
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         if (vc.isViewLoaded) {
-            *width = vc.glfmView.drawableWidth;
-            *height = vc.glfmView.drawableHeight;
+            if (width) *width = vc.glfmView.drawableWidth;
+            if (height) *height = vc.glfmView.drawableHeight;
         } else {
             double displayWidth, displayHeight, displayScale;
             glfm__getDefaultDisplaySize(display, &displayWidth, &displayHeight, &displayScale);
             glfm__getDrawableSize(displayWidth, displayHeight, displayScale, width, height);
         }
     } else {
-        *width = 0;
-        *height = 0;
+        if (width) *width = 0;
+        if (height) *height = 0;
     }
 }
 
@@ -2677,49 +2677,51 @@ void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double 
     if (display && display->platformData) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         if (!vc.isViewLoaded) {
-            *top = 0.0;
-            *right = 0.0;
-            *bottom = 0.0;
-            *left = 0.0;
+            if (top) *top = 0.0;
+            if (right) *right = 0.0;
+            if (bottom) *bottom = 0.0;
+            if (left) *left = 0.0;
         } else if (@available(iOS 11, tvOS 11, macOS 11, *)) {
 #if TARGET_OS_IOS || TARGET_OS_TV
             UIEdgeInsets insets = vc.view.safeAreaInsets;
-            *top = (double)(insets.top * vc.view.contentScaleFactor);
-            *right = (double)(insets.right * vc.view.contentScaleFactor);
-            *bottom = (double)(insets.bottom * vc.view.contentScaleFactor);
-            *left = (double)(insets.left * vc.view.contentScaleFactor);
+            if (top) *top = (double)(insets.top * vc.view.contentScaleFactor);
+            if (right) *right = (double)(insets.right * vc.view.contentScaleFactor);
+            if (bottom) *bottom = (double)(insets.bottom * vc.view.contentScaleFactor);
+            if (left) *left = (double)(insets.left * vc.view.contentScaleFactor);
 #else
             // NOTE: This has not been tested.
             // Run glfm_test_pattern fullscreen on a 2021-2022 MacBook Pro/Air with a notch.
             NSEdgeInsets insets = vc.view.safeAreaInsets;
-            *top = (double)(insets.top * vc.view.layer.contentsScale);
-            *right = (double)(insets.right * vc.view.layer.contentsScale);
-            *bottom = (double)(insets.bottom * vc.view.layer.contentsScale);
-            *left = (double)(insets.left * vc.view.layer.contentsScale);
+            if (top) *top = (double)(insets.top * vc.view.layer.contentsScale);
+            if (right) *right = (double)(insets.right * vc.view.layer.contentsScale);
+            if (bottom) *bottom = (double)(insets.bottom * vc.view.layer.contentsScale);
+            if (left) *left = (double)(insets.left * vc.view.layer.contentsScale);
 #endif
         } else {
+            if (top) {
 #if TARGET_OS_IOS
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            if (![vc prefersStatusBarHidden]) {
-                *top = (double)([UIApplication sharedApplication].statusBarFrame.size.height *
-                        vc.view.contentScaleFactor);
-            } else {
-                *top = 0.0;
-            }
+                if (![vc prefersStatusBarHidden]) {
+                    *top = (double)([UIApplication sharedApplication].statusBarFrame.size.height *
+                                    vc.view.contentScaleFactor);
+                } else {
+                    *top = 0.0;
+                }
 #pragma clang diagnostic pop
 #else
-            *top = 0.0;
+                *top = 0.0;
 #endif
-            *right = 0.0;
-            *bottom = 0.0;
-            *left = 0.0;
+            }
+            if (right) *right = 0.0;
+            if (bottom) *bottom = 0.0;
+            if (left) *left = 0.0;
         }
     } else {
-        *top = 0.0;
-        *right = 0.0;
-        *bottom = 0.0;
-        *left = 0.0;
+        if (top) *top = 0.0;
+        if (right) *right = 0.0;
+        if (bottom) *bottom = 0.0;
+        if (left) *left = 0.0;
     }
 }
 

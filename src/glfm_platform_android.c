@@ -1132,10 +1132,10 @@ static bool glfm__getSafeInsets(const GLFMDisplay *display, double *top, double 
         return false;
     }
 
-    *top = glfm__callJavaMethod(jni, cutouts, "getSafeInsetTop", "()I", Int);
-    *right = glfm__callJavaMethod(jni, cutouts, "getSafeInsetRight", "()I", Int);
-    *bottom = glfm__callJavaMethod(jni, cutouts, "getSafeInsetBottom", "()I", Int);
-    *left = glfm__callJavaMethod(jni, cutouts, "getSafeInsetLeft", "()I", Int);
+    if (top) *top = glfm__callJavaMethod(jni, cutouts, "getSafeInsetTop", "()I", Int);
+    if (right) *right = glfm__callJavaMethod(jni, cutouts, "getSafeInsetRight", "()I", Int);
+    if (bottom) *bottom = glfm__callJavaMethod(jni, cutouts, "getSafeInsetBottom", "()I", Int);
+    if (left) *left = glfm__callJavaMethod(jni, cutouts, "getSafeInsetLeft", "()I", Int);
 
     (*jni)->DeleteLocalRef(jni, cutouts);
     return true;
@@ -1162,10 +1162,10 @@ static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, double *top,
         return false;
     }
 
-    *top = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetTop", "()I", Int);
-    *right = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetRight", "()I", Int);
-    *bottom = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetBottom", "()I", Int);
-    *left = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetLeft", "()I", Int);
+    if (top) *top = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetTop", "()I", Int);
+    if (right) *right = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetRight", "()I", Int);
+    if (bottom) *bottom = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetBottom", "()I", Int);
+    if (left) *left = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetLeft", "()I", Int);
 
     (*jni)->DeleteLocalRef(jni, insets);
     return true;
@@ -1889,8 +1889,8 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display)
 
 void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    *width = platformData->width;
-    *height = platformData->height;
+    if (width) *width = platformData->width;
+    if (height) *height = platformData->height;
 }
 
 double glfmGetDisplayScale(const GLFMDisplay *display) {
@@ -1912,15 +1912,15 @@ void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double 
         ARect windowRect = platformData->app->contentRect;
         ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, windowRect);
         if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0) {
-            *top = 0;
-            *right = 0;
-            *bottom = 0;
-            *left = 0;
+            if (top) *top = 0;
+            if (right) *right = 0;
+            if (bottom) *bottom = 0;
+            if (left) *left = 0;
         } else {
-            *top = visibleRect.top;
-            *right = platformData->width - visibleRect.right;
-            *bottom = platformData->height - visibleRect.bottom;
-            *left = visibleRect.left;
+            if (top) *top = visibleRect.top;
+            if (right) *right = platformData->width - visibleRect.right;
+            if (bottom) *bottom = platformData->height - visibleRect.bottom;
+            if (left) *left = visibleRect.left;
         }
     }
 }
