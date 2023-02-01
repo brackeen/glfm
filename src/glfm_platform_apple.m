@@ -1468,6 +1468,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
     int modifierFlags = 0;
     BOOL hasKey = NO;
+    BOOL isPrintable = NO;
     if (@available(iOS 13.4, tvOS 13.4, *)) {
         static const GLFMKeyCode HID_MAP[] = {
             [UIKeyboardHIDUsageKeyboardReturnOrEnter]        = GLFMKeyCodeEnter,
@@ -1616,6 +1617,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             if (key.keyCode >= 0 && (size_t)key.keyCode < sizeof(HID_MAP) / sizeof(*HID_MAP)) {
                 keyCode = HID_MAP[key.keyCode];
             }
+            if (keyCode >= GLFMKeyCodeSpace && self.isFirstResponder) {
+                NSString *chars = key.charactersIgnoringModifiers;
+                isPrintable = chars.length > 0 && ![chars hasPrefix:@"UIKeyInput"];
+            }
         }
     }
 
@@ -1652,11 +1657,21 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         }
     }
 #endif
+    if (self.isFirstResponder &&
+        (keyCode == GLFMKeyCodeEnter || keyCode == GLFMKeyCodeTab || keyCode == GLFMKeyCodeBackspace)) {
+        // Let UIKeyInput handle these keys via insertText and deleteBackwards (allow key repeating).
+        return NO;
+    }
     if (keyCode == GLFMKeyCodeUnknown && !hasKey) {
         // The tab key on the Magic Keyboard sends two UIPress events. For the second one, press.key=nil and press.type=0xcb.
         return NO;
     }
-    return self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, modifierFlags);
+    BOOL handled = self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, modifierFlags);
+    if (self.isFirstResponder && isPrintable) {
+        // Send text via insertText.
+        return NO;
+    }
+    return handled;
 }
 
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
@@ -1746,12 +1761,24 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)insertText:(NSString *)text {
-    if (self.glfmDisplay->charFunc) {
+    if ([text isEqualToString:@"\n"]) {
+        if (self.glfmDisplay->keyFunc) {
+            self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeEnter, GLFMKeyActionPressed, 0);
+            self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeEnter, GLFMKeyActionReleased, 0);
+        }
+    } else if ([text isEqualToString:@"\t"]) {
+        if (self.glfmDisplay->keyFunc) {
+            self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeTab, GLFMKeyActionPressed, 0);
+            self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeTab, GLFMKeyActionReleased, 0);
+        }
+    } else if (self.glfmDisplay->charFunc) {
         self.glfmDisplay->charFunc(self.glfmDisplay, text.UTF8String, 0);
     }
 }
 
 - (void)deleteBackward {
+    // NOTE: This method is called for key repeat events when using a hardware keyboard, but not
+    // when using the software keyboard.
     if (self.glfmDisplay->keyFunc) {
         self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeBackspace, GLFMKeyActionPressed, 0);
         self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeBackspace, GLFMKeyActionReleased, 0);
