@@ -1684,7 +1684,13 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
-    [super pressesCancelled:presses withEvent:event];
+    BOOL handled = YES;
+    for (UIPress *press in presses) {
+        handled &= [self handlePress:press withAction:GLFMKeyActionReleased];
+    }
+    if (!handled) {
+        [super pressesCancelled:presses withEvent:event];
+    }
 }
 
 // MARK: UIKeyInput
