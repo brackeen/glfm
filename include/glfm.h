@@ -685,9 +685,13 @@ GLFMAppFocusFunc glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focu
 // MARK: - Input functions
 
 /// Sets whether multitouch input is enabled. By default, multitouch is disabled.
+///
+/// tvOS: This function does nothing.
 void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled);
 
 /// Gets whether multitouch input is enabled. By default, multitouch is disabled.
+///
+/// tvOS: Always returns false.
 bool glfmGetMultitouchEnabled(const GLFMDisplay *display);
 
 /// Gets whether the display has touch capabilities.

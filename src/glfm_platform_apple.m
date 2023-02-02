@@ -1047,11 +1047,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @interface GLFMViewController () <UIKeyInput, UITextInputTraits>
 
-@property(nonatomic, assign) BOOL multipleTouchEnabled;
 @property(nonatomic, assign) BOOL keyboardRequested;
 #if TARGET_OS_IOS
 @property(nonatomic, strong) CMMotionManager *motionManager;
 @property(nonatomic, assign) UIInterfaceOrientation orientation;
+@property(nonatomic, assign) BOOL multipleTouchEnabled;
 #endif
 
 @end
@@ -1070,10 +1070,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @synthesize metalDevice = _metalDevice;
 #endif
 #if TARGET_OS_IOS || TARGET_OS_TV
-@synthesize multipleTouchEnabled, keyboardRequested;
+@synthesize keyboardRequested;
 #endif
 #if TARGET_OS_IOS
-@synthesize motionManager = _motionManager, orientation;
+@synthesize motionManager = _motionManager, orientation, multipleTouchEnabled;
 #endif
 #if TARGET_OS_OSX
 @synthesize transparentCursor, currentCursor, hideMouseCursorWhileTyping;
@@ -2836,7 +2836,7 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
 }
 
 bool glfmGetMultitouchEnabled(const GLFMDisplay *display) {
-#if TARGET_OS_IOS || TARGET_OS_TV
+#if TARGET_OS_IOS
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.multipleTouchEnabled;
