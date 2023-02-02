@@ -1034,30 +1034,35 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #if GLFM_INCLUDE_METAL
 @property(nonatomic, strong) id<MTLDevice> metalDevice;
 #endif
-#if TARGET_OS_OSX
-@property(nonatomic, strong) NSCursor *transparentCursor;
-@property(nonatomic, strong) NSCursor *currentCursor;
-@property(nonatomic, assign) BOOL hideMouseCursorWhileTyping;
-@property(nonatomic, assign) BOOL mouseInside;
-@property(nonatomic, assign) BOOL fnModifier;
-#endif
 @end
 
-#if TARGET_OS_IOS || TARGET_OS_TV
+#if TARGET_OS_IOS
 
 @interface GLFMViewController () <UIKeyInput, UITextInputTraits>
 
-#if TARGET_OS_IOS
 @property(nonatomic, assign) BOOL keyboardRequested;
 @property(nonatomic, strong) UIView *noSoftKeyboardView;
 @property(nonatomic, strong) CMMotionManager *motionManager;
 @property(nonatomic, assign) UIInterfaceOrientation orientation;
 @property(nonatomic, assign) BOOL multipleTouchEnabled;
-#endif
 
 @end
 
-#endif // TARGET_OS_IOS || TARGET_OS_TV
+#endif // TARGET_OS_IOS
+
+#if TARGET_OS_OSX
+
+@interface GLFMViewController ()
+
+@property(nonatomic, strong) NSCursor *transparentCursor;
+@property(nonatomic, strong) NSCursor *currentCursor;
+@property(nonatomic, assign) BOOL hideMouseCursorWhileTyping;
+@property(nonatomic, assign) BOOL mouseInside;
+@property(nonatomic, assign) BOOL fnModifier;
+
+@end
+
+#endif // TARGET_OS_OSX
 
 @implementation GLFMViewController {
 #if TARGET_OS_IOS || TARGET_OS_TV
@@ -1633,14 +1638,40 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             if (key.keyCode >= 0 && (size_t)key.keyCode < sizeof(HID_MAP) / sizeof(*HID_MAP)) {
                 keyCode = HID_MAP[key.keyCode];
             }
-            if (keyCode >= GLFMKeyCodeSpace && self.isFirstResponder) {
+            if (self.isFirstResponder && self.glfmDisplay->charFunc != NULL &&
+                action != GLFMKeyActionReleased &&
+                keyCode >= GLFMKeyCodeSpace && keyCode != GLFMKeyCodeDelete) {
                 NSString *chars = key.charactersIgnoringModifiers;
-                isPrintable = chars.length > 0 && ![chars hasPrefix:@"UIKeyInput"];
+                isPrintable = (chars.length > 0 && [chars characterAtIndex:0] >= ' ' &&
+                               ![chars hasPrefix:@"UIKeyInput"]);
             }
         }
     }
 
+    // NOTE: iOS supports UIKeyInput, but tvOS does not. Handle them separately.
+
+#if TARGET_OS_IOS
+
+    if (self.isFirstResponder &&
+        (keyCode == GLFMKeyCodeEnter || keyCode == GLFMKeyCodeTab || keyCode == GLFMKeyCodeBackspace)) {
+        // Let UIKeyInput handle these keys via insertText and deleteBackwards (allow key repeating).
+        return NO;
+    }
+    if (keyCode == GLFMKeyCodeUnknown && !hasKey) {
+        // The tab key on the Magic Keyboard sends two UIPress events. For the second one, press.key=nil and press.type=0xcb.
+        return NO;
+    }
+    BOOL handled = self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, modifierFlags);
+    if (self.isFirstResponder && isPrintable && self.glfmDisplay->charFunc) {
+        // Send text via insertText.
+        return NO;
+    }
+    return handled;
+
+#endif // TARGET_OS_IOS
+
 #if TARGET_OS_TV
+
     if (keyCode == GLFMKeyCodeUnknown) {
         switch (press.type) {
             case UIPressTypeUpArrow:
@@ -1672,22 +1703,17 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                 break;
         }
     }
-#endif
-    if (self.isFirstResponder &&
-        (keyCode == GLFMKeyCodeEnter || keyCode == GLFMKeyCodeTab || keyCode == GLFMKeyCodeBackspace)) {
-        // Let UIKeyInput handle these keys via insertText and deleteBackwards (allow key repeating).
-        return NO;
-    }
-    if (keyCode == GLFMKeyCodeUnknown && !hasKey) {
-        // The tab key on the Magic Keyboard sends two UIPress events. For the second one, press.key=nil and press.type=0xcb.
-        return NO;
-    }
+
     BOOL handled = self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, modifierFlags);
-    if (self.isFirstResponder && isPrintable) {
-        // Send text via insertText.
-        return NO;
+    if (@available(iOS 13.4, tvOS 13.4, *)) {
+        if (self.isFirstResponder && hasKey && isPrintable && self.glfmDisplay->charFunc) {
+            self.glfmDisplay->charFunc(self.glfmDisplay, press.key.characters.UTF8String, 0);
+        }
     }
     return handled;
+
+#endif // TARGET_OS_TV
+
 }
 
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
@@ -1765,8 +1791,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
 }
 
-#endif // TARGET_OS_IOS
-
 // UITextInputTraits - disable suggestion bar
 - (UITextAutocorrectionType)autocorrectionType {
     return UITextAutocorrectionTypeNo;
@@ -1800,6 +1824,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeBackspace, GLFMKeyActionReleased, 0);
     }
 }
+
+#endif // TARGET_OS_IOS
 
 - (NSArray<UIKeyCommand *> *)keyCommands {
     if (@available(iOS 13.4, tvOS 13.4, *)) {
