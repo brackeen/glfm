@@ -1049,6 +1049,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @property(nonatomic, assign) BOOL keyboardRequested;
 #if TARGET_OS_IOS
+@property(nonatomic, strong) UIView *noSoftKeyboardView;
 @property(nonatomic, strong) CMMotionManager *motionManager;
 @property(nonatomic, assign) UIInterfaceOrientation orientation;
 @property(nonatomic, assign) BOOL multipleTouchEnabled;
@@ -1073,7 +1074,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @synthesize keyboardRequested;
 #endif
 #if TARGET_OS_IOS
-@synthesize motionManager = _motionManager, orientation, multipleTouchEnabled;
+@synthesize noSoftKeyboardView, motionManager = _motionManager, orientation, multipleTouchEnabled;
 #endif
 #if TARGET_OS_OSX
 @synthesize transparentCursor, currentCursor, hideMouseCursorWhileTyping;
@@ -1085,6 +1086,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         self.glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         self.glfmDisplay->platformData = (__bridge void *)self;
         self.glfmDisplay->supportedOrientations = GLFMInterfaceOrientationAll;
+
+#if TARGET_OS_IOS
+        self.noSoftKeyboardView = GLFM_AUTORELEASE([UIView new]);
+#endif
         
 #if TARGET_OS_OSX
         // Use a transparent image for the hidden cursor
@@ -1112,6 +1117,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     self.glfmViewIfLoaded.preRenderCallback = nil;
 #if TARGET_OS_IOS
     self.motionManager = nil;
+    self.noSoftKeyboardView = nil;
 #endif
 #if GLFM_INCLUDE_METAL
     self.metalDevice = nil;
@@ -1235,6 +1241,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #if TARGET_OS_IOS || TARGET_OS_TV
 
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    [self becomeFirstResponder];
+}
+
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     if (self.glfmDisplay->lowMemoryFunc) {
@@ -1245,6 +1256,14 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #endif
 
 #if TARGET_OS_IOS
+
+- (UIView *)inputView {
+    if (self.keyboardRequested) {
+        return nil; // System keyboard
+    } else {
+        return self.noSoftKeyboardView;
+    }
+}
 
 - (BOOL)prefersStatusBarHidden {
     return self.glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
@@ -1391,6 +1410,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #if TARGET_OS_IOS || TARGET_OS_TV
 
 // MARK: UIResponder
+
+- (BOOL)canBecomeFirstResponder {
+    return YES;
+}
 
 - (void)clearTouches {
     for (int i = 0; i < MAX_SIMULTANEOUS_TOUCHES; i++) {
@@ -1779,10 +1802,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeBackspace, GLFMKeyActionPressed, 0);
         self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeBackspace, GLFMKeyActionReleased, 0);
     }
-}
-
-- (BOOL)canBecomeFirstResponder {
-    return self.keyboardRequested;
 }
 
 - (NSArray<UIKeyCommand *> *)keyCommands {
@@ -2849,12 +2868,9 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
 #if TARGET_OS_IOS || TARGET_OS_TV
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        [vc resignFirstResponder];
         vc.keyboardRequested = visible;
-        if (visible) {
-            [vc becomeFirstResponder];
-        } else {
-            [vc resignFirstResponder];
-        }
+        [vc becomeFirstResponder];
     }
 #else
     (void)display;
