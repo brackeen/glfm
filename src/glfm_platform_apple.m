@@ -1047,8 +1047,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @interface GLFMViewController () <UIKeyInput, UITextInputTraits>
 
-@property(nonatomic, assign) BOOL keyboardRequested;
 #if TARGET_OS_IOS
+@property(nonatomic, assign) BOOL keyboardRequested;
 @property(nonatomic, strong) UIView *noSoftKeyboardView;
 @property(nonatomic, strong) CMMotionManager *motionManager;
 @property(nonatomic, assign) UIInterfaceOrientation orientation;
@@ -1070,11 +1070,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #if GLFM_INCLUDE_METAL
 @synthesize metalDevice = _metalDevice;
 #endif
-#if TARGET_OS_IOS || TARGET_OS_TV
-@synthesize keyboardRequested;
-#endif
 #if TARGET_OS_IOS
-@synthesize noSoftKeyboardView, motionManager = _motionManager, orientation, multipleTouchEnabled;
+@synthesize keyboardRequested, noSoftKeyboardView, motionManager = _motionManager, orientation, multipleTouchEnabled;
 #endif
 #if TARGET_OS_OSX
 @synthesize transparentCursor, currentCursor, hideMouseCursorWhileTyping;
@@ -2865,7 +2862,7 @@ bool glfmGetMultitouchEnabled(const GLFMDisplay *display) {
 }
 
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
-#if TARGET_OS_IOS || TARGET_OS_TV
+#if TARGET_OS_IOS
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         [vc resignFirstResponder];
@@ -2879,7 +2876,7 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
 }
 
 bool glfmIsKeyboardVisible(const GLFMDisplay *display) {
-#if TARGET_OS_IOS || TARGET_OS_TV
+#if TARGET_OS_IOS
     if (display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         return vc.keyboardRequested;

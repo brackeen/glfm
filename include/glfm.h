@@ -686,12 +686,12 @@ GLFMAppFocusFunc glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focu
 
 /// Sets whether multitouch input is enabled. By default, multitouch is disabled.
 ///
-/// tvOS: This function does nothing.
+/// - tvOS: This function does nothing.
 void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled);
 
 /// Gets whether multitouch input is enabled. By default, multitouch is disabled.
 ///
-/// tvOS: Always returns false.
+/// - tvOS: Always returns false.
 bool glfmGetMultitouchEnabled(const GLFMDisplay *display);
 
 /// Gets whether the display has touch capabilities.
@@ -707,13 +707,16 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor);
 
 /// Requests to show or hide the onscreen virtual keyboard.
 ///
-/// On iPad, if a hardware keyboard is attached, this function will enable character input
-/// (see ``glfmSetCharFunc``) but not actually show the virtual keyboard.
+/// On iPad, if a hardware keyboard is attached, the virtual keyboard will not actually be shown.
 ///
 /// - Emscripten: this function does nothing.
+/// - tvOS: This function does nothing.
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible);
 
 /// Returns `true` if the virtual keyboard is currently visible.
+///
+/// - Emscripten: Always returns false.
+/// - tvOS: Always returns false.
 bool glfmIsKeyboardVisible(const GLFMDisplay *display);
 
 /// Sets the function to call when the virtual keyboard changes visibility or changes bounds.
