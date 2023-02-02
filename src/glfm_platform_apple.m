@@ -1104,6 +1104,23 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     return self;
 }
 
+- (void)dealloc {
+    if (self.glfmViewIfLoaded.surfaceCreatedNotified && self.glfmDisplay->surfaceDestroyedFunc) {
+        self.glfmDisplay->surfaceDestroyedFunc(self.glfmDisplay);
+    }
+    free(self.glfmDisplay);
+    self.glfmViewIfLoaded.preRenderCallback = nil;
+#if TARGET_OS_IOS
+    self.motionManager = nil;
+#endif
+#if GLFM_INCLUDE_METAL
+    self.metalDevice = nil;
+#endif
+#if !__has_feature(objc_arc)
+    [super dealloc];
+#endif
+}
+
 #if GLFM_INCLUDE_METAL
 
 - (id<MTLDevice>)metalDevice {
@@ -1111,20 +1128,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         self.metalDevice = GLFM_AUTORELEASE(MTLCreateSystemDefaultDevice());
     }
     return _metalDevice;
-}
-
-#endif
-
-#if TARGET_OS_IOS
-
-- (BOOL)prefersStatusBarHidden {
-    return self.glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
-}
-
-- (UIRectEdge)preferredScreenEdgesDeferringSystemGestures {
-    UIRectEdge edges =  UIRectEdgeLeft | UIRectEdgeRight;
-    return (self.glfmDisplay->uiChrome == GLFMUserInterfaceChromeFullscreen ?
-            (UIRectEdgeBottom | edges) : edges);
 }
 
 #endif
@@ -1202,6 +1205,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #endif
 }
 
+- (void)preRenderCallback {
+#if TARGET_OS_IOS
+    [self handleMotionEvents];
+#endif
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
 
@@ -1224,7 +1233,28 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #endif
 }
 
+#if TARGET_OS_IOS || TARGET_OS_TV
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    if (self.glfmDisplay->lowMemoryFunc) {
+        self.glfmDisplay->lowMemoryFunc(self.glfmDisplay);
+    }
+}
+
+#endif
+
 #if TARGET_OS_IOS
+
+- (BOOL)prefersStatusBarHidden {
+    return self.glfmDisplay->uiChrome != GLFMUserInterfaceChromeNavigationAndStatusBar;
+}
+
+- (UIRectEdge)preferredScreenEdgesDeferringSystemGestures {
+    UIRectEdge edges =  UIRectEdgeLeft | UIRectEdgeRight;
+    return (self.glfmDisplay->uiChrome == GLFMUserInterfaceChromeFullscreen ?
+            (UIRectEdgeBottom | edges) : edges);
+}
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
     GLFMInterfaceOrientation orientations = self.glfmDisplay->supportedOrientations;
@@ -1260,16 +1290,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         }
     }
 }
-
-#endif // TARGET_OS_IOS
-
-- (void)preRenderCallback {
-#if TARGET_OS_IOS
-    [self handleMotionEvents];
-#endif
-}
-
-#if TARGET_OS_IOS
 
 - (CMMotionManager *)motionManager {
     if (!_motionManager) {
@@ -1368,31 +1388,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #endif // TARGET_OS_IOS
 
-- (void)dealloc {
-    if (self.glfmViewIfLoaded.surfaceCreatedNotified && self.glfmDisplay->surfaceDestroyedFunc) {
-        self.glfmDisplay->surfaceDestroyedFunc(self.glfmDisplay);
-    }
-    free(self.glfmDisplay);
-    self.glfmViewIfLoaded.preRenderCallback = nil;
-#if TARGET_OS_IOS
-    self.motionManager = nil;
-#endif
-#if GLFM_INCLUDE_METAL
-    self.metalDevice = nil;
-#endif
-#if !__has_feature(objc_arc)
-    [super dealloc];
-#endif
-}
-
 #if TARGET_OS_IOS || TARGET_OS_TV
-
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    if (self.glfmDisplay->lowMemoryFunc) {
-        self.glfmDisplay->lowMemoryFunc(self.glfmDisplay);
-    }
-}
 
 // MARK: UIResponder
 
@@ -2210,7 +2206,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #endif // TARGET_OS_OSX
 
-@end
+@end // GLFMViewController
 
 #if TARGET_OS_IOS || TARGET_OS_TV
 
