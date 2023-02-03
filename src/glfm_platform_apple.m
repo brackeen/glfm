@@ -1716,13 +1716,28 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 }
 
-- (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
-    BOOL handled = YES;
+// Returns set of unhandled presses
+- (NSSet<UIPress *> *)handlePresses:(NSSet<UIPress *> *)presses withAction:(GLFMKeyAction)action {
+    NSMutableSet<UIPress *> *unhandledPresses = nil;
     for (UIPress *press in presses) {
-        handled &= [self handlePress:press withAction:GLFMKeyActionPressed];
+        BOOL handled = [self handlePress:press withAction:action];
+        if (!handled) {
+            if (presses.count == 1) {
+                return presses; // Likely case
+            }
+            if (!unhandledPresses) {
+                unhandledPresses = [NSMutableSet set];
+            }
+            [unhandledPresses addObject:press];
+        }
     }
-    if (!handled) {
-        [super pressesBegan:presses withEvent:event];
+    return unhandledPresses;
+}
+
+- (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    NSSet<UIPress *> *unhandledPresses = [self handlePresses:presses withAction:GLFMKeyActionPressed];
+    if (unhandledPresses.count > 0) {
+        [super pressesBegan:unhandledPresses withEvent:event];
     }
 }
 
@@ -1731,22 +1746,16 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
-    BOOL handled = YES;
-    for (UIPress *press in presses) {
-        handled &= [self handlePress:press withAction:GLFMKeyActionReleased];
-    }
-    if (!handled) {
-        [super pressesEnded:presses withEvent:event];
+    NSSet<UIPress *> *unhandledPresses = [self handlePresses:presses withAction:GLFMKeyActionReleased];
+    if (unhandledPresses.count > 0) {
+        [super pressesEnded:unhandledPresses withEvent:event];
     }
 }
 
 - (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
-    BOOL handled = YES;
-    for (UIPress *press in presses) {
-        handled &= [self handlePress:press withAction:GLFMKeyActionReleased];
-    }
-    if (!handled) {
-        [super pressesCancelled:presses withEvent:event];
+    NSSet<UIPress *> *unhandledPresses = [self handlePresses:presses withAction:GLFMKeyActionReleased];
+    if (unhandledPresses.count > 0) {
+        [super pressesCancelled:unhandledPresses withEvent:event];
     }
 }
 
