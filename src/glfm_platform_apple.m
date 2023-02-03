@@ -1482,9 +1482,15 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (BOOL)handlePress:(UIPress *)press withAction:(GLFMKeyAction)action {
+#if TARGET_OS_IOS
     if (!self.glfmDisplay->keyFunc) {
         return NO;
     }
+#elif TARGET_OS_TV
+    if (!self.glfmDisplay->keyFunc && !self.glfmDisplay->charFunc) {
+        return NO;
+    }
+#endif
 
     GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
     int modifierFlags = 0;
