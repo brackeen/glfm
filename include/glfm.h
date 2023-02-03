@@ -422,6 +422,8 @@ typedef bool (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAc
                             int modifiers);
 
 /// Callback function when character input events occur. See ``glfmSetCharFunc``.
+///
+/// - The modifiers argument is deprecated and always set to 0.
 typedef void (*GLFMCharFunc)(GLFMDisplay *display, const char *utf8, int modifiers);
 
 /// Callback function when mouse wheel input events occur. See ``glfmSetMouseWheelFunc``.

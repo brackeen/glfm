@@ -2191,7 +2191,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             if (self.hideMouseCursorWhileTyping) {
                 [NSCursor setHiddenUntilMouseMoves:YES];
             }
-            self.glfmDisplay->charFunc(self.glfmDisplay, characters.UTF8String, modifiers);
+            self.glfmDisplay->charFunc(self.glfmDisplay, characters.UTF8String, 0);
         }
     }
     return handled;

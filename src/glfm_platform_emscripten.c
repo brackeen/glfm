@@ -516,7 +516,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
                 isPredefinedKey = glfm__sortedListSearch(KEYBOARD_EVENT_KEYS, KEYBOARD_EVENT_KEYS_LENGTH, e->key) >= 0;
             }
             if (isSingleChar || !isPredefinedKey) {
-                display->charFunc(display, e->key, modifiers);
+                display->charFunc(display, e->key, 0);
                 handled = 1;
             }
         }
