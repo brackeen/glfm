@@ -731,7 +731,7 @@ GLFMTouchFunc glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc);
 
 /// Sets the function to call when a key event occurs.
 ///
-/// - iOS: Only pressed events are sent (no repeated or released events) and with no modifiers.
+/// - iOS and tvOS: No repeated events (`GLFMKeyActionRepeated`) are sent.
 ///
 /// - Android and tvOS: When the user presses the back button (`GLFMKeyNavigationBack`), the
 /// `GLFMKeyFunc` function should return `false` to allow the user to exit the app, or return `true`
@@ -740,7 +740,10 @@ GLFMKeyFunc glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
 
 /// Sets the function to call when character input events occur.
 ///
-/// Use ``glfmSetKeyboardVisible`` to enable this callback.
+/// Character events occur when a user types with a virtual keyboard on iOS and Android, or when
+/// typing with a connected physical keyboard.
+///
+/// - iOS and Android: Use ``glfmSetKeyboardVisible`` to show the virtual keyboard.
 GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
 
 /// Sets the function to call when the mouse wheel is moved.
