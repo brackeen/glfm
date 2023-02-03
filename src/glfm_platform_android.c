@@ -40,7 +40,6 @@ typedef struct {
     bool keyboardVisible;
 
     bool animating;
-    bool hasInited;
     bool refreshRequested;
     bool swapCalled;
     bool surfaceCreatedNotified;
@@ -522,9 +521,7 @@ static void glfm__setAnimating(GLFMPlatformData *platformData, bool animating) {
     if (platformData->animating != animating) {
         platformData->animating = animating;
         platformData->refreshRequested = true;
-        if (!platformData->hasInited && animating) {
-            platformData->hasInited = true;
-        } else if (platformData->display && platformData->display->focusFunc) {
+        if (platformData->display && platformData->display->focusFunc) {
             platformData->display->focusFunc(platformData->display, animating);
         }
         glfm__setAllRequestedSensorsEnabled(platformData->display, animating);

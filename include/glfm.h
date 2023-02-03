@@ -470,6 +470,11 @@ typedef void (*GLFMSurfaceDestroyedFunc)(GLFMDisplay *display);
 typedef void (*GLFMMemoryWarningFunc)(GLFMDisplay *display);
 
 /// Callback function when the app loses or gains focus. See ``glfmSetAppFocusFunc``.
+///
+/// This function is called on startup after `glfmMain()`.
+///
+/// - Emscripten: This function is called when switching browser tabs and
+/// before the page is unloaded.
 typedef void (*GLFMAppFocusFunc)(GLFMDisplay *display, bool focused);
 
 /// The result used in the hardware sensor callback. See ``glfmSetSensorFunc``.
@@ -679,9 +684,6 @@ GLFMMemoryWarningFunc glfmSetMemoryWarningFunc(GLFMDisplay *display,
 
 /// Sets the function to call when the app loses or gains focus (goes into the background or returns
 /// from the background).
-///
-/// - Emscripten: This function is called when switching browser tabs and
-/// before the page is unloaded.
 GLFMAppFocusFunc glfmSetAppFocusFunc(GLFMDisplay *display, GLFMAppFocusFunc focusFunc);
 
 // MARK: - Input functions

@@ -2274,7 +2274,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 - (BOOL)application:(UIApplication *)application
     didFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey, id> *)launchOptions {
-    _active = YES;
     self.window = GLFM_AUTORELEASE([[UIWindow alloc] init]);
     if (self.window.bounds.size.width <= (CGFloat)0.0 || self.window.bounds.size.height <= (CGFloat)0.0) {
         // Set UIWindow frame for iOS 8.
@@ -2396,8 +2395,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)applicationWillFinishLaunching:(NSNotification *)notification {
-    _active = YES;
-    
     // App name (used for menu bar and window title) is "CFBundleName" or the process name.
     NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
     NSString *appName = infoDictionary[@"CFBundleName"];

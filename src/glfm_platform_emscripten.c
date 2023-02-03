@@ -776,9 +776,6 @@ int main(void) {
     glfmDisplay->platformData = platformData;
     glfmDisplay->supportedOrientations = GLFMInterfaceOrientationAll;
     platformData->orientation = glfmGetInterfaceOrientation(glfmDisplay);
-    platformData->active = true;
-    platformData->refreshRequested = true;
-    glfm__clearActiveTouches(platformData);
 
     // Main entry
     glfmMain(glfmDisplay);
@@ -837,6 +834,7 @@ int main(void) {
     if (glfmDisplay->surfaceCreatedFunc) {
         glfmDisplay->surfaceCreatedFunc(glfmDisplay, platformData->width, platformData->height);
     }
+    glfm__setActive(glfmDisplay, true);
 
     // Setup callbacks
     emscripten_set_main_loop_arg(glfm__mainLoopFunc, glfmDisplay, 0, 0);
