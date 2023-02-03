@@ -35,7 +35,8 @@ typedef struct {
     bool mouseDown;
     GLFMActiveTouch activeTouches[MAX_ACTIVE_TOUCHES];
 
-    bool active;
+    bool isVisible;
+    bool isFocused;
     bool isFullscreen;
     bool refreshRequested;
     
@@ -319,14 +320,17 @@ static int glfm__getDisplayHeight(GLFMDisplay *display) {
     return (int)(round(height));
 }
 
-static void glfm__setActive(GLFMDisplay *display, bool active) {
+static void glfm__setVisibleAndFocused(GLFMDisplay *display, bool visible, bool focused) {
     GLFMPlatformData *platformData = display->platformData;
-    if (platformData->active != active) {
-        platformData->active = active;
+    bool wasActive = platformData->isVisible && platformData->isFocused;
+    platformData->isVisible = visible;
+    platformData->isFocused = focused;
+    bool isActive = platformData->isVisible && platformData->isFocused;
+    if (wasActive != isActive) {
         platformData->refreshRequested = true;
         glfm__clearActiveTouches(platformData);
         if (display->focusFunc) {
-            display->focusFunc(display, active);
+            display->focusFunc(display, isActive);
         }
     }
 }
@@ -393,10 +397,20 @@ static EM_BOOL glfm__webGLContextCallback(int eventType, const void *reserved, v
     }
 }
 
+static EM_BOOL glfm__focusCallback(int eventType, const EmscriptenFocusEvent *focusEvent, void *userData) {
+    (void)focusEvent;
+    GLFMDisplay *display = userData;
+    GLFMPlatformData *platformData = display->platformData;
+    bool focused = (eventType == EMSCRIPTEN_EVENT_FOCUS || eventType == EMSCRIPTEN_EVENT_FOCUSIN);
+    glfm__setVisibleAndFocused(display, platformData->isVisible, focused);
+    return 1;
+}
+
 static EM_BOOL glfm__visibilityChangeCallback(int eventType, const EmscriptenVisibilityChangeEvent *e, void *userData) {
     (void)eventType;
     GLFMDisplay *display = userData;
-    glfm__setActive(display, !e->hidden);
+    GLFMPlatformData *platformData = display->platformData;
+    glfm__setVisibleAndFocused(display, !e->hidden, platformData->isFocused);
     return 1;
 }
 
@@ -404,7 +418,8 @@ static const char *glfm__beforeUnloadCallback(int eventType, const void *reserve
     (void)eventType;
     (void)reserved;
     GLFMDisplay *display = userData;
-    glfm__setActive(display, false);
+    GLFMPlatformData *platformData = display->platformData;
+    glfm__setVisibleAndFocused(display, false, false);
     return NULL;
 }
 
@@ -834,7 +849,7 @@ int main(void) {
     if (glfmDisplay->surfaceCreatedFunc) {
         glfmDisplay->surfaceCreatedFunc(glfmDisplay, platformData->width, platformData->height);
     }
-    glfm__setActive(glfmDisplay, true);
+    glfm__setVisibleAndFocused(glfmDisplay, true, true);
 
     // Setup callbacks
     emscripten_set_main_loop_arg(glfm__mainLoopFunc, glfmDisplay, 0, 0);
@@ -854,6 +869,8 @@ int main(void) {
     emscripten_set_webglcontextlost_callback(webGLTarget, glfmDisplay, 1, glfm__webGLContextCallback);
     emscripten_set_webglcontextrestored_callback(webGLTarget, glfmDisplay, 1, glfm__webGLContextCallback);
     emscripten_set_visibilitychange_callback(glfmDisplay, 1, glfm__visibilityChangeCallback);
+    emscripten_set_focus_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, glfmDisplay, 1, glfm__focusCallback);
+    emscripten_set_blur_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, glfmDisplay, 1, glfm__focusCallback);
     emscripten_set_beforeunload_callback(glfmDisplay, glfm__beforeUnloadCallback);
     emscripten_set_deviceorientation_callback(glfmDisplay, 1, glfm__orientationChangeCallback);
     return 0;
