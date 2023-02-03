@@ -414,7 +414,9 @@ typedef bool (*GLFMTouchFunc)(GLFMDisplay *display, int touch, GLFMTouchPhase ph
 
 /// Callback function when key events occur. See ``glfmSetKeyFunc``.
 ///
-/// - Android and tvOS: When the user presses the back button (`GLFMKeyNavigationBack`), this
+/// For each keypress, this function is called before ``GLFMCharFunc``.
+///
+/// - Android and tvOS: When the user presses the back button (`GLFMKeyCodeNavigationBack`), this
 /// function should return `false` to allow the user to exit the app, or return `true` if the back
 /// button was handled in-app.
 /// - Returns: `true` if the event was handled, `false` otherwise.
@@ -738,9 +740,12 @@ GLFMTouchFunc glfmSetTouchFunc(GLFMDisplay *display, GLFMTouchFunc touchFunc);
 
 /// Sets the function to call when a key event occurs.
 ///
-/// - iOS and tvOS: No repeated events (`GLFMKeyActionRepeated`) are sent.
+/// - iOS and tvOS: Key events require iOS 13.4 and tvOS 13.4. No repeated events
+/// (`GLFMKeyActionRepeated`) are sent.
 ///
-/// - Android and tvOS: When the user presses the back button (`GLFMKeyNavigationBack`), the
+/// - iOS and Android: Use ``glfmSetKeyboardVisible`` to show the virtual keyboard.
+
+/// - Android and tvOS: When the user presses the back button (`GLFMKeyCodeNavigationBack`), the
 /// `GLFMKeyFunc` function should return `false` to allow the user to exit the app, or return `true`
 /// if the back button was handled in-app.
 GLFMKeyFunc glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
