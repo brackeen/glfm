@@ -2887,6 +2887,15 @@ bool glfmGetMultitouchEnabled(const GLFMDisplay *display) {
 #endif
 }
 
+bool glfmHasVirtualKeyboard(const GLFMDisplay *display) {
+    (void)display;
+#if TARGET_OS_IOS
+    return true;
+#else
+    return false;
+#endif
+}
+
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
 #if TARGET_OS_IOS
     if (display) {

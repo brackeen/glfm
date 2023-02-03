@@ -707,6 +707,11 @@ bool glfmIsSensorAvailable(const GLFMDisplay *display, GLFMSensor sensor);
 /// Sets the mouse cursor (only on platforms with a mouse).
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor);
 
+/// Gets whether a virtual onscreen keyboard can be displayed.
+///
+/// Returns `true` on iOS and Android, `false` on other platforms.
+bool glfmHasVirtualKeyboard(const GLFMDisplay *display);
+
 /// Requests to show or hide the onscreen virtual keyboard.
 ///
 /// On iPad, if a hardware keyboard is attached, the virtual keyboard will not actually be shown.

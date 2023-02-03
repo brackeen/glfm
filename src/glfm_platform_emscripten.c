@@ -254,6 +254,11 @@ bool glfmGetMultitouchEnabled(const GLFMDisplay *display) {
     return platformData->multitouchEnabled;
 }
 
+bool glfmHasVirtualKeyboard(const GLFMDisplay *display) {
+    (void)display;
+    return false;
+}
+
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
     (void)display;
     (void)visible;

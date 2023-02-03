@@ -1964,6 +1964,11 @@ GLFMProc glfmGetProcAddress(const char *functionName) {
     return function;
 }
 
+bool glfmHasVirtualKeyboard(const GLFMDisplay *display) {
+    (void)display;
+    return true;
+}
+
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     if (glfm__setKeyboardVisible(platformData, visible)) {
