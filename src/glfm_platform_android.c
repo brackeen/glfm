@@ -1707,10 +1707,14 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
                 } else if (aAction == AKEY_EVENT_ACTION_MULTIPLE) {
                     int32_t i;
                     for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
-                        handled |= platformData->display->keyFunc(platformData->display, keyCode,
-                                                            GLFMKeyActionPressed, modifiers);
-                        handled |= platformData->display->keyFunc(platformData->display, keyCode,
-                                                            GLFMKeyActionReleased, modifiers);
+                        if (platformData->display->keyFunc) {
+                            handled |= platformData->display->keyFunc(platformData->display, keyCode,
+                                                                      GLFMKeyActionPressed, modifiers);
+                        }
+                        if (platformData->display->keyFunc) {
+                            handled |= platformData->display->keyFunc(platformData->display, keyCode,
+                                                                      GLFMKeyActionReleased, modifiers);
+                        }
                     }
                 }
             }
@@ -1726,7 +1730,9 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
                     } else {
                         int32_t i;
                         for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
-                            platformData->display->charFunc(platformData->display, str, 0);
+                            if (platformData->display->charFunc) {
+                                platformData->display->charFunc(platformData->display, str, 0);
+                            }
                         }
                     }
                 }

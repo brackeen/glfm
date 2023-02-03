@@ -1813,11 +1813,15 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     if ([text isEqualToString:@"\n"]) {
         if (self.glfmDisplay->keyFunc) {
             self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeEnter, GLFMKeyActionPressed, 0);
+        }
+        if (self.glfmDisplay->keyFunc) {
             self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeEnter, GLFMKeyActionReleased, 0);
         }
     } else if ([text isEqualToString:@"\t"]) {
         if (self.glfmDisplay->keyFunc) {
             self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeTab, GLFMKeyActionPressed, 0);
+        }
+        if (self.glfmDisplay->keyFunc) {
             self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeTab, GLFMKeyActionReleased, 0);
         }
     } else if (self.glfmDisplay->charFunc) {
@@ -1830,6 +1834,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     // when using the software keyboard.
     if (self.glfmDisplay->keyFunc) {
         self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeBackspace, GLFMKeyActionPressed, 0);
+    }
+    if (self.glfmDisplay->keyFunc) {
         self.glfmDisplay->keyFunc(self.glfmDisplay, GLFMKeyCodeBackspace, GLFMKeyActionReleased, 0);
     }
 }
@@ -1862,26 +1868,27 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 - (void)keyPressed:(UIKeyCommand *)keyCommand {
     // Only invoked on iOS/tvOS 13.3 and older
+    NSString *key = keyCommand.input;
+    GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
+    if (key == UIKeyInputUpArrow) {
+        keyCode = GLFMKeyCodeArrowUp;
+    } else if (key == UIKeyInputDownArrow) {
+        keyCode = GLFMKeyCodeArrowDown;
+    } else if (key == UIKeyInputLeftArrow) {
+        keyCode = GLFMKeyCodeArrowLeft;
+    } else if (key == UIKeyInputRightArrow) {
+        keyCode = GLFMKeyCodeArrowRight;
+    } else if (key == UIKeyInputEscape) {
+        keyCode = GLFMKeyCodeEscape;
+    } else if (key == UIKeyInputPageUp) {
+        keyCode = GLFMKeyCodePageUp;
+    } else if (key == UIKeyInputPageDown) {
+        keyCode = GLFMKeyCodePageDown;
+    }
     if (self.glfmDisplay->keyFunc) {
-        NSString *key = [keyCommand input];
-        GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
-        if (key == UIKeyInputUpArrow) {
-            keyCode = GLFMKeyCodeArrowUp;
-        } else if (key == UIKeyInputDownArrow) {
-            keyCode = GLFMKeyCodeArrowDown;
-        } else if (key == UIKeyInputLeftArrow) {
-            keyCode = GLFMKeyCodeArrowLeft;
-        } else if (key == UIKeyInputRightArrow) {
-            keyCode = GLFMKeyCodeArrowRight;
-        } else if (key == UIKeyInputEscape) {
-            keyCode = GLFMKeyCodeEscape;
-        } else if (key == UIKeyInputPageUp) {
-            keyCode = GLFMKeyCodePageUp;
-        } else if (key == UIKeyInputPageDown) {
-            keyCode = GLFMKeyCodePageDown;
-        }
-
         self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, GLFMKeyActionPressed, 0);
+    }
+    if (self.glfmDisplay->keyFunc) {
         self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, GLFMKeyActionReleased, 0);
     }
 }
@@ -2030,37 +2037,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 // MARK: NSResponder (Keyboard)
 
 - (BOOL)sendKeyEvent:(NSEvent *)event withAction:(GLFMKeyAction)action {
-    BOOL canSendKeyEvent = (self.glfmDisplay->keyFunc != nil);
-    BOOL canSendCharEvent = (self.glfmDisplay->charFunc && event.type == NSEventTypeKeyDown &&
-                             (event.modifierFlags & NSEventModifierFlagFunction) == 0 &&
-                             (event.modifierFlags & NSEventModifierFlagCommand) == 0 &&
-                             (event.modifierFlags & NSEventModifierFlagControl) == 0);
-    if (!canSendKeyEvent && !canSendCharEvent) {
-        return NO;
-    }
-
-    BOOL sendReleaseEvent = NO;
     BOOL handled = NO;
-    int modifiers = 0;
-    if ((event.modifierFlags & NSEventModifierFlagShift) != 0) {
-        modifiers |= GLFMKeyModifierShift;
-    }
-    if ((event.modifierFlags & NSEventModifierFlagControl) != 0) {
-        modifiers |= GLFMKeyModifierControl;
-    }
-    if ((event.modifierFlags & NSEventModifierFlagOption) != 0) {
-        modifiers |= GLFMKeyModifierAlt;
-    }
-    if ((event.modifierFlags & NSEventModifierFlagCommand) != 0) {
-        modifiers |= GLFMKeyModifierMeta;
-        // The keyUp: method is not called when the "command" key is held.
-        sendReleaseEvent = event.type == NSEventTypeKeyDown;
-    }
-    if (self.fnModifier) {
-        modifiers |= GLFMKeyModifierFunction;
-    }
 
-    if (canSendKeyEvent) {
+    // Send key event
+    if (self.glfmDisplay->keyFunc) {
         static const GLFMKeyCode VK_MAP[] = {
             [kVK_Return]                    = GLFMKeyCodeEnter,
             [kVK_Tab]                       = GLFMKeyCodeTab,
@@ -2178,13 +2158,38 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             keyCode = VK_MAP[event.keyCode];
         }
 
+        BOOL sendReleaseEvent = NO;
+        int modifiers = 0;
+        if ((event.modifierFlags & NSEventModifierFlagShift) != 0) {
+            modifiers |= GLFMKeyModifierShift;
+        }
+        if ((event.modifierFlags & NSEventModifierFlagControl) != 0) {
+            modifiers |= GLFMKeyModifierControl;
+        }
+        if ((event.modifierFlags & NSEventModifierFlagOption) != 0) {
+            modifiers |= GLFMKeyModifierAlt;
+        }
+        if ((event.modifierFlags & NSEventModifierFlagCommand) != 0) {
+            modifiers |= GLFMKeyModifierMeta;
+            // The keyUp: method is not called when the "command" key is held.
+            sendReleaseEvent = event.type == NSEventTypeKeyDown;
+        }
+        if (self.fnModifier) {
+            modifiers |= GLFMKeyModifierFunction;
+        }
+
         handled = self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, modifiers);
-        if (sendReleaseEvent) {
+        if (sendReleaseEvent && self.glfmDisplay->keyFunc) {
             handled = self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, GLFMKeyActionReleased, modifiers) || handled;
         }
     }
 
-    if (canSendCharEvent) {
+    // Send char event
+    if (self.glfmDisplay->charFunc &&
+        event.type == NSEventTypeKeyDown &&
+        (event.modifierFlags & NSEventModifierFlagFunction) == 0 &&
+        (event.modifierFlags & NSEventModifierFlagCommand) == 0 &&
+        (event.modifierFlags & NSEventModifierFlagControl) == 0) {
         BOOL isControlCode = NO;
         NSString *characters = event.characters;
 
