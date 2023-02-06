@@ -1477,14 +1477,11 @@ static const char *glfm__unicodeToUTF8(uint32_t unicode) {
     return utf8;
 }
 
-static uint32_t glfm__getUnicodeChar(GLFMPlatformData *platformData, AInputEvent *event) {
+static uint32_t glfm__getUnicodeChar(GLFMPlatformData *platformData, jint keyCode, jint metaState) {
     JNIEnv *jni = platformData->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
         return 0;
     }
-
-    jint keyCode = AKeyEvent_getKeyCode(event);
-    jint metaState = AKeyEvent_getMetaState(event);
 
     jclass keyEventClass = (*jni)->FindClass(jni, "android/view/KeyEvent");
     if (!keyEventClass || glfm__wasJavaExceptionThrown()) {
@@ -1536,200 +1533,202 @@ static bool glfm__handleBackButton(struct android_app *app) {
 
 static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
+    if (!platformData || !platformData->display) {
+        return 0;
+    }
+    GLFMDisplay *display = platformData->display;
     const int32_t eventType = AInputEvent_getType(event);
     if (eventType == AINPUT_EVENT_TYPE_KEY) {
+        if (!display->keyFunc && !display->charFunc) {
+            return 0;
+        }
+        int32_t aAction = AKeyEvent_getAction(event);
+        int32_t aKeyCode = AKeyEvent_getKeyCode(event);
+        int32_t aMetaState = AKeyEvent_getMetaState(event);
+        if (aKeyCode == 0) {
+            // aKeyCode is 0 for many non-ASCII keys from the virtual keyboard.
+            return 0;
+        }
         unsigned int handled = 0;
-        if (platformData->display && platformData->display->keyFunc) {
-            int32_t aKeyCode = AKeyEvent_getKeyCode(event);
-            int32_t aAction = AKeyEvent_getAction(event);
-            int32_t aMetaState = AKeyEvent_getMetaState(event);
-            if (aKeyCode != 0) {
-                static const GLFMKeyCode AKEYCODE_MAP[] = {
-                        [AKEYCODE_BACK]            = GLFMKeyCodeNavigationBack,
+        if (display->keyFunc) {
+            static const GLFMKeyCode AKEYCODE_MAP[] = {
+                    [AKEYCODE_BACK]            = GLFMKeyCodeNavigationBack,
 
-                        [AKEYCODE_0]               = GLFMKeyCode0,
-                        [AKEYCODE_1]               = GLFMKeyCode1,
-                        [AKEYCODE_2]               = GLFMKeyCode2,
-                        [AKEYCODE_3]               = GLFMKeyCode3,
-                        [AKEYCODE_4]               = GLFMKeyCode4,
-                        [AKEYCODE_5]               = GLFMKeyCode5,
-                        [AKEYCODE_6]               = GLFMKeyCode6,
-                        [AKEYCODE_7]               = GLFMKeyCode7,
-                        [AKEYCODE_8]               = GLFMKeyCode8,
-                        [AKEYCODE_9]               = GLFMKeyCode9,
+                    [AKEYCODE_0]               = GLFMKeyCode0,
+                    [AKEYCODE_1]               = GLFMKeyCode1,
+                    [AKEYCODE_2]               = GLFMKeyCode2,
+                    [AKEYCODE_3]               = GLFMKeyCode3,
+                    [AKEYCODE_4]               = GLFMKeyCode4,
+                    [AKEYCODE_5]               = GLFMKeyCode5,
+                    [AKEYCODE_6]               = GLFMKeyCode6,
+                    [AKEYCODE_7]               = GLFMKeyCode7,
+                    [AKEYCODE_8]               = GLFMKeyCode8,
+                    [AKEYCODE_9]               = GLFMKeyCode9,
 
-                        [AKEYCODE_DPAD_UP]         = GLFMKeyCodeArrowUp,
-                        [AKEYCODE_DPAD_DOWN]       = GLFMKeyCodeArrowDown,
-                        [AKEYCODE_DPAD_LEFT]       = GLFMKeyCodeArrowLeft,
-                        [AKEYCODE_DPAD_RIGHT]      = GLFMKeyCodeArrowRight,
+                    [AKEYCODE_DPAD_UP]         = GLFMKeyCodeArrowUp,
+                    [AKEYCODE_DPAD_DOWN]       = GLFMKeyCodeArrowDown,
+                    [AKEYCODE_DPAD_LEFT]       = GLFMKeyCodeArrowLeft,
+                    [AKEYCODE_DPAD_RIGHT]      = GLFMKeyCodeArrowRight,
 
-                        [AKEYCODE_POWER]           = GLFMKeyCodePower,
+                    [AKEYCODE_POWER]           = GLFMKeyCodePower,
 
-                        [AKEYCODE_A]               = GLFMKeyCodeA,
-                        [AKEYCODE_B]               = GLFMKeyCodeB,
-                        [AKEYCODE_C]               = GLFMKeyCodeC,
-                        [AKEYCODE_D]               = GLFMKeyCodeD,
-                        [AKEYCODE_E]               = GLFMKeyCodeE,
-                        [AKEYCODE_F]               = GLFMKeyCodeF,
-                        [AKEYCODE_G]               = GLFMKeyCodeG,
-                        [AKEYCODE_H]               = GLFMKeyCodeH,
-                        [AKEYCODE_I]               = GLFMKeyCodeI,
-                        [AKEYCODE_J]               = GLFMKeyCodeJ,
-                        [AKEYCODE_K]               = GLFMKeyCodeK,
-                        [AKEYCODE_L]               = GLFMKeyCodeL,
-                        [AKEYCODE_M]               = GLFMKeyCodeM,
-                        [AKEYCODE_N]               = GLFMKeyCodeN,
-                        [AKEYCODE_O]               = GLFMKeyCodeO,
-                        [AKEYCODE_P]               = GLFMKeyCodeP,
-                        [AKEYCODE_Q]               = GLFMKeyCodeQ,
-                        [AKEYCODE_R]               = GLFMKeyCodeR,
-                        [AKEYCODE_S]               = GLFMKeyCodeS,
-                        [AKEYCODE_T]               = GLFMKeyCodeT,
-                        [AKEYCODE_U]               = GLFMKeyCodeU,
-                        [AKEYCODE_V]               = GLFMKeyCodeV,
-                        [AKEYCODE_W]               = GLFMKeyCodeW,
-                        [AKEYCODE_X]               = GLFMKeyCodeX,
-                        [AKEYCODE_Y]               = GLFMKeyCodeY,
-                        [AKEYCODE_Z]               = GLFMKeyCodeZ,
-                        [AKEYCODE_COMMA]           = GLFMKeyCodeComma,
-                        [AKEYCODE_PERIOD]          = GLFMKeyCodePeriod,
-                        [AKEYCODE_ALT_LEFT]        = GLFMKeyCodeAltLeft,
-                        [AKEYCODE_ALT_RIGHT]       = GLFMKeyCodeAltRight,
-                        [AKEYCODE_SHIFT_LEFT]      = GLFMKeyCodeShiftLeft,
-                        [AKEYCODE_SHIFT_RIGHT]     = GLFMKeyCodeShiftRight,
-                        [AKEYCODE_TAB]             = GLFMKeyCodeTab,
-                        [AKEYCODE_SPACE]           = GLFMKeyCodeSpace,
+                    [AKEYCODE_A]               = GLFMKeyCodeA,
+                    [AKEYCODE_B]               = GLFMKeyCodeB,
+                    [AKEYCODE_C]               = GLFMKeyCodeC,
+                    [AKEYCODE_D]               = GLFMKeyCodeD,
+                    [AKEYCODE_E]               = GLFMKeyCodeE,
+                    [AKEYCODE_F]               = GLFMKeyCodeF,
+                    [AKEYCODE_G]               = GLFMKeyCodeG,
+                    [AKEYCODE_H]               = GLFMKeyCodeH,
+                    [AKEYCODE_I]               = GLFMKeyCodeI,
+                    [AKEYCODE_J]               = GLFMKeyCodeJ,
+                    [AKEYCODE_K]               = GLFMKeyCodeK,
+                    [AKEYCODE_L]               = GLFMKeyCodeL,
+                    [AKEYCODE_M]               = GLFMKeyCodeM,
+                    [AKEYCODE_N]               = GLFMKeyCodeN,
+                    [AKEYCODE_O]               = GLFMKeyCodeO,
+                    [AKEYCODE_P]               = GLFMKeyCodeP,
+                    [AKEYCODE_Q]               = GLFMKeyCodeQ,
+                    [AKEYCODE_R]               = GLFMKeyCodeR,
+                    [AKEYCODE_S]               = GLFMKeyCodeS,
+                    [AKEYCODE_T]               = GLFMKeyCodeT,
+                    [AKEYCODE_U]               = GLFMKeyCodeU,
+                    [AKEYCODE_V]               = GLFMKeyCodeV,
+                    [AKEYCODE_W]               = GLFMKeyCodeW,
+                    [AKEYCODE_X]               = GLFMKeyCodeX,
+                    [AKEYCODE_Y]               = GLFMKeyCodeY,
+                    [AKEYCODE_Z]               = GLFMKeyCodeZ,
+                    [AKEYCODE_COMMA]           = GLFMKeyCodeComma,
+                    [AKEYCODE_PERIOD]          = GLFMKeyCodePeriod,
+                    [AKEYCODE_ALT_LEFT]        = GLFMKeyCodeAltLeft,
+                    [AKEYCODE_ALT_RIGHT]       = GLFMKeyCodeAltRight,
+                    [AKEYCODE_SHIFT_LEFT]      = GLFMKeyCodeShiftLeft,
+                    [AKEYCODE_SHIFT_RIGHT]     = GLFMKeyCodeShiftRight,
+                    [AKEYCODE_TAB]             = GLFMKeyCodeTab,
+                    [AKEYCODE_SPACE]           = GLFMKeyCodeSpace,
 
-                        [AKEYCODE_ENTER]           = GLFMKeyCodeEnter,
-                        [AKEYCODE_DEL]             = GLFMKeyCodeBackspace,
-                        [AKEYCODE_GRAVE]           = GLFMKeyCodeBackquote,
-                        [AKEYCODE_MINUS]           = GLFMKeyCodeMinus,
-                        [AKEYCODE_EQUALS]          = GLFMKeyCodeEqual,
-                        [AKEYCODE_LEFT_BRACKET]    = GLFMKeyCodeBracketLeft,
-                        [AKEYCODE_RIGHT_BRACKET]   = GLFMKeyCodeBracketRight,
-                        [AKEYCODE_BACKSLASH]       = GLFMKeyCodeBackslash,
-                        [AKEYCODE_SEMICOLON]       = GLFMKeyCodeSemicolon,
-                        [AKEYCODE_APOSTROPHE]      = GLFMKeyCodeQuote,
-                        [AKEYCODE_SLASH]           = GLFMKeyCodeSlash,
+                    [AKEYCODE_ENTER]           = GLFMKeyCodeEnter,
+                    [AKEYCODE_DEL]             = GLFMKeyCodeBackspace,
+                    [AKEYCODE_GRAVE]           = GLFMKeyCodeBackquote,
+                    [AKEYCODE_MINUS]           = GLFMKeyCodeMinus,
+                    [AKEYCODE_EQUALS]          = GLFMKeyCodeEqual,
+                    [AKEYCODE_LEFT_BRACKET]    = GLFMKeyCodeBracketLeft,
+                    [AKEYCODE_RIGHT_BRACKET]   = GLFMKeyCodeBracketRight,
+                    [AKEYCODE_BACKSLASH]       = GLFMKeyCodeBackslash,
+                    [AKEYCODE_SEMICOLON]       = GLFMKeyCodeSemicolon,
+                    [AKEYCODE_APOSTROPHE]      = GLFMKeyCodeQuote,
+                    [AKEYCODE_SLASH]           = GLFMKeyCodeSlash,
 
-                        [AKEYCODE_MENU]            = GLFMKeyCodeMenu,
+                    [AKEYCODE_MENU]            = GLFMKeyCodeMenu,
 
-                        [AKEYCODE_PAGE_UP]         = GLFMKeyCodePageUp,
-                        [AKEYCODE_PAGE_DOWN]       = GLFMKeyCodePageDown,
+                    [AKEYCODE_PAGE_UP]         = GLFMKeyCodePageUp,
+                    [AKEYCODE_PAGE_DOWN]       = GLFMKeyCodePageDown,
 
-                        [AKEYCODE_ESCAPE]          = GLFMKeyCodeEscape,
-                        [AKEYCODE_FORWARD_DEL]     = GLFMKeyCodeDelete,
-                        [AKEYCODE_CTRL_LEFT]       = GLFMKeyCodeControlLeft,
-                        [AKEYCODE_CTRL_RIGHT]      = GLFMKeyCodeControlRight,
-                        [AKEYCODE_CAPS_LOCK]       = GLFMKeyCodeCapsLock,
-                        [AKEYCODE_SCROLL_LOCK]     = GLFMKeyCodeScrollLock,
-                        [AKEYCODE_META_LEFT]       = GLFMKeyCodeMetaLeft,
-                        [AKEYCODE_META_RIGHT]      = GLFMKeyCodeMetaRight,
-                        [AKEYCODE_FUNCTION]        = GLFMKeyCodeFunction,
-                        [AKEYCODE_SYSRQ]           = GLFMKeyCodePrintScreen,
-                        [AKEYCODE_BREAK]           = GLFMKeyCodePause,
-                        [AKEYCODE_MOVE_HOME]       = GLFMKeyCodeHome,
-                        [AKEYCODE_MOVE_END]        = GLFMKeyCodeEnd,
-                        [AKEYCODE_INSERT]          = GLFMKeyCodeInsert,
+                    [AKEYCODE_ESCAPE]          = GLFMKeyCodeEscape,
+                    [AKEYCODE_FORWARD_DEL]     = GLFMKeyCodeDelete,
+                    [AKEYCODE_CTRL_LEFT]       = GLFMKeyCodeControlLeft,
+                    [AKEYCODE_CTRL_RIGHT]      = GLFMKeyCodeControlRight,
+                    [AKEYCODE_CAPS_LOCK]       = GLFMKeyCodeCapsLock,
+                    [AKEYCODE_SCROLL_LOCK]     = GLFMKeyCodeScrollLock,
+                    [AKEYCODE_META_LEFT]       = GLFMKeyCodeMetaLeft,
+                    [AKEYCODE_META_RIGHT]      = GLFMKeyCodeMetaRight,
+                    [AKEYCODE_FUNCTION]        = GLFMKeyCodeFunction,
+                    [AKEYCODE_SYSRQ]           = GLFMKeyCodePrintScreen,
+                    [AKEYCODE_BREAK]           = GLFMKeyCodePause,
+                    [AKEYCODE_MOVE_HOME]       = GLFMKeyCodeHome,
+                    [AKEYCODE_MOVE_END]        = GLFMKeyCodeEnd,
+                    [AKEYCODE_INSERT]          = GLFMKeyCodeInsert,
 
-                        [AKEYCODE_F1]              = GLFMKeyCodeF1,
-                        [AKEYCODE_F2]              = GLFMKeyCodeF2,
-                        [AKEYCODE_F3]              = GLFMKeyCodeF3,
-                        [AKEYCODE_F4]              = GLFMKeyCodeF4,
-                        [AKEYCODE_F5]              = GLFMKeyCodeF5,
-                        [AKEYCODE_F6]              = GLFMKeyCodeF6,
-                        [AKEYCODE_F7]              = GLFMKeyCodeF7,
-                        [AKEYCODE_F8]              = GLFMKeyCodeF8,
-                        [AKEYCODE_F9]              = GLFMKeyCodeF9,
-                        [AKEYCODE_F10]             = GLFMKeyCodeF10,
-                        [AKEYCODE_F11]             = GLFMKeyCodeF11,
-                        [AKEYCODE_F12]             = GLFMKeyCodeF12,
-                        [AKEYCODE_NUM_LOCK]        = GLFMKeyCodeNumLock,
-                        [AKEYCODE_NUMPAD_0]        = GLFMKeyCodeNumpad0,
-                        [AKEYCODE_NUMPAD_1]        = GLFMKeyCodeNumpad1,
-                        [AKEYCODE_NUMPAD_2]        = GLFMKeyCodeNumpad2,
-                        [AKEYCODE_NUMPAD_3]        = GLFMKeyCodeNumpad3,
-                        [AKEYCODE_NUMPAD_4]        = GLFMKeyCodeNumpad4,
-                        [AKEYCODE_NUMPAD_5]        = GLFMKeyCodeNumpad5,
-                        [AKEYCODE_NUMPAD_6]        = GLFMKeyCodeNumpad6,
-                        [AKEYCODE_NUMPAD_7]        = GLFMKeyCodeNumpad7,
-                        [AKEYCODE_NUMPAD_8]        = GLFMKeyCodeNumpad8,
-                        [AKEYCODE_NUMPAD_9]        = GLFMKeyCodeNumpad9,
-                        [AKEYCODE_NUMPAD_DIVIDE]   = GLFMKeyCodeNumpadDivide,
-                        [AKEYCODE_NUMPAD_MULTIPLY] = GLFMKeyCodeNumpadMultiply,
-                        [AKEYCODE_NUMPAD_SUBTRACT] = GLFMKeyCodeNumpadSubtract,
-                        [AKEYCODE_NUMPAD_ADD]      = GLFMKeyCodeNumpadAdd,
-                        [AKEYCODE_NUMPAD_DOT]      = GLFMKeyCodeNumpadDecimal,
-                        [AKEYCODE_NUMPAD_ENTER]    = GLFMKeyCodeNumpadEnter,
-                        [AKEYCODE_NUMPAD_EQUALS]   = GLFMKeyCodeNumpadEqual,
-                };
+                    [AKEYCODE_F1]              = GLFMKeyCodeF1,
+                    [AKEYCODE_F2]              = GLFMKeyCodeF2,
+                    [AKEYCODE_F3]              = GLFMKeyCodeF3,
+                    [AKEYCODE_F4]              = GLFMKeyCodeF4,
+                    [AKEYCODE_F5]              = GLFMKeyCodeF5,
+                    [AKEYCODE_F6]              = GLFMKeyCodeF6,
+                    [AKEYCODE_F7]              = GLFMKeyCodeF7,
+                    [AKEYCODE_F8]              = GLFMKeyCodeF8,
+                    [AKEYCODE_F9]              = GLFMKeyCodeF9,
+                    [AKEYCODE_F10]             = GLFMKeyCodeF10,
+                    [AKEYCODE_F11]             = GLFMKeyCodeF11,
+                    [AKEYCODE_F12]             = GLFMKeyCodeF12,
+                    [AKEYCODE_NUM_LOCK]        = GLFMKeyCodeNumLock,
+                    [AKEYCODE_NUMPAD_0]        = GLFMKeyCodeNumpad0,
+                    [AKEYCODE_NUMPAD_1]        = GLFMKeyCodeNumpad1,
+                    [AKEYCODE_NUMPAD_2]        = GLFMKeyCodeNumpad2,
+                    [AKEYCODE_NUMPAD_3]        = GLFMKeyCodeNumpad3,
+                    [AKEYCODE_NUMPAD_4]        = GLFMKeyCodeNumpad4,
+                    [AKEYCODE_NUMPAD_5]        = GLFMKeyCodeNumpad5,
+                    [AKEYCODE_NUMPAD_6]        = GLFMKeyCodeNumpad6,
+                    [AKEYCODE_NUMPAD_7]        = GLFMKeyCodeNumpad7,
+                    [AKEYCODE_NUMPAD_8]        = GLFMKeyCodeNumpad8,
+                    [AKEYCODE_NUMPAD_9]        = GLFMKeyCodeNumpad9,
+                    [AKEYCODE_NUMPAD_DIVIDE]   = GLFMKeyCodeNumpadDivide,
+                    [AKEYCODE_NUMPAD_MULTIPLY] = GLFMKeyCodeNumpadMultiply,
+                    [AKEYCODE_NUMPAD_SUBTRACT] = GLFMKeyCodeNumpadSubtract,
+                    [AKEYCODE_NUMPAD_ADD]      = GLFMKeyCodeNumpadAdd,
+                    [AKEYCODE_NUMPAD_DOT]      = GLFMKeyCodeNumpadDecimal,
+                    [AKEYCODE_NUMPAD_ENTER]    = GLFMKeyCodeNumpadEnter,
+                    [AKEYCODE_NUMPAD_EQUALS]   = GLFMKeyCodeNumpadEqual,
+            };
 
-                GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
-                if (aKeyCode >= 0 && aKeyCode < (int32_t)(sizeof(AKEYCODE_MAP) / sizeof(*AKEYCODE_MAP))) {
-                    keyCode = AKEYCODE_MAP[aKeyCode];
+            GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
+            if (aKeyCode >= 0 && aKeyCode < (int32_t)(sizeof(AKEYCODE_MAP) / sizeof(*AKEYCODE_MAP))) {
+                keyCode = AKEYCODE_MAP[aKeyCode];
+            }
+
+            int modifiers = 0;
+            if ((aMetaState & AMETA_SHIFT_ON) != 0) {
+                modifiers |= GLFMKeyModifierShift;
+            }
+            if ((aMetaState & AMETA_CTRL_ON) != 0) {
+                modifiers |= GLFMKeyModifierControl;
+            }
+            if ((aMetaState & AMETA_ALT_ON) != 0) {
+                modifiers |= GLFMKeyModifierAlt;
+            }
+            if ((aMetaState & AMETA_META_ON) != 0) {
+                modifiers |= GLFMKeyModifierMeta;
+            }
+            if ((aMetaState & AMETA_FUNCTION_ON) != 0) {
+                modifiers |= GLFMKeyModifierFunction;
+            }
+
+            if (aAction == AKEY_EVENT_ACTION_UP) {
+                handled = display->keyFunc(display, keyCode, GLFMKeyActionReleased, modifiers);
+                if (handled == 0 && aKeyCode == AKEYCODE_BACK) {
+                    handled = glfm__handleBackButton(app) ? 1 : 0;
                 }
-
-                int modifiers = 0;
-                if ((aMetaState & AMETA_SHIFT_ON) != 0) {
-                    modifiers |= GLFMKeyModifierShift;
+            } else if (aAction == AKEY_EVENT_ACTION_DOWN) {
+                GLFMKeyAction keyAction;
+                if (AKeyEvent_getRepeatCount(event) > 0) {
+                    keyAction = GLFMKeyActionRepeated;
+                } else {
+                    keyAction = GLFMKeyActionPressed;
                 }
-                if ((aMetaState & AMETA_CTRL_ON) != 0) {
-                    modifiers |= GLFMKeyModifierControl;
-                }
-                if ((aMetaState & AMETA_ALT_ON) != 0) {
-                    modifiers |= GLFMKeyModifierAlt;
-                }
-                if ((aMetaState & AMETA_META_ON) != 0) {
-                    modifiers |= GLFMKeyModifierMeta;
-                }
-                if ((aMetaState & AMETA_FUNCTION_ON) != 0) {
-                    modifiers |= GLFMKeyModifierFunction;
-                }
-
-                if (aAction == AKEY_EVENT_ACTION_UP) {
-                    handled = platformData->display->keyFunc(platformData->display, keyCode,
-                                                             GLFMKeyActionReleased, modifiers);
-                    if (handled == 0 && aKeyCode == AKEYCODE_BACK) {
-                        handled = glfm__handleBackButton(app) ? 1 : 0;
+                handled = display->keyFunc(display, keyCode, keyAction, modifiers);
+            } else if (aAction == AKEY_EVENT_ACTION_MULTIPLE) {
+                int32_t i;
+                for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
+                    if (display->keyFunc) {
+                        handled |= display->keyFunc(display, keyCode, GLFMKeyActionPressed, modifiers);
                     }
-                } else if (aAction == AKEY_EVENT_ACTION_DOWN) {
-                    GLFMKeyAction keyAction;
-                    if (AKeyEvent_getRepeatCount(event) > 0) {
-                        keyAction = GLFMKeyActionRepeated;
-                    } else {
-                        keyAction = GLFMKeyActionPressed;
-                    }
-                    handled = platformData->display->keyFunc(platformData->display, keyCode,
-                                                             keyAction, modifiers);
-                } else if (aAction == AKEY_EVENT_ACTION_MULTIPLE) {
-                    int32_t i;
-                    for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
-                        if (platformData->display->keyFunc) {
-                            handled |= platformData->display->keyFunc(platformData->display, keyCode,
-                                                                      GLFMKeyActionPressed, modifiers);
-                        }
-                        if (platformData->display->keyFunc) {
-                            handled |= platformData->display->keyFunc(platformData->display, keyCode,
-                                                                      GLFMKeyActionReleased, modifiers);
-                        }
+                    if (display->keyFunc) {
+                        handled |= display->keyFunc(display, keyCode, GLFMKeyActionReleased, modifiers);
                     }
                 }
             }
         }
-        if (platformData->display && platformData->display->charFunc) {
-            int32_t aAction = AKeyEvent_getAction(event);
-            if (aAction == AKEY_EVENT_ACTION_DOWN || aAction == AKEY_EVENT_ACTION_MULTIPLE) {
-                uint32_t unicode = glfm__getUnicodeChar(platformData, event);
-                if (unicode >= ' ') {
-                    const char *str = glfm__unicodeToUTF8(unicode);
-                    if (aAction == AKEY_EVENT_ACTION_DOWN) {
-                        platformData->display->charFunc(platformData->display, str, 0);
-                    } else {
-                        int32_t i;
-                        for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
-                            if (platformData->display->charFunc) {
-                                platformData->display->charFunc(platformData->display, str, 0);
-                            }
+        if (display->charFunc && (aAction == AKEY_EVENT_ACTION_DOWN || aAction == AKEY_EVENT_ACTION_MULTIPLE)) {
+            uint32_t unicode = glfm__getUnicodeChar(platformData, aKeyCode, aMetaState);
+            if (unicode >= ' ') {
+                const char *str = glfm__unicodeToUTF8(unicode);
+                if (aAction == AKEY_EVENT_ACTION_DOWN) {
+                    display->charFunc(display, str, 0);
+                } else {
+                    int32_t i;
+                    for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
+                        if (display->charFunc) {
+                            display->charFunc(display, str, 0);
                         }
                     }
                 }
@@ -1737,7 +1736,7 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
         }
         return (int32_t)handled;
     } else if (eventType == AINPUT_EVENT_TYPE_MOTION) {
-        if (platformData->display && platformData->display->touchFunc) {
+        if (display->touchFunc) {
             const int maxTouches = platformData->multitouchEnabled ? MAX_SIMULTANEOUS_TOUCHES : 1;
             const int32_t action = AMotionEvent_getAction(event);
             const uint32_t maskedAction = (uint32_t)action & (uint32_t)AMOTION_EVENT_ACTION_MASK;
@@ -1775,8 +1774,7 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
                         if (touchNumber >= 0 && touchNumber < maxTouches) {
                             double x = (double)AMotionEvent_getX(event, i);
                             double y = (double)AMotionEvent_getY(event, i);
-                            platformData->display->touchFunc(platformData->display, touchNumber,
-                                                             phase, x, y);
+                            display->touchFunc(display, touchNumber, phase, x, y);
                             //LOG_DEBUG("Touch: (num=%i, phase=%i) %f,%f", touchNumber, phase, x, y);
                         }
                     }
@@ -1788,8 +1786,7 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
                     if (touchNumber >= 0 && touchNumber < maxTouches) {
                         double x = (double)AMotionEvent_getX(event, index);
                         double y = (double)AMotionEvent_getY(event, index);
-                        platformData->display->touchFunc(platformData->display, touchNumber,
-                                                         phase, x, y);
+                        display->touchFunc(display, touchNumber, phase, x, y);
                         //LOG_DEBUG("Touch: (num=%i, phase=%i) %f,%f", touchNumber, phase, x, y);
                     }
                 }
