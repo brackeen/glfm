@@ -1469,8 +1469,7 @@ static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
     }
 }
 
-static const char *glfm__unicodeToUTF8(uint32_t unicode) {
-    static char utf8[5];
+static void glfm__unicodeToUTF8(uint32_t unicode, char utf8[5]) {
     if (unicode < 0x80) {
         utf8[0] = (char)(unicode & 0x7fu);
         utf8[1] = 0;
@@ -1492,7 +1491,6 @@ static const char *glfm__unicodeToUTF8(uint32_t unicode) {
     } else {
         utf8[0] = 0;
     }
-    return utf8;
 }
 
 static uint32_t glfm__getUnicodeChar(GLFMPlatformData *platformData, jint keyCode, jint metaState) {
@@ -1571,8 +1569,9 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
             // This is a special key code for GLFM where the scancode represents a unicode character.
             if (display->charFunc) {
                 uint32_t unicode = (uint32_t)AKeyEvent_getScanCode(event);
-                const char *str = glfm__unicodeToUTF8(unicode);
-                display->charFunc(display, str, 0);
+                char utf8[5];
+                glfm__unicodeToUTF8(unicode, utf8);
+                display->charFunc(display, utf8, 0);
             }
             return 1;
         }
@@ -1748,14 +1747,15 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
         if (display->charFunc && (aAction == AKEY_EVENT_ACTION_DOWN || aAction == AKEY_EVENT_ACTION_MULTIPLE)) {
             uint32_t unicode = glfm__getUnicodeChar(platformData, aKeyCode, aMetaState);
             if (unicode >= ' ') {
-                const char *str = glfm__unicodeToUTF8(unicode);
+                char utf8[5];
+                glfm__unicodeToUTF8(unicode, utf8);
                 if (aAction == AKEY_EVENT_ACTION_DOWN) {
-                    display->charFunc(display, str, 0);
+                    display->charFunc(display, utf8, 0);
                 } else {
                     int32_t i;
                     for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
                         if (display->charFunc) {
-                            display->charFunc(display, str, 0);
+                            display->charFunc(display, utf8, 0);
                         }
                     }
                 }
