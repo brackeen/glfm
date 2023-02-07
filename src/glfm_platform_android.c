@@ -1567,6 +1567,15 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
             // aKeyCode is 0 for many non-ASCII keys from the virtual keyboard.
             return 0;
         }
+        if (aKeyCode == INT32_MAX) {
+            // This is a special key code for GLFM where the scancode represents a unicode character.
+            if (display->charFunc) {
+                uint32_t unicode = (uint32_t)AKeyEvent_getScanCode(event);
+                const char *str = glfm__unicodeToUTF8(unicode);
+                display->charFunc(display, str, 0);
+            }
+            return 1;
+        }
         unsigned int handled = 0;
         if (display->keyFunc) {
             static const GLFMKeyCode AKEYCODE_MAP[] = {
