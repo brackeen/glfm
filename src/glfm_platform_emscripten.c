@@ -418,7 +418,6 @@ static const char *glfm__beforeUnloadCallback(int eventType, const void *reserve
     (void)eventType;
     (void)reserved;
     GLFMDisplay *display = userData;
-    GLFMPlatformData *platformData = display->platformData;
     glfm__setVisibleAndFocused(display, false, false);
     return NULL;
 }
