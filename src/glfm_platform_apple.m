@@ -2064,6 +2064,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             [kVK_RightOption]               = GLFMKeyCodeAltRight,
             [kVK_RightControl]              = GLFMKeyCodeControlRight,
             [kVK_Function]                  = GLFMKeyCodeFunction,
+            [kVK_Help]                      = GLFMKeyCodeInsert,
             [kVK_Home]                      = GLFMKeyCodeHome,
             [kVK_PageUp]                    = GLFMKeyCodePageUp,
             [kVK_ForwardDelete]             = GLFMKeyCodeDelete,
@@ -2158,6 +2159,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             [kVK_F18]                       = GLFMKeyCodeF18,
             [kVK_F19]                       = GLFMKeyCodeF19,
             [kVK_F20]                       = GLFMKeyCodeF20,
+            [0x6e]                          = GLFMKeyCodeMenu,
         };
 
         GLFMKeyCode keyCode = GLFMKeyCodeUnknown;
