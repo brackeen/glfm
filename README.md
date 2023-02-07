@@ -14,6 +14,32 @@ Additionally, GLFM provides Metal support on iOS and tvOS.
 * Accelerometer, magnetometer, gyroscope, and device rotation (iOS/Android only)
 * Events for application state and context loss.
 
+### Feature Matrix
+|                                    | iOS  | Android | Web |
+|------------------------------------|------|---------|-----|
+| OpenGL ES 2, OpenGL ES 3           | ✔️   | ✔️     | ✔️   |
+| Metal                              | ✔️   | N/A    | N/A  |
+| Retina / high-DPI                  | ✔️   | ✔️     | ✔️   |
+| Device orientation                 | ✔️   | ✔️     | ❌   |
+| Chrome insets ("safe area")        | ✔️   | ✔️     | ✔️   |
+| Touch                              | ✔️   | ✔️     | ✔️   |
+| Mouse hover                        | ❌   | ❌     | ✔️   |
+| Mouse wheel                        | ❌   | ❌     | ✔️   |
+| Mouse cursor                       | ❌   | ❌     | ✔️   |
+| Key code events                    | ✔️   | ✔️     | ✔️   |
+| Key repeat events                  | ❌   | ✔️     | ✔️   |
+| Character input events             | ✔️   | ✔️     | ✔️   |
+| Virtual keyboard                   | ✔️   | ✔️     | ❌   |
+| Virtual keyboard visibility events | ✔️   | ✔️     | ❌   |
+| Accelerometer, magnetometer, gyroscope, device rotation | ✔️ | ✔️ | ❌ |
+| Haptic feedback                    | ✔️   | ✔️     | ❌   |
+| Focus events                       | ✔️   | ✔️     | ✔️   |
+| Resize events                      | ✔️   | ✔️     | ✔️   |
+| Memory warning events              | ✔️   | ✔️     | ❌   |
+| OpenGL context loss events (surface destroyed) | ✔️ | ✔️ | ✔️ |
+
+Additionally, there is prelimnary support for macOS. The macOS version is useful for development purposes, but is not release quality. There is no function to set the window size, for example.
+
 ## Non-goals
 GLFM is limited in scope, and isn't designed to provide everything needed for an app. For example, GLFM doesn't provide (and will never provide) the following:
 
