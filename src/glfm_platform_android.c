@@ -1090,16 +1090,27 @@ static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, 
     rect.right = glfm__getJavaField(jni, javaRect, "right", "I", Int);
     rect.top = glfm__getJavaField(jni, javaRect, "top", "I", Int);
     rect.bottom = glfm__getJavaField(jni, javaRect, "bottom", "I", Int);
-
     (*jni)->DeleteLocalRef(jni, javaRect);
     (*jni)->DeleteLocalRef(jni, javaRectClass);
-    (*jni)->DeleteLocalRef(jni, decorView);
-
     if (glfm__wasJavaExceptionThrown()) {
         return defaultRect;
-    } else {
-        return rect;
     }
+
+    jintArray locationArray = (*jni)->NewIntArray(jni, 2);
+    if (locationArray) {
+        jint location[2] = { 0 };
+        glfm__callJavaMethodWithArgs(jni, decorView, "getLocationOnScreen", "([I)V", Void,
+                                     locationArray);
+        (*jni)->GetIntArrayRegion(jni, locationArray, 0, 2, location);
+        (*jni)->DeleteLocalRef(jni, locationArray);
+        if (!glfm__wasJavaExceptionThrown()) {
+            rect.left -= location[0];
+            rect.top -= location[1];
+        }
+    }
+
+    (*jni)->DeleteLocalRef(jni, decorView);
+    return rect;
 }
 
 static bool glfm__getSafeInsets(const GLFMDisplay *display, double *top, double *right,
