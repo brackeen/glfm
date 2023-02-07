@@ -1513,6 +1513,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             [UIKeyboardHIDUsageKeyboardRightShift]           = GLFMKeyCodeShiftRight,
             [UIKeyboardHIDUsageKeyboardRightAlt]             = GLFMKeyCodeAltRight,
             [UIKeyboardHIDUsageKeyboardRightControl]         = GLFMKeyCodeControlRight,
+            [UIKeyboardHIDUsageKeyboardApplication]          = GLFMKeyCodeMenu,
 
             [UIKeyboardHIDUsageKeyboardPrintScreen]          = GLFMKeyCodePrintScreen,
             [UIKeyboardHIDUsageKeyboardScrollLock]           = GLFMKeyCodeScrollLock,
