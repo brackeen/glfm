@@ -230,17 +230,12 @@ android {
 ## Caveats
 * OpenGL ES 3.1 and 3.2 support is only available in Android.
 * GLFM is not thread-safe. All GLFM functions must be called on the main thread (that is, from `glfmMain` or from the callback functions).
-* On iOS, character input works great, but keyboard events are not ideal. Using the keyboard (on an iOS device via Bluetooth keyboard or on the simulator via a Mac's keyboard), only a few keys are detected (arrows keys and the escape key), and key release events are not reported.
-* On Android, keyboard events work great, but character events are not ideal. Some special characters, like emoji characters, will not work. This is due to an issue in the NDK.
-* Orientation lock probably doesn't work on HTML5.
 
 ## Questions
 **What IDE should I use? Why is there no desktop implementation?**
 Use Xcode or Android Studio. For desktop, use [GLFW](https://github.com/glfw/glfw) with the IDE of your choice.
 
 If you prefer not using the mobile simulators for everyday development, a good solution is to use GLFW instead, and then later port your app to GLFM. Not all OpenGL calls will port to OpenGL ES perfectly, but for maximum OpenGL portability, use OpenGL 3.2 Core Profile on desktop and OpenGL ES 2.0 on mobile.
-
-Moving forward, GLFM APIs will look more like GLFW's, so porting will get easier as GLFM development continues.
 
 **Why is the entry point `glfmMain()` and not `main()`?**
 
