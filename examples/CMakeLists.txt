@@ -27,3 +27,8 @@ include(GLFMAppTarget)
 set(GLFM_APP_TARGET_NAME glfm_compass)
 set(GLFM_APP_SRC src/compass.c src/file_compat.h)
 include(GLFMAppTarget)
+
+# Typing example (using iOS/Android virtual keyboard)
+set(GLFM_APP_TARGET_NAME glfm_typing)
+set(GLFM_APP_SRC src/typing.c src/file_compat.h)
+include(GLFMAppTarget)
