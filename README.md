@@ -63,13 +63,12 @@ This example initializes the display in `glfmMain()` and draws a triangle in `on
 
 ```C
 #include "glfm.h"
-#include <string.h>
 
 static GLint program = 0;
 static GLuint vertexBuffer = 0;
+static GLuint vertexArray = 0;
 
 static void onFrame(GLFMDisplay *display);
-static void onSurfaceCreated(GLFMDisplay *display, int width, int height);
 static void onSurfaceDestroyed(GLFMDisplay *display);
 
 void glfmMain(GLFMDisplay *display) {
@@ -79,24 +78,18 @@ void glfmMain(GLFMDisplay *display) {
                          GLFMDepthFormatNone,
                          GLFMStencilFormatNone,
                          GLFMMultisampleNone);
-    glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
-    glfmSetSurfaceResizedFunc(display, onSurfaceCreated);
-    glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
     glfmSetRenderFunc(display, onFrame);
-}
-
-static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
-    glViewport(0, 0, width, height);
+    glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
 }
 
 static void onSurfaceDestroyed(GLFMDisplay *display) {
     // When the surface is destroyed, all existing GL resources are no longer valid.
     program = 0;
     vertexBuffer = 0;
+    vertexArray = 0;
 }
 
-static GLuint compileShader(const GLenum type, const GLchar *shaderString) {
-    const GLint shaderLength = (GLint)strlen(shaderString);
+static GLuint compileShader(const GLenum type, const GLchar *shaderString, GLint shaderLength) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &shaderString, &shaderLength);
     glCompileShader(shader);
@@ -105,20 +98,22 @@ static GLuint compileShader(const GLenum type, const GLchar *shaderString) {
 
 static void onFrame(GLFMDisplay *display) {
     if (program == 0) {
-        const GLchar *vertexShader =
+        const GLchar vertexShader[] =
+            "#version 100\n"
             "attribute highp vec4 position;\n"
             "void main() {\n"
             "   gl_Position = position;\n"
             "}";
 
-        const GLchar *fragmentShader =
+        const GLchar fragmentShader[] =
+            "#version 100\n"
             "void main() {\n"
-            "  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
+            "  gl_FragColor = vec4(0.85, 0.80, 0.75, 1.0);\n"
             "}";
 
         program = glCreateProgram();
-        GLuint vertShader = compileShader(GL_VERTEX_SHADER, vertexShader);
-        GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, fragmentShader);
+        GLuint vertShader = compileShader(GL_VERTEX_SHADER, vertexShader, sizeof(vertexShader) - 1);
+        GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, fragmentShader, sizeof(fragmentShader) - 1);
 
         glAttachShader(program, vertShader);
         glAttachShader(program, fragShader);
@@ -139,8 +134,18 @@ static void onFrame(GLFMDisplay *display) {
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     }
 
-    glClearColor(0.4f, 0.0f, 0.6f, 1.0f);
+    int width, height;
+    glfmGetDisplaySize(display, &width, &height);
+    glViewport(0, 0, width, height);
+    glClearColor(0.08f, 0.07f, 0.07f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+#if defined(GL_VERSION_3_0) && GL_VERSION_3_0
+    if (vertexArray == 0) {
+        glGenVertexArrays(1, &vertexArray);
+    }
+    glBindVertexArray(vertexArray);
+#endif
 
     glUseProgram(program);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
@@ -148,7 +153,7 @@ static void onFrame(GLFMDisplay *display) {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glDrawArrays(GL_TRIANGLES, 0, 3);
-    
+
     glfmSwapBuffers(display);
 }
 ```
@@ -207,7 +212,7 @@ There is no CMake generator for Android Studio projects, but you can include `CM
                   android:configChanges="orientation|screenLayout|screenSize|keyboardHidden|keyboard">
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="glfm_example" />  <!-- glfm_example, glfm_typing, glfm_compass, or glfm_test_pattern -->
+                android:value="glfm_triangle" />  <!-- glfm_triangle, glfm_example, glfm_typing, glfm_compass, or glfm_test_pattern -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

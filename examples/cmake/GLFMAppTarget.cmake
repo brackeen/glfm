@@ -3,10 +3,15 @@
 # GLFM_APP_ORGANIZATION_IDENTIFIER - Reverse domain name, like "com.example"
 # GLFM_APP_VERSION - Version string, like "1.0"
 # GLFM_APP_VERSION_ITERATION - Version code (integer)
-# GLFM_APP_ASSETS_DIR - Assets directory
+# GLFM_APP_ASSETS_DIR - Assets directory (optional)
 # GLFM_APP_SRC - Source files
 
-file(GLOB GLFM_APP_ASSETS ${GLFM_APP_ASSETS_DIR}/*)
+if (DEFINED GLFM_APP_ASSETS_DIR)
+    file(GLOB GLFM_APP_ASSETS ${GLFM_APP_ASSETS_DIR}/*)
+else()
+    set(GLFM_APP_ASSETS "")
+endif()
+
 source_group("src" FILES ${GLFM_APP_SRC})
 
 if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
@@ -42,7 +47,12 @@ if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
     add_executable(${GLFM_APP_TARGET_NAME} ${GLFM_APP_SRC})
-    set_target_properties(${GLFM_APP_TARGET_NAME} PROPERTIES LINK_FLAGS "--shell-file ${CMAKE_CURRENT_BINARY_DIR}/shell.html.in --preload-file ${GLFM_APP_ASSETS_DIR}@")
+    if (DEFINED GLFM_APP_ASSETS_DIR)
+        set(GLFM_PRELOAD_FLAG "--preload-file ${GLFM_APP_ASSETS_DIR}@")
+    else()
+        set(GLFM_PRELOAD_FLAG "")
+    endif()
+    set_target_properties(${GLFM_APP_TARGET_NAME} PROPERTIES LINK_FLAGS "--shell-file ${CMAKE_CURRENT_BINARY_DIR}/shell.html.in ${GLFM_PRELOAD_FLAG}")
 elseif (CMAKE_SYSTEM_NAME MATCHES "Android")
     add_library(${GLFM_APP_TARGET_NAME} SHARED ${GLFM_APP_SRC})
     target_link_libraries(${GLFM_APP_TARGET_NAME} glfm)

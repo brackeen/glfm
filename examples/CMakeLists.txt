@@ -7,9 +7,14 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 set(GLFM_APP_ORGANIZATION_IDENTIFIER "com.brackeen")
 set(GLFM_APP_VERSION "1.0")
 set(GLFM_APP_VERSION_ITERATION 1)
-set(GLFM_APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
+
+# Triangle example
+set(GLFM_APP_TARGET_NAME glfm_triangle)
+set(GLFM_APP_SRC src/triangle.c)
+include(GLFMAppTarget)
 
 # Main example
+set(GLFM_APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 set(GLFM_APP_TARGET_NAME glfm_example)
 set(GLFM_APP_SRC src/main.c src/file_compat.h)
 include(GLFMAppTarget)
