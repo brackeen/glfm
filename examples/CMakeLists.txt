@@ -13,10 +13,10 @@ set(GLFM_APP_TARGET_NAME glfm_triangle)
 set(GLFM_APP_SRC src/triangle.c)
 include(GLFMAppTarget)
 
-# Main example
+# Touch example
 set(GLFM_APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
-set(GLFM_APP_TARGET_NAME glfm_example)
-set(GLFM_APP_SRC src/main.c src/file_compat.h)
+set(GLFM_APP_TARGET_NAME glfm_touch)
+set(GLFM_APP_SRC src/touch.c src/file_compat.h)
 include(GLFMAppTarget)
 
 # Test pattern example

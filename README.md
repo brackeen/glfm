@@ -59,7 +59,7 @@ Without CMake:
 2. Include a `void glfmMain(GLFMDisplay *display)` function in a C/C++ file.
 
 ## Example
-This example initializes the display in `glfmMain()` and draws a triangle in `onFrame()`. A more detailed example is available [here](examples/src/main.c).
+This example initializes the display in `glfmMain()` and draws a triangle in `onFrame()`. A more detailed example is available [here](examples/src/touch.c).
 
 ```C
 #include "glfm.h"
@@ -170,7 +170,7 @@ cmake -DGLFM_BUILD_EXAMPLES=ON -G Xcode ../..
 open GLFM.xcodeproj
 ```
 
-In Xcode, switch to the `glfm_example` target and run on a simulator or a device.
+In Xcode, switch to the `glfm_touch` target and run on a simulator or a device.
 
 ## Build the GLFM examples with Emscripten
 
@@ -184,7 +184,7 @@ cmake --build .
 
 Then run locally:
 ```Shell
-emrun examples/glfm_example.html
+emrun examples/glfm_touch.html
 ```
 
 ## Build the GLFM examples with Android Studio
@@ -212,7 +212,7 @@ There is no CMake generator for Android Studio projects, but you can include `CM
                   android:configChanges="orientation|screenLayout|screenSize|keyboardHidden|keyboard">
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="glfm_triangle" />  <!-- glfm_triangle, glfm_example, glfm_typing, glfm_compass, or glfm_test_pattern -->
+                android:value="glfm_touch" />  <!-- glfm_triangle, glfm_touch, glfm_typing, glfm_compass, or glfm_test_pattern -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
