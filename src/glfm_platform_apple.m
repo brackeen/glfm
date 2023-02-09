@@ -1084,13 +1084,13 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @synthesize mouseInside, fnModifier;
 #endif
 
-- (id)initWithDefaultFrame:(CGRect)defaultFrame contentScale:(CGFloat)defaultContentScale {
+- (id)initWithDefaultFrame:(CGRect)frame contentScale:(CGFloat)contentScale {
     if ((self = [super init])) {
         self.glfmDisplay = calloc(1, sizeof(GLFMDisplay));
         self.glfmDisplay->platformData = (__bridge void *)self;
         self.glfmDisplay->supportedOrientations = GLFMInterfaceOrientationAll;
-        self.defaultFrame = defaultFrame;
-        self.defaultContentScale = defaultContentScale;
+        self.defaultFrame = frame;
+        self.defaultContentScale = contentScale;
 
 #if TARGET_OS_IOS
         self.noSoftKeyboardView = GLFM_AUTORELEASE([UIView new]);
