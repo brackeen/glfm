@@ -1124,6 +1124,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     self.motionManager = nil;
     self.noSoftKeyboardView = nil;
 #endif
+#if TARGET_OS_OSX
+    self.currentCursor = nil;
+    self.transparentCursor = nil;
+#endif
 #if GLFM_INCLUDE_METAL
     self.metalDevice = nil;
 #endif
