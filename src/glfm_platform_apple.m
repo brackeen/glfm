@@ -2397,7 +2397,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (UISceneConfiguration *)application:(UIApplication *)application
 configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
                               options:(UISceneConnectionOptions *)options API_AVAILABLE(ios(13.0), tvos(13.0)) {
-    UISceneConfiguration *sceneConfig = [[UISceneConfiguration alloc] initWithName:@"GLFM Configuration" sessionRole:connectingSceneSession.role];
+    UISceneConfiguration *sceneConfig = GLFM_AUTORELEASE([[UISceneConfiguration alloc] initWithName:@"GLFM Configuration"
+                                                                                        sessionRole:connectingSceneSession.role]);
     sceneConfig.delegateClass = [GLFMSceneDelegate class];
     return sceneConfig;
 }
