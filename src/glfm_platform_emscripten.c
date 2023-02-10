@@ -85,7 +85,7 @@ static void glfm__clearActiveTouches(GLFMPlatformData *platformData) {
 static void glfm__displayChromeUpdated(GLFMDisplay *display) {
     GLFMPlatformData *platformData = display->platformData;
 
-    if (display->uiChrome == GLFMUserInterfaceChromeFullscreen) {
+    if (display->uiChrome == GLFMUserInterfaceChromeNone) {
         if (!platformData->isFullscreen) {
             EMSCRIPTEN_RESULT result = emscripten_request_fullscreen(NULL, EM_FALSE);
             platformData->isFullscreen = (result == EMSCRIPTEN_RESULT_SUCCESS);

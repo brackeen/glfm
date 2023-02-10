@@ -1310,7 +1310,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 - (UIRectEdge)preferredScreenEdgesDeferringSystemGestures {
     UIRectEdge edges =  UIRectEdgeLeft | UIRectEdgeRight;
-    return (self.glfmDisplay->uiChrome == GLFMUserInterfaceChromeFullscreen ?
+    return (self.glfmDisplay->uiChrome == GLFMUserInterfaceChromeNone ?
             (UIRectEdgeBottom | edges) : edges);
 }
 
@@ -2780,12 +2780,12 @@ static void glfm__displayChromeUpdated(GLFMDisplay *display) {
             // This might not make sense and will probably change.
             // * GLFMUserInterfaceChromeNavigation: Full content view (title bar overlays content).
             // * GLFMUserInterfaceChromeNavigationAndStatusBar: Title bar outside content view (no overlay).
-            // * GLFMUserInterfaceChromeFullscreen: No window decor, but user can drag title bar area to move the window.
-            // * GLFMUserInterfaceChromeFullscreen when window is fullscreen: No menu bar.
+            // * GLFMUserInterfaceChromeNone: No window decor, but user can drag title bar area to move the window.
+            // * GLFMUserInterfaceChromeNone when window is fullscreen: No menu bar.
 
             // Prevent title bar buttons from being tapped when their alpha is zero
             BOOL hideButtons = ((window.styleMask & NSWindowStyleMaskFullScreen) == 0 &&
-                                display->uiChrome == GLFMUserInterfaceChromeFullscreen);
+                                display->uiChrome == GLFMUserInterfaceChromeNone);
             NSView *titleBarView = [window standardWindowButton:NSWindowCloseButton].superview;
             for (NSView *button in titleBarView.subviews) {
                 if ([button isKindOfClass:[NSControl class]]) {
@@ -2799,10 +2799,10 @@ static void glfm__displayChromeUpdated(GLFMDisplay *display) {
             }
             if (window.styleMask & NSWindowStyleMaskFullScreen) {
                 titleBarView.alphaValue = (CGFloat)1.0;
-                [NSMenu setMenuBarVisible:display->uiChrome != GLFMUserInterfaceChromeFullscreen];
+                [NSMenu setMenuBarVisible:display->uiChrome != GLFMUserInterfaceChromeNone];
             } else {
                 [NSMenu setMenuBarVisible:YES];
-                if (display->uiChrome == GLFMUserInterfaceChromeFullscreen) {
+                if (display->uiChrome == GLFMUserInterfaceChromeNone) {
                     if ((window.styleMask & NSWindowStyleMaskFullSizeContentView) == 0) {
                         titleBarView.alphaValue = (CGFloat)0.0;
                     } else {

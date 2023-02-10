@@ -686,7 +686,7 @@ void android_main(struct android_app *app) {
             windowFormat = WINDOW_FORMAT_RGBA_8888;
             break;
     }
-    bool fullscreen = platformData->display->uiChrome == GLFMUserInterfaceChromeFullscreen;
+    bool fullscreen = platformData->display->uiChrome == GLFMUserInterfaceChromeNone;
     ANativeActivity_setWindowFormat(app->activity, windowFormat);
     ANativeActivity_setWindowFlags(app->activity,
                                    fullscreen ? AWINDOW_FLAG_FULLSCREEN : 0,
@@ -1929,7 +1929,7 @@ void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double 
                                 double *bottom, double *left) {
 
     bool success;
-    if (glfmGetDisplayChrome(display) == GLFMUserInterfaceChromeFullscreen) {
+    if (glfmGetDisplayChrome(display) == GLFMUserInterfaceChromeNone) {
         success = glfm__getSafeInsets(display, top, right, bottom, left);
     } else {
         success = glfm__getSystemWindowInsets(display, top, right, bottom, left);
@@ -1999,7 +1999,7 @@ bool glfmHasVirtualKeyboard(const GLFMDisplay *display) {
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     if (glfm__setKeyboardVisible(platformData, visible)) {
-        if (visible && display->uiChrome == GLFMUserInterfaceChromeFullscreen) {
+        if (visible && display->uiChrome == GLFMUserInterfaceChromeNone) {
             // This seems to be required to reset to fullscreen when the keyboard is shown.
             glfm__setFullScreen(platformData->app, GLFMUserInterfaceChromeNavigationAndStatusBar);
         }

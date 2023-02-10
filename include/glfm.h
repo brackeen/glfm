@@ -120,22 +120,23 @@ typedef enum {
 typedef enum {
     /// Displays the app with the navigation bar.
     ///  - Android: Show the navigation bar.
-    ///  - iOS: Show the home indicator on iPhone X.
-    ///  - Emscripten: Display the browser normally.
+    ///  - iOS: Show the home indicator.
     GLFMUserInterfaceChromeNavigation,
     /// Displays the app with both the navigation bar and the status bar.
     ///  - Android: Show the navigation bar and status bar.
-    ///  - iOS: Show status bar, and show the home indicator on iPhone X.
-    ///  - Emscripten: Display the browser normally.
+    ///  - iOS: Show both the home indicator and the status bar.
     GLFMUserInterfaceChromeNavigationAndStatusBar,
-    /// Displays the app fullscreen.
+    /// Displays the app without any UI chrome.
     ///  - Android 2.3: Fullscreen.
     ///  - Android 4.0 - 4.3: Navigation bar dimmed.
     ///  - Android 4.4: Fullscreen immersive mode.
-    ///  - iOS: Fullscreen.
-    ///  - Emscripten: Requests fullscreen display for the browser window.
-    GLFMUserInterfaceChromeFullscreen,
+    ///  - iOS: Show the home indicator dimmed.
+    GLFMUserInterfaceChromeNone,
 } GLFMUserInterfaceChrome;
+
+enum {
+    GLFMUserInterfaceChromeFullscreen GLFM_DEPRECATED("Replaced with GLFMUserInterfaceChromeNone") = GLFMUserInterfaceChromeNone,
+};
 
 typedef enum {
     GLFMInterfaceOrientationUnknown = 0,
