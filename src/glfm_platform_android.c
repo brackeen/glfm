@@ -84,13 +84,22 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event);
 
 // MARK: - JNI code
 
+#ifdef NDEBUG
+#  define glfm__printException() ((void)0)
+#else
+#  define glfm__printException() (*jni)->ExceptionDescribe(jni)
+#endif
+
 #define glfm__wasJavaExceptionThrown() \
-    ((*jni)->ExceptionCheck(jni) ? ((*jni)->ExceptionClear(jni), true) : false)
+    ((*jni)->ExceptionCheck(jni) ? (glfm__printException(), (*jni)->ExceptionClear(jni), true) : false)
 
 #define glfm__clearJavaException() \
-    if ((*jni)->ExceptionCheck(jni)) { \
-        (*jni)->ExceptionClear(jni); \
-    }
+    do { \
+        if ((*jni)->ExceptionCheck(jni)) { \
+            glfm__printException(); \
+            (*jni)->ExceptionClear(jni); \
+        } \
+    } while (0)
 
 static jmethodID glfm__getJavaMethodID(JNIEnv *jni, jobject object, const char *name, const char *sig) {
     if (object) {
@@ -1035,7 +1044,7 @@ static void glfm__setFullScreen(struct android_app *app, GLFMUserInterfaceChrome
         }
     }
     (*jni)->DeleteLocalRef(jni, decorView);
-    glfm__clearJavaException()
+    glfm__clearJavaException();
 }
 
 static void glfm__resetContentRect(GLFMPlatformData *platformData) {
@@ -1055,7 +1064,7 @@ static void glfm__resetContentRect(GLFMPlatformData *platformData) {
     }
 
     (*jni)->SetIntField(jni, platformData->app->activity->clazz, field, -1);
-    glfm__clearJavaException()
+    glfm__clearJavaException();
 }
 
 static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, ARect defaultRect) {
@@ -1183,7 +1192,7 @@ static float glfm__getRefreshRate(const GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     JNIEnv *jni = platformData->jniEnv;
     jobject activity = platformData->app->activity->clazz;
-    glfm__clearJavaException()
+    glfm__clearJavaException();
     jobject window = glfm__callJavaMethod(jni, activity, "getWindow", "()Landroid/view/Window;", Object);
     if (!window || glfm__wasJavaExceptionThrown()) {
         return 60;
@@ -1268,7 +1277,7 @@ static void glfm__setOrientation(struct android_app *app) {
     }
 
     glfm__callJavaMethodWithArgs(jni, app->activity->clazz, "setRequestedOrientation", "(I)V", Void, orientation);
-    glfm__clearJavaException()
+    glfm__clearJavaException();
 }
 
 static void glfm__displayChromeUpdated(GLFMDisplay *display) {
@@ -1880,7 +1889,7 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display)
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     JNIEnv *jni = platformData->jniEnv;
     jobject activity = platformData->app->activity->clazz;
-    glfm__clearJavaException()
+    glfm__clearJavaException();
     jobject window = glfm__callJavaMethod(jni, activity, "getWindow", "()Landroid/view/Window;", Object);
     if (!window || glfm__wasJavaExceptionThrown()) {
         return GLFMInterfaceOrientationUnknown;
