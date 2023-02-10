@@ -150,12 +150,13 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @property(nonatomic, assign) int drawableHeight;
 @property(nonatomic, assign) BOOL surfaceCreatedNotified;
 @property(nonatomic, assign) BOOL refreshRequested;
+@property(nonatomic, assign) BOOL isDrawing;
 
 @end
 
 @implementation GLFMMetalView
 
-@synthesize drawableWidth, drawableHeight, surfaceCreatedNotified, refreshRequested;
+@synthesize drawableWidth, drawableHeight, surfaceCreatedNotified, refreshRequested, isDrawing;
 @synthesize glfmDisplay = _glfmDisplay, preRenderCallback = _preRenderCallback;
 @dynamic renderingAPI, animating;
 
@@ -242,6 +243,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #endif // TARGET_OS_OSX
 
+- (void)draw {
+    if (!self.isDrawing) {
+        [super draw];
+    }
+}
+
 - (BOOL)animating {
     return !self.paused;
 }
@@ -258,6 +265,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)drawInMTKView:(MTKView *)view {
+    if (self.isDrawing) {
+        return;
+    }
+    self.isDrawing = YES;
     int newDrawableWidth = (int)self.drawableSize.width;
     int newDrawableHeight = (int)self.drawableSize.height;
     if (!self.surfaceCreatedNotified) {
@@ -293,6 +304,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     if (self.glfmDisplay->renderFunc) {
         self.glfmDisplay->renderFunc(self.glfmDisplay);
     }
+
+    self.isDrawing = NO;
 }
 
 - (void)swapBuffers {
@@ -344,6 +357,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @property(nonatomic, assign) BOOL surfaceCreatedNotified;
 @property(nonatomic, assign) BOOL surfaceSizeChanged;
 @property(nonatomic, assign) BOOL refreshRequested;
+@property(nonatomic, assign) BOOL isDrawing;
 
 @end
 
@@ -359,7 +373,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @synthesize renderingAPI, displayLink, context, colorFormat, preserveBackbuffer;
 @synthesize depthBits, stencilBits, multisampling;
-@synthesize surfaceCreatedNotified, surfaceSizeChanged, refreshRequested;
+@synthesize surfaceCreatedNotified, surfaceSizeChanged, refreshRequested, isDrawing;
 @synthesize glfmDisplay = _glfmDisplay, preRenderCallback = _preRenderCallback;
 @dynamic drawableWidth, drawableHeight, animating;
 
@@ -669,6 +683,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)render:(CADisplayLink *)displayLink {
+    if (self.isDrawing) {
+        return;
+    }
+    self.isDrawing = YES;
     
     [EAGLContext setCurrentContext:self.context];
     
@@ -704,10 +722,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         [self prepareRender];
         self.glfmDisplay->renderFunc(self.glfmDisplay);
     }
+
+    self.isDrawing = NO;
 }
 
 - (void)draw {
-    if (self.displayLink) {
+    if (self.displayLink && !self.isDrawing) {
         [self render:self.displayLink];
     }
 }
@@ -753,6 +773,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @property(nonatomic, assign) int drawableHeight;
 @property(nonatomic, assign) BOOL surfaceCreatedNotified;
 @property(nonatomic, assign) BOOL refreshRequested;
+@property(nonatomic, assign) BOOL isDrawing;
 
 @end
 
@@ -763,7 +784,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @synthesize glfmDisplay = _glfmDisplay, preRenderCallback = _preRenderCallback;
 @synthesize drawableWidth, drawableHeight;
-@synthesize surfaceCreatedNotified, refreshRequested;
+@synthesize surfaceCreatedNotified, refreshRequested, isDrawing;
 @dynamic renderingAPI, animating;
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -946,6 +967,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)draw {
+    if (self.isDrawing) {
+        return;
+    }
+    self.isDrawing = YES;
     NSRect viewRectPixels = [self convertRectToBacking:self.bounds];
     int newDrawableWidth = (int)viewRectPixels.size.width;
     int newDrawableHeight = (int)viewRectPixels.size.height;
@@ -987,6 +1012,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     if (self.glfmDisplay->renderFunc) {
         self.glfmDisplay->renderFunc(self.glfmDisplay);
     }
+
+    self.isDrawing = NO;
 }
 
 - (void)swapBuffers {
