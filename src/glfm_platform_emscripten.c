@@ -37,7 +37,6 @@ typedef struct {
 
     bool isVisible;
     bool isFocused;
-    bool isFullscreen;
     bool refreshRequested;
     
     GLFMInterfaceOrientation orientation;
@@ -83,20 +82,7 @@ static void glfm__clearActiveTouches(GLFMPlatformData *platformData) {
 }
 
 static void glfm__displayChromeUpdated(GLFMDisplay *display) {
-    GLFMPlatformData *platformData = display->platformData;
-
-    if (display->uiChrome == GLFMUserInterfaceChromeNone) {
-        if (!platformData->isFullscreen) {
-            EMSCRIPTEN_RESULT result = emscripten_request_fullscreen(NULL, EM_FALSE);
-            platformData->isFullscreen = (result == EMSCRIPTEN_RESULT_SUCCESS);
-            if (!platformData->isFullscreen) {
-                display->uiChrome = GLFMUserInterfaceChromeNavigation;
-           }
-        }
-    } else if (platformData->isFullscreen) {
-        platformData->isFullscreen = false;
-        emscripten_exit_fullscreen();
-    }
+    (void)display;
 }
 
 void glfm__sensorFuncUpdated(GLFMDisplay *display) {
