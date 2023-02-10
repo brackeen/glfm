@@ -167,8 +167,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         self.contentScaleFactor = contentScaleFactor;
 #else
         self.layer.contentsScale = contentScaleFactor;
-        // Improve live resize somewhat
-        self.layerContentsPlacement = NSViewLayerContentsPlacementTopLeft;
 #endif
         self.delegate = self;
         self.glfmDisplay = glfmDisplay;
@@ -235,6 +233,16 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         [self requestRefresh];
         [self draw];
     }
+}
+
+- (void)viewWillStartLiveResize {
+    self.layerContentsPlacement = NSViewLayerContentsPlacementTopLeft;
+    [super viewWillStartLiveResize];
+}
+
+- (void)viewDidEndLiveResize {
+    self.layerContentsPlacement = NSViewLayerContentsPlacementScaleAxesIndependently;
+    [super viewDidEndLiveResize];
 }
 
 - (BOOL)acceptsFirstResponder {
