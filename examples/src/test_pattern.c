@@ -1,4 +1,5 @@
 // Draws a test pattern to check if framebuffer is scaled correctly.
+// Tap to modify interface chrome (navigation bar, status bar, etc)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -103,6 +104,28 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
     app->renderer = NULL;
 }
 
+static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, double x, double y) {
+    if (phase == GLFMTouchPhaseBegan) {
+        GLFMUserInterfaceChrome chrome = glfmGetDisplayChrome(display);
+        switch (chrome) {
+            case GLFMUserInterfaceChromeNavigation:
+                glfmSetDisplayChrome(display, GLFMUserInterfaceChromeNavigationAndStatusBar);
+                break;
+            case GLFMUserInterfaceChromeNavigationAndStatusBar:
+                glfmSetDisplayChrome(display, GLFMUserInterfaceChromeNone);
+                break;
+            case GLFMUserInterfaceChromeNone: default:
+                glfmSetDisplayChrome(display, GLFMUserInterfaceChromeNavigation);
+                break;
+        }
+        TestPatternApp *app = glfmGetUserData(display);
+        app->textureNeedsUpdate = true; // Insets may have changed
+        return true;
+    } else {
+        return false;
+    }
+}
+
 static void onFrame(GLFMDisplay *display) {
     TestPatternApp *app = glfmGetUserData(display);
     if (!app->textureNeedsUpdate && !app->needsRedraw) {
@@ -148,6 +171,7 @@ void glfmMain(GLFMDisplay *display) {
                          GLFMMultisampleNone);
 
     glfmSetUserData(display, app);
+    glfmSetTouchFunc(display, onTouch);
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
     glfmSetSurfaceResizedFunc(display, onSurfaceResized);
     glfmSetSurfaceRefreshFunc(display, onSurfaceRefresh);
