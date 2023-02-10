@@ -231,7 +231,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     [super setFrameSize:newSize];
     if (self.surfaceCreatedNotified) {
         [self requestRefresh];
-        [self draw];
+        if (self.isLiveResizing) {
+            [self draw];
+        }
     }
 }
 
@@ -243,6 +245,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (void)viewDidEndLiveResize {
     self.layerContentsPlacement = NSViewLayerContentsPlacementScaleAxesIndependently;
     [super viewDidEndLiveResize];
+}
+
+- (BOOL)isLiveResizing {
+    return self.layerContentsPlacement == NSViewLayerContentsPlacementTopLeft;
 }
 
 - (BOOL)acceptsFirstResponder {
@@ -2632,6 +2638,22 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
     }
 }
 
+- (void)windowWillEnterFullScreen:(NSNotification *)notification {
+    if (self.window == notification.object) {
+        GLFMViewController *glfmViewController = (GLFMViewController *)self.window.contentViewController;
+        self.window.styleMask |= NSWindowStyleMaskFullScreen; // Style isn't set before notification
+        glfm__displayChromeUpdated(glfmViewController.glfmDisplay);
+    }
+}
+
+- (void)windowWillExitFullScreen:(NSNotification *)notification {
+    if (self.window == notification.object) {
+        GLFMViewController *glfmViewController = (GLFMViewController *)self.window.contentViewController;
+        self.window.styleMask &= ~NSWindowStyleMaskFullScreen; // Style isn't set before notification
+        glfm__displayChromeUpdated(glfmViewController.glfmDisplay);
+    }
+}
+
 - (void)windowWillClose:(NSNotification *)notification {
     if (self.window == notification.object) {
         self.window.active = NO;
@@ -2755,10 +2777,47 @@ static void glfm__displayChromeUpdated(GLFMDisplay *display) {
         GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
         NSWindow *window = vc.glfmViewIfLoaded.window;
         if (window) {
-            bool isFullscreen = (window.styleMask & NSWindowStyleMaskFullScreen) != 0;
-            bool wantsFullscreen = display->uiChrome == GLFMUserInterfaceChromeFullscreen;
-            if (wantsFullscreen != isFullscreen) {
-                [window toggleFullScreen:nil];
+            // This might not make sense and will probably change.
+            // * GLFMUserInterfaceChromeNavigation: Full content view (title bar overlays content).
+            // * GLFMUserInterfaceChromeNavigationAndStatusBar: Title bar outside content view (no overlay).
+            // * GLFMUserInterfaceChromeFullscreen: No window decor, but user can drag title bar area to move the window.
+            // * GLFMUserInterfaceChromeFullscreen when window is fullscreen: No menu bar.
+
+            // Prevent title bar buttons from being tapped when their alpha is zero
+            BOOL hideButtons = ((window.styleMask & NSWindowStyleMaskFullScreen) == 0 &&
+                                display->uiChrome == GLFMUserInterfaceChromeFullscreen);
+            NSView *titleBarView = [window standardWindowButton:NSWindowCloseButton].superview;
+            for (NSView *button in titleBarView.subviews) {
+                if ([button isKindOfClass:[NSControl class]]) {
+                    [button setHidden:hideButtons];
+                }
+            }
+
+            // Hide/Show title bar
+            if (@available(macOS 11, *)) {
+                titleBarView = titleBarView.superview;
+            }
+            if (window.styleMask & NSWindowStyleMaskFullScreen) {
+                titleBarView.alphaValue = (CGFloat)1.0;
+                [NSMenu setMenuBarVisible:display->uiChrome != GLFMUserInterfaceChromeFullscreen];
+            } else {
+                [NSMenu setMenuBarVisible:YES];
+                if (display->uiChrome == GLFMUserInterfaceChromeFullscreen) {
+                    if ((window.styleMask & NSWindowStyleMaskFullSizeContentView) == 0) {
+                        titleBarView.alphaValue = (CGFloat)0.0;
+                    } else {
+                        [[titleBarView animator] setAlphaValue:(CGFloat)0.0];
+                    }
+                } else {
+                    [[titleBarView animator] setAlphaValue:(CGFloat)1.0];
+                }
+
+                // Enable/disable full-size content view (under the title bar)
+                if (display->uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
+                    window.styleMask &= ~NSWindowStyleMaskFullSizeContentView;
+                } else {
+                    window.styleMask |= NSWindowStyleMaskFullSizeContentView;
+                }
             }
         }
 #endif
