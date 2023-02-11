@@ -1017,34 +1017,42 @@ static void glfm__setFullScreen(struct android_app *app, GLFMUserInterfaceChrome
     if (!decorView) {
         return;
     }
+
+    unsigned int systemUiVisibility = 0;
     if (uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
-        glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void, 0);
+        systemUiVisibility = 0;
     } else if (SDK_INT >= 11 && SDK_INT < 14) {
-        glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void, View_STATUS_BAR_HIDDEN);
+        systemUiVisibility = View_STATUS_BAR_HIDDEN;
     } else if (SDK_INT >= 14 && SDK_INT < 19) {
         if (uiChrome == GLFMUserInterfaceChromeNavigation) {
-            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                         (jint)View_SYSTEM_UI_FLAG_FULLSCREEN);
+            systemUiVisibility = View_SYSTEM_UI_FLAG_FULLSCREEN;
         } else {
-            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                         (jint)(View_SYSTEM_UI_FLAG_LOW_PROFILE | View_SYSTEM_UI_FLAG_FULLSCREEN));
+            systemUiVisibility = (View_SYSTEM_UI_FLAG_LOW_PROFILE | View_SYSTEM_UI_FLAG_FULLSCREEN);
         }
     } else if (SDK_INT >= 19) {
         if (uiChrome == GLFMUserInterfaceChromeNavigation) {
-            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                         (jint)View_SYSTEM_UI_FLAG_FULLSCREEN);
+            systemUiVisibility = View_SYSTEM_UI_FLAG_FULLSCREEN;
+        } else {
+            systemUiVisibility = (View_SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                                  View_SYSTEM_UI_FLAG_FULLSCREEN |
+                                  View_SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                                  View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                                  View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                                  View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        }
+    }
+
+    jboolean isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "isAttachedToWindow", "()Z", Boolean);
+    if (!glfm__wasJavaExceptionThrown()) {
+        if (isDecorViewAttached) {
+            // TODO: If the decorView is attached, changing the systemUiVisibility needs to happen in the UI thread
         } else {
             glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                         (jint)(View_SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                                                View_SYSTEM_UI_FLAG_FULLSCREEN |
-                                                View_SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                                                View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                                                View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                                                View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY));
+                                         (jint)systemUiVisibility);
+            glfm__clearJavaException();
         }
     }
     (*jni)->DeleteLocalRef(jni, decorView);
-    glfm__clearJavaException();
 }
 
 static void glfm__resetContentRect(GLFMPlatformData *platformData) {
