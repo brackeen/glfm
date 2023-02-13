@@ -63,6 +63,8 @@ Without CMake:
 1. Add the GLFM source files (in `include` and `src`) to your project.
 2. Include a `void glfmMain(GLFMDisplay *display)` function in a C/C++ file.
 
+For release builds, define `NDEBUG` to remove superfluous logging statements. `NDEBUG` is automatically defined for release builds in Android Studio, but not in Xcode.
+
 ## Example
 This example initializes the display in `glfmMain()` and draws a triangle in `onFrame()`. A more detailed example is available [here](examples/src/touch.c).
 
