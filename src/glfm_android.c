@@ -8,20 +8,25 @@
 #include "android_native_app_glue.h"
 #include "glfm_internal.h"
 #include <EGL/egl.h>
-#include <android/log.h>
 #include <android/sensor.h>
 #include <android/window.h>
 #include <dlfcn.h>
 #include <unistd.h>
 
-#ifdef NDEBUG
-#define LOG_DEBUG(...) do { } while (0)
-#else
-#define LOG_DEBUG(...) __android_log_print(ANDROID_LOG_INFO, "GLFM", __VA_ARGS__)
-#endif
+#define GLFM_LOG_LIFECYCLE_ENABLE 0
 
-//#define LOG_LIFECYCLE(...) __android_log_print(ANDROID_LOG_INFO, "GLFM", __VA_ARGS__)
-#define LOG_LIFECYCLE(...) do { } while (0)
+#ifdef NDEBUG
+#  define GLFM_LOG(...) do { } while (0)
+#  define GLFM_LOG_LIFECYCLE(...) do { } while (0)
+#else
+#  include <android/log.h>
+#  define GLFM_LOG(...) __android_log_print(ANDROID_LOG_DEBUG, "GLFM", __VA_ARGS__)
+#  if GLFM_LOG_LIFECYCLE_ENABLE
+#    define GLFM_LOG_LIFECYCLE(...) __android_log_print(ANDROID_LOG_VERBOSE, "GLFM", "Lifecycle: " __VA_ARGS__)
+#  else
+#    define GLFM_LOG_LIFECYCLE(...) do { } while (0)
+#  endif
+#endif
 
 #define MAX_SIMULTANEOUS_TOUCHES 5
 #define LOOPER_ID_SENSOR_EVENT_QUEUE 0xdb2a20
@@ -228,12 +233,12 @@ static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
 
     if (!eglMakeCurrent(platformData->eglDisplay, platformData->eglSurface,
                         platformData->eglSurface, platformData->eglContext)) {
-        LOG_LIFECYCLE("eglMakeCurrent() failed");
+        GLFM_LOG_LIFECYCLE("eglMakeCurrent() failed");
         platformData->eglContextCurrent = false;
         return false;
     } else {
         platformData->eglContextCurrent = true;
-        LOG_LIFECYCLE("GL Context made current");
+        GLFM_LOG_LIFECYCLE("GL Context made current");
         if (created && !platformData->surfaceCreatedNotified) {
             platformData->surfaceCreatedNotified = true;
             if (platformData->display && platformData->display->surfaceCreatedFunc) {
@@ -272,30 +277,34 @@ static void glfm__eglSurfaceInit(GLFMPlatformData *platformData) {
     }
 }
 
+#ifndef NDEBUG
+
 static void glfm__eglLogConfig(GLFMPlatformData *platformData, EGLConfig config) {
-    LOG_DEBUG("Config: %p", config);
+    GLFM_LOG("Config: %p", config);
     EGLint value;
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_RENDERABLE_TYPE, &value);
-    LOG_DEBUG("  EGL_RENDERABLE_TYPE %i", value);
+    GLFM_LOG("  EGL_RENDERABLE_TYPE %i", value);
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_SURFACE_TYPE, &value);
-    LOG_DEBUG("  EGL_SURFACE_TYPE    %i", value);
+    GLFM_LOG("  EGL_SURFACE_TYPE    %i", value);
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_RED_SIZE, &value);
-    LOG_DEBUG("  EGL_RED_SIZE        %i", value);
+    GLFM_LOG("  EGL_RED_SIZE        %i", value);
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_GREEN_SIZE, &value);
-    LOG_DEBUG("  EGL_GREEN_SIZE      %i", value);
+    GLFM_LOG("  EGL_GREEN_SIZE      %i", value);
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_BLUE_SIZE, &value);
-    LOG_DEBUG("  EGL_BLUE_SIZE       %i", value);
+    GLFM_LOG("  EGL_BLUE_SIZE       %i", value);
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_ALPHA_SIZE, &value);
-    LOG_DEBUG("  EGL_ALPHA_SIZE      %i", value);
+    GLFM_LOG("  EGL_ALPHA_SIZE      %i", value);
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_DEPTH_SIZE, &value);
-    LOG_DEBUG("  EGL_DEPTH_SIZE      %i", value);
+    GLFM_LOG("  EGL_DEPTH_SIZE      %i", value);
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_STENCIL_SIZE, &value);
-    LOG_DEBUG("  EGL_STENCIL_SIZE    %i", value);
+    GLFM_LOG("  EGL_STENCIL_SIZE    %i", value);
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_SAMPLE_BUFFERS, &value);
-    LOG_DEBUG("  EGL_SAMPLE_BUFFERS  %i", value);
+    GLFM_LOG("  EGL_SAMPLE_BUFFERS  %i", value);
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_SAMPLES, &value);
-    LOG_DEBUG("  EGL_SAMPLES         %i", value);
+    GLFM_LOG("  EGL_SAMPLES         %i", value);
 }
+
+#endif
 
 static bool glfm__eglInit(GLFMPlatformData *platformData) {
     if (platformData->eglDisplay != EGL_NO_DISPLAY) {
@@ -385,22 +394,24 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
             depthBits -= 8;
         } else {
             // Failure
+#ifndef NDEBUG
             static bool printedConfigs = false;
             if (!printedConfigs) {
                 printedConfigs = true;
-                LOG_DEBUG("eglChooseConfig() failed");
+                GLFM_LOG("eglChooseConfig() failed");
                 EGLConfig configs[256];
                 EGLint numTotalConfigs;
                 if (eglGetConfigs(platformData->eglDisplay, configs, 256, &numTotalConfigs)) {
-                    LOG_DEBUG("Num available configs: %i", numTotalConfigs);
+                    GLFM_LOG("Num available configs: %i", numTotalConfigs);
                     int i;
                     for (i = 0; i < numTotalConfigs; i++) {
                         glfm__eglLogConfig(platformData, configs[i]);
                     }
                 } else {
-                    LOG_DEBUG("Couldn't get any EGL configs");
+                    GLFM_LOG("Couldn't get any EGL configs");
                 }
             }
+#endif
 
             glfm__reportSurfaceError(platformData->eglDisplay, "eglChooseConfig() failed");
             eglTerminate(platformData->eglDisplay);
@@ -436,7 +447,7 @@ static void glfm__eglDestroy(GLFMPlatformData *platformData) {
         eglMakeCurrent(platformData->eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         if (platformData->eglContext != EGL_NO_CONTEXT) {
             eglDestroyContext(platformData->eglDisplay, platformData->eglContext);
-            LOG_LIFECYCLE("GL Context destroyed");
+            GLFM_LOG_LIFECYCLE("GL Context destroyed");
             if (platformData->surfaceCreatedNotified) {
                 platformData->surfaceCreatedNotified = false;
                 if (platformData->display && platformData->display->surfaceDestroyedFunc) {
@@ -464,7 +475,7 @@ static void glfm__eglCheckError(GLFMPlatformData *platformData) {
         if (platformData->eglContext != EGL_NO_CONTEXT) {
             platformData->eglContext = EGL_NO_CONTEXT;
             platformData->eglContextCurrent = false;
-            LOG_LIFECYCLE("GL Context lost");
+            GLFM_LOG_LIFECYCLE("GL Context lost");
             if (platformData->surfaceCreatedNotified) {
                 platformData->surfaceCreatedNotified = false;
                 if (platformData->display && platformData->display->surfaceDestroyedFunc) {
@@ -541,11 +552,11 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
     switch (cmd) {
         case APP_CMD_SAVE_STATE: {
-            LOG_LIFECYCLE("APP_CMD_SAVE_STATE");
+            GLFM_LOG_LIFECYCLE("APP_CMD_SAVE_STATE");
             break;
         }
         case APP_CMD_INIT_WINDOW: {
-            LOG_LIFECYCLE("APP_CMD_INIT_WINDOW");
+            GLFM_LOG_LIFECYCLE("APP_CMD_INIT_WINDOW");
             const bool success = glfm__eglInit(platformData);
             if (!success) {
                 glfm__eglCheckError(platformData);
@@ -555,27 +566,27 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
             break;
         }
         case APP_CMD_WINDOW_RESIZED: {
-            LOG_LIFECYCLE("APP_CMD_WINDOW_RESIZED");
+            GLFM_LOG_LIFECYCLE("APP_CMD_WINDOW_RESIZED");
             break;
         }
         case APP_CMD_TERM_WINDOW: {
-            LOG_LIFECYCLE("APP_CMD_TERM_WINDOW");
+            GLFM_LOG_LIFECYCLE("APP_CMD_TERM_WINDOW");
             glfm__eglSurfaceDestroy(platformData);
             glfm__setAnimating(platformData, false);
             break;
         }
         case APP_CMD_WINDOW_REDRAW_NEEDED: {
-            LOG_LIFECYCLE("APP_CMD_WINDOW_REDRAW_NEEDED");
+            GLFM_LOG_LIFECYCLE("APP_CMD_WINDOW_REDRAW_NEEDED");
             platformData->refreshRequested = true;
             break;
         }
         case APP_CMD_GAINED_FOCUS: {
-            LOG_LIFECYCLE("APP_CMD_GAINED_FOCUS");
+            GLFM_LOG_LIFECYCLE("APP_CMD_GAINED_FOCUS");
             glfm__setAnimating(platformData, true);
             break;
         }
         case APP_CMD_LOST_FOCUS: {
-            LOG_LIFECYCLE("APP_CMD_LOST_FOCUS");
+            GLFM_LOG_LIFECYCLE("APP_CMD_LOST_FOCUS");
             if (platformData->animating) {
                 platformData->refreshRequested = true;
                 glfm__drawFrame(platformData);
@@ -584,7 +595,7 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
             break;
         }
         case APP_CMD_CONTENT_RECT_CHANGED: {
-            LOG_LIFECYCLE("APP_CMD_CONTENT_RECT_CHANGED");
+            GLFM_LOG_LIFECYCLE("APP_CMD_CONTENT_RECT_CHANGED");
             platformData->refreshRequested = true;
             pthread_mutex_lock(&app->mutex);
             app->contentRect = app->pendingContentRect;
@@ -597,31 +608,31 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
             break;
         }
         case APP_CMD_LOW_MEMORY: {
-            LOG_LIFECYCLE("APP_CMD_LOW_MEMORY");
+            GLFM_LOG_LIFECYCLE("APP_CMD_LOW_MEMORY");
             if (platformData->display && platformData->display->lowMemoryFunc) {
                 platformData->display->lowMemoryFunc(platformData->display);
             }
             break;
         }
         case APP_CMD_START: {
-            LOG_LIFECYCLE("APP_CMD_START");
+            GLFM_LOG_LIFECYCLE("APP_CMD_START");
             glfm__setFullScreen(app, platformData->display->uiChrome);
             break;
         }
         case APP_CMD_RESUME: {
-            LOG_LIFECYCLE("APP_CMD_RESUME");
+            GLFM_LOG_LIFECYCLE("APP_CMD_RESUME");
             break;
         }
         case APP_CMD_PAUSE: {
-            LOG_LIFECYCLE("APP_CMD_PAUSE");
+            GLFM_LOG_LIFECYCLE("APP_CMD_PAUSE");
             break;
         }
         case APP_CMD_STOP: {
-            LOG_LIFECYCLE("APP_CMD_STOP");
+            GLFM_LOG_LIFECYCLE("APP_CMD_STOP");
             break;
         }
         case APP_CMD_DESTROY: {
-            LOG_LIFECYCLE("APP_CMD_DESTROY");
+            GLFM_LOG_LIFECYCLE("APP_CMD_DESTROY");
             glfm__eglDestroy(platformData);
             break;
         }
@@ -641,7 +652,7 @@ void android_main(struct android_app *app) {
     app_dummy();
 #pragma clang diagnostic pop
 
-    LOG_LIFECYCLE("android_main");
+    GLFM_LOG_LIFECYCLE("android_main");
 
     // Init platform data
     GLFMPlatformData *platformData;
@@ -673,7 +684,7 @@ void android_main(struct android_app *app) {
     }
 
     if (platformData->display == NULL) {
-        LOG_LIFECYCLE("glfmMain");
+        GLFM_LOG_LIFECYCLE("glfmMain");
         // Only call glfmMain() once per instance
         // This should call glfmInit()
         platformData->display = calloc(1, sizeof(GLFMDisplay));
@@ -889,7 +900,7 @@ void android_main(struct android_app *app) {
             }
 
             if (app->destroyRequested != 0) {
-                LOG_LIFECYCLE("Destroying thread");
+                GLFM_LOG_LIFECYCLE("Destroying thread");
                 if (platformData->sensorEventQueue) {
                     glfm__setAllRequestedSensorsEnabled(platformData->display, false);
                     ASensorManager *sensorManager = ASensorManager_getInstance();
@@ -1231,7 +1242,7 @@ static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
     eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_HEIGHT, &height);
     if (width != platformData->width || height != platformData->height) {
         if (force || platformData->resizeEventWaitFrames <= 0) {
-            LOG_LIFECYCLE("Resize: %i x %i", width, height);
+            GLFM_LOG_LIFECYCLE("Resize: %i x %i", width, height);
             platformData->resizeEventWaitFrames = RESIZE_EVENT_MAX_WAIT_FRAMES;
             platformData->refreshRequested = true;
             platformData->width = width;
@@ -1819,7 +1830,6 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
                             double x = (double)AMotionEvent_getX(event, i);
                             double y = (double)AMotionEvent_getY(event, i);
                             display->touchFunc(display, touchNumber, phase, x, y);
-                            //LOG_DEBUG("Touch: (num=%i, phase=%i) %f,%f", touchNumber, phase, x, y);
                         }
                     }
                 } else {
@@ -1831,7 +1841,6 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
                         double x = (double)AMotionEvent_getX(event, index);
                         double y = (double)AMotionEvent_getY(event, index);
                         display->touchFunc(display, touchNumber, phase, x, y);
-                        //LOG_DEBUG("Touch: (num=%i, phase=%i) %f,%f", touchNumber, phase, x, y);
                     }
                 }
             }

@@ -15,6 +15,12 @@
 
 #include "glfm_internal.h"
 
+#ifdef NDEBUG
+#  define GLFM_LOG(...) do { } while (0)
+#else
+#  define GLFM_LOG(...) do { printf("%.3f: ", glfmGetTime()); printf(__VA_ARGS__); printf("\n"); } while (0)
+#endif
+
 #define MAX_ACTIVE_TOUCHES 10
 
 // If 1, test if keyboard event arrays are sorted.
@@ -478,14 +484,14 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         if (!KEYBOARD_EVENT_CODES_TESTED) {
             KEYBOARD_EVENT_CODES_TESTED = true;
             if (glfm__listIsSorted(KEYBOARD_EVENT_CODES, KEYBOARD_EVENT_CODES_LENGTH)) {
-                printf("Success: KEYBOARD_EVENT_CODES is sorted\n");
+                GLFM_LOG("Success: KEYBOARD_EVENT_CODES is sorted");
             } else {
-                printf("Failure: KEYBOARD_EVENT_CODES is not sorted\n");
+                GLFM_LOG("Failure: KEYBOARD_EVENT_CODES is not sorted");
             }
             if (KEYBOARD_EVENT_CODES_LENGTH == sizeof(GLFM_KEY_CODES) / sizeof(*GLFM_KEY_CODES)) {
-                printf("Success: GLFM_KEYBOARD_EVENT_CODES is the correct length\n");
+                GLFM_LOG("Success: GLFM_KEYBOARD_EVENT_CODES is the correct length");
             } else {
-                printf("Failure: GLFM_KEYBOARD_EVENT_CODES is not the correct length\n");
+                GLFM_LOG("Failure: GLFM_KEYBOARD_EVENT_CODES is not the correct length");
             }
         }
 #endif
@@ -584,9 +590,9 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         if (!KEYBOARD_EVENT_KEYS_TESTED) {
             KEYBOARD_EVENT_KEYS_TESTED = true;
             if (glfm__listIsSorted(KEYBOARD_EVENT_KEYS, KEYBOARD_EVENT_KEYS_LENGTH)) {
-                printf("Success: KEYBOARD_EVENT_KEYS is sorted\n");
+                GLFM_LOG("Success: KEYBOARD_EVENT_KEYS is sorted");
             } else {
-                printf("Failure: KEYBOARD_EVENT_KEYS is not sorted\n");
+                GLFM_LOG("Failure: KEYBOARD_EVENT_KEYS is not sorted");
             }
         }
 #endif

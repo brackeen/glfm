@@ -32,6 +32,12 @@
 #include <dlfcn.h>
 #include "glfm_internal.h"
 
+#ifdef NDEBUG
+#  define GLFM_LOG(...) do { } while (0)
+#else
+#  define GLFM_LOG(...) NSLog(@__VA_ARGS__)
+#endif
+
 #if __has_feature(objc_arc)
 #  define GLFM_AUTORELEASE(value) value
 #  define GLFM_RELEASE(value) ((void)0)
@@ -48,7 +54,7 @@
 #    define CHECK_GL_ERROR() ((void)0)
 #  else
 #    define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
-       NSLog(@"OpenGL error 0x%04x at glfm_platform_apple.m:%i", error, __LINE__); } while(0)
+       GLFM_LOG("OpenGL error 0x%04x at glfm_apple.m:%i", error, __LINE__); } while(0)
 #  endif
 #endif
 
@@ -538,7 +544,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
 
     if (![self.context renderbufferStorage:GL_RENDERBUFFER fromDrawable:eaglLayer]) {
-        NSLog(@"Error: Call to renderbufferStorage failed");
+        GLFM_LOG("Error: Call to renderbufferStorage failed");
     }
 
     eaglLayer.bounds = oldBounds;
@@ -569,7 +575,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE) {
-            NSLog(@"Error: Couldn't create multisample framebuffer: 0x%04x", status);
+            GLFM_LOG("Error: Couldn't create multisample framebuffer: 0x%04x", status);
         }
     }
 
@@ -607,7 +613,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE) {
-        NSLog(@"Error: Framebuffer incomplete: 0x%04x", status);
+        GLFM_LOG("Error: Framebuffer incomplete: 0x%04x", status);
     }
 
     CHECK_GL_ERROR();
