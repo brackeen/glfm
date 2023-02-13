@@ -13,7 +13,7 @@
 #include <sys/time.h>
 #include <time.h>
 
-#include "glfm_platform.h"
+#include "glfm_internal.h"
 
 #define MAX_ACTIVE_TOUCHES 10
 

@@ -30,7 +30,7 @@
 #endif
 
 #include <dlfcn.h>
-#include "glfm_platform.h"
+#include "glfm_internal.h"
 
 #if __has_feature(objc_arc)
 #  define GLFM_AUTORELEASE(value) value

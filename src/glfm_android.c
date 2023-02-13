@@ -6,7 +6,7 @@
 #include "glfm.h"
 
 #include "android_native_app_glue.h"
-#include "glfm_platform.h"
+#include "glfm_internal.h"
 #include <EGL/egl.h>
 #include <android/log.h>
 #include <android/sensor.h>

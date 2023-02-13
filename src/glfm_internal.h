@@ -1,8 +1,8 @@
 // GLFM
 // https://github.com/brackeen/glfm
 
-#ifndef GLFM_PLATFORM_H
-#define GLFM_PLATFORM_H
+#ifndef GLFM_INTERNAL_H
+#define GLFM_INTERNAL_H
 
 #include "glfm.h"
 #include <stdarg.h>
