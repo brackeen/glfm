@@ -84,7 +84,7 @@ static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force);
 static float glfm__getRefreshRate(const GLFMDisplay *display);
 static void glfm__resetContentRect(GLFMPlatformData *platformData);
 static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData);
-static void glfm__setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome);
+static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUserInterfaceChrome uiChrome);
 static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event);
 
 // MARK: - JNI code
@@ -616,7 +616,7 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
         }
         case APP_CMD_START: {
             GLFM_LOG_LIFECYCLE("APP_CMD_START");
-            glfm__setFullScreen(app, platformData->display->uiChrome);
+            glfm__setUserInterfaceChrome(platformData, platformData->display->uiChrome);
             break;
         }
         case APP_CMD_RESUME: {
@@ -858,7 +858,7 @@ void android_main(struct android_app *app) {
     ANativeActivity_setWindowFlags(app->activity,
                                    fullscreen ? AWINDOW_FLAG_FULLSCREEN : 0,
                                    AWINDOW_FLAG_FULLSCREEN);
-    glfm__setFullScreen(app, platformData->display->uiChrome);
+    glfm__setUserInterfaceChrome(platformData, platformData->display->uiChrome);
 
     static bool windowAttributesSet = false;
     if (!windowAttributesSet) {
@@ -951,13 +951,15 @@ void android_main(struct android_app *app) {
 
 // MARK: - GLFM private functions
 
-static jobject glfm__getDecorView(struct android_app *app) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
+static jobject glfm__getDecorView(GLFMPlatformData *platformData) {
+    if (!platformData || !platformData->app || !platformData->app->activity) {
+        return NULL;
+    }
     JNIEnv *jni = platformData->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
         return NULL;
     }
-    jobject window = glfm__callJavaMethod(jni, app->activity->clazz, "getWindow", "()Landroid/view/Window;", Object);
+    jobject window = glfm__callJavaMethod(jni, platformData->app->activity->clazz, "getWindow", "()Landroid/view/Window;", Object);
     if (!window || glfm__wasJavaExceptionThrown()) {
         return NULL;
     }
@@ -972,7 +974,7 @@ static ARect glfm__getDecorViewRect(GLFMPlatformData *platformData, ARect defaul
         return defaultRect;
     }
 
-    jobject decorView = glfm__getDecorView(platformData->app);
+    jobject decorView = glfm__getDecorView(platformData);
     if (!decorView) {
         return defaultRect;
     }
@@ -1007,7 +1009,7 @@ static ARect glfm__getDecorViewRect(GLFMPlatformData *platformData, ARect defaul
     return result;
 }
 
-static void glfm__setFullScreen(struct android_app *app, GLFMUserInterfaceChrome uiChrome) {
+static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUserInterfaceChrome uiChrome) {
     static const unsigned int View_STATUS_BAR_HIDDEN = 0x00000001;
     static const unsigned int View_SYSTEM_UI_FLAG_LOW_PROFILE = 0x00000001;
     static const unsigned int View_SYSTEM_UI_FLAG_HIDE_NAVIGATION = 0x00000002;
@@ -1017,18 +1019,20 @@ static void glfm__setFullScreen(struct android_app *app, GLFMUserInterfaceChrome
     static const unsigned int View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN = 0x00000400;
     static const unsigned int View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x00001000;
 
-    const int SDK_INT = app->activity->sdkVersion;
+    if (!platformData || !platformData->app || !platformData->app->activity) {
+        return;
+    }
+    const int SDK_INT = platformData->app->activity->sdkVersion;
     if (SDK_INT < 11) {
         return;
     }
 
-    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
     JNIEnv *jni = platformData->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
         return;
     }
 
-    jobject decorView = glfm__getDecorView(app);
+    jobject decorView = glfm__getDecorView(platformData);
     if (!decorView) {
         return;
     }
@@ -1096,7 +1100,7 @@ static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, 
         return defaultRect;
     }
 
-    jobject decorView = glfm__getDecorView(platformData->app);
+    jobject decorView = glfm__getDecorView(platformData);
     if (!decorView) {
         return defaultRect;
     }
@@ -1154,7 +1158,7 @@ static bool glfm__getSafeInsets(const GLFMDisplay *display, double *top, double 
     }
 
     JNIEnv *jni = platformData->jniEnv;
-    jobject decorView = glfm__getDecorView(platformData->app);
+    jobject decorView = glfm__getDecorView(platformData);
     if (!decorView) {
         return false;
     }
@@ -1190,7 +1194,7 @@ static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, double *top,
     }
 
     JNIEnv *jni = platformData->jniEnv;
-    jobject decorView = glfm__getDecorView(platformData->app);
+    jobject decorView = glfm__getDecorView(platformData);
     if (!decorView) {
         return false;
     }
@@ -1274,12 +1278,14 @@ static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display) {
     }
 }
 
-static void glfm__setOrientation(struct android_app *app) {
+static void glfm__setOrientation(GLFMPlatformData *platformData) {
     static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR = 0x00000004;
     static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE = 0x00000006;
     static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT = 0x00000007;
 
-    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
+    if (!platformData || !platformData->app || !platformData->app->activity) {
+        return;
+    }
     GLFMInterfaceOrientation orientations = platformData->display->supportedOrientations;
     bool portraitRequested = (
             ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationPortrait) ||
@@ -1299,13 +1305,13 @@ static void glfm__setOrientation(struct android_app *app) {
         return;
     }
 
-    glfm__callJavaMethodWithArgs(jni, app->activity->clazz, "setRequestedOrientation", "(I)V", Void, orientation);
+    glfm__callJavaMethodWithArgs(jni, platformData->app->activity->clazz, "setRequestedOrientation", "(I)V", Void, orientation);
     glfm__clearJavaException();
 }
 
 static void glfm__displayChromeUpdated(GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    glfm__setFullScreen(platformData->app, display->uiChrome);
+    glfm__setUserInterfaceChrome(platformData, display->uiChrome);
 }
 
 static const ASensor *glfm__getDeviceSensor(GLFMSensor sensor) {
@@ -1385,7 +1391,7 @@ static bool glfm__setKeyboardVisible(GLFMPlatformData *platformData, bool visibl
         return false;
     }
 
-    jobject decorView = glfm__getDecorView(platformData->app);
+    jobject decorView = glfm__getDecorView(platformData);
     if (!decorView) {
         return false;
     }
@@ -1567,15 +1573,17 @@ static uint32_t glfm__getUnicodeChar(GLFMPlatformData *platformData, jint keyCod
  *
  * When this, when the app is in the background, the app will pause in the ALooper_pollAll() call.
  */
-static bool glfm__handleBackButton(struct android_app *app) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
+static bool glfm__handleBackButton(GLFMPlatformData *platformData) {
+    if (!platformData || !platformData->app || !platformData->app->activity) {
+        return false;
+    }
     JNIEnv *jni = platformData->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
         return false;
     }
 
-    jboolean handled = glfm__callJavaMethodWithArgs(jni, app->activity->clazz, "moveTaskToBack",
-                                                   "(Z)Z", Boolean, false);
+    jboolean handled = glfm__callJavaMethodWithArgs(jni, platformData->app->activity->clazz,
+                                                    "moveTaskToBack", "(Z)Z", Boolean, false);
     return !glfm__wasJavaExceptionThrown() && handled;
 }
 
@@ -1754,7 +1762,7 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
             if (aAction == AKEY_EVENT_ACTION_UP) {
                 handled = display->keyFunc(display, keyCode, GLFMKeyActionReleased, modifiers);
                 if (handled == 0 && aKeyCode == AKEYCODE_BACK) {
-                    handled = glfm__handleBackButton(app) ? 1 : 0;
+                    handled = glfm__handleBackButton(platformData) ? 1 : 0;
                 }
             } else if (aAction == AKEY_EVENT_ACTION_DOWN) {
                 GLFMKeyAction keyAction;
@@ -1897,7 +1905,7 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
     if (display && display->supportedOrientations != supportedOrientations) {
         display->supportedOrientations = supportedOrientations;
         GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-        glfm__setOrientation(platformData->app);
+        glfm__setOrientation(platformData);
     }
 }
 
@@ -2031,7 +2039,8 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
     if (glfm__setKeyboardVisible(platformData, visible)) {
         if (visible && display->uiChrome == GLFMUserInterfaceChromeNone) {
             // This seems to be required to reset to fullscreen when the keyboard is shown.
-            glfm__setFullScreen(platformData->app, GLFMUserInterfaceChromeNavigationAndStatusBar);
+            glfm__setUserInterfaceChrome(platformData,
+                                         GLFMUserInterfaceChromeNavigationAndStatusBar);
         }
     }
 }
@@ -2131,7 +2140,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
             break;
     }
 
-    jobject decorView = glfm__getDecorView(platformData->app);
+    jobject decorView = glfm__getDecorView(platformData);
     if (!decorView) {
         return;
     }
