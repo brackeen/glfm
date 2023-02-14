@@ -807,7 +807,8 @@ void android_main(struct android_app *app) {
     app_dummy();
 #pragma clang diagnostic pop
 
-    GLFM_LOG_LIFECYCLE("android_main");
+    const int SDK_INT = app->activity->sdkVersion;
+    GLFM_LOG_LIFECYCLE("android_main. API %i", SDK_INT);
 
     // Init platform data
     GLFMPlatformData *platformData;
@@ -867,32 +868,26 @@ void android_main(struct android_app *app) {
                                    fullscreen ? AWINDOW_FLAG_FULLSCREEN : 0,
                                    AWINDOW_FLAG_FULLSCREEN);
     glfm__setUserInterfaceChrome(platformData, platformData->display->uiChrome);
+    if (SDK_INT >= 28) {
+        // Allow rendering in cutout areas ("safe area") in both portrait and landscape.
+        // Test this code in Settings -> Developer Options -> Simulate a display with a cutout.
+        static const int LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES = 0x00000001;
 
-    static bool windowAttributesSet = false;
-    if (!windowAttributesSet) {
-        windowAttributesSet = true;
-
-        const int SDK_INT = app->activity->sdkVersion;
         JNIEnv *jni = platformData->jniEnv;
+        jobject window = glfm__callJavaMethod(jni, app->activity->clazz, "getWindow",
+                                              "()Landroid/view/Window;", Object);
+        jobject attributes = glfm__callJavaMethod(jni, window, "getAttributes",
+                                                  "()Landroid/view/WindowManager$LayoutParams;",
+                                                  Object);
+        jclass clazz = (*jni)->GetObjectClass(jni, attributes);
+        jfieldID layoutInDisplayCutoutMode = (*jni)->GetFieldID(jni, clazz,
+                "layoutInDisplayCutoutMode", "I");
 
-        if (SDK_INT >= 28) {
-            static const int LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES = 0x00000001;
-
-            jobject window = glfm__callJavaMethod(jni, app->activity->clazz, "getWindow",
-                                                  "()Landroid/view/Window;", Object);
-            jobject attributes = glfm__callJavaMethod(jni, window, "getAttributes",
-                                                      "()Landroid/view/WindowManager$LayoutParams;",
-                                                      Object);
-            jclass clazz = (*jni)->GetObjectClass(jni, attributes);
-            jfieldID layoutInDisplayCutoutMode = (*jni)->GetFieldID(jni, clazz,
-                    "layoutInDisplayCutoutMode", "I");
-
-            (*jni)->SetIntField(jni, attributes, layoutInDisplayCutoutMode,
-                    LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
-            (*jni)->DeleteLocalRef(jni, clazz);
-            (*jni)->DeleteLocalRef(jni, attributes);
-            (*jni)->DeleteLocalRef(jni, window);
-        }
+        (*jni)->SetIntField(jni, attributes, layoutInDisplayCutoutMode,
+                LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
+        (*jni)->DeleteLocalRef(jni, clazz);
+        (*jni)->DeleteLocalRef(jni, attributes);
+        (*jni)->DeleteLocalRef(jni, window);
     }
 
     // Run the main loop
