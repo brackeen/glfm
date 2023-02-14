@@ -1417,10 +1417,10 @@ static bool glfm__setKeyboardVisible(GLFMPlatformData *platformData, bool visibl
 
     if (visible) {
         int flags = 0;
-        if (platformData->app->activity->sdkVersion < 31) {
+        if (platformData->app->activity->sdkVersion < 23) {
             // This flag was deprecated in API 33. It was required for older versions of Android,
             // but it kept the soft keyboard open when leaving the app. At some point, the flag was
-            // no longer required (possibly for versions prior to 31.)
+            // no longer required (possibly for versions prior to 23.)
             flags = InputMethodManager_SHOW_FORCED;
         }
         glfm__callJavaMethodWithArgs(jni, ime, "showSoftInput", "(Landroid/view/View;I)Z", Boolean,
