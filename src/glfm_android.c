@@ -1604,9 +1604,6 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
     GLFMDisplay *display = platformData->display;
     const int32_t eventType = AInputEvent_getType(event);
     if (eventType == AINPUT_EVENT_TYPE_KEY) {
-        if (!display->keyFunc && !display->charFunc) {
-            return 0;
-        }
         int32_t aAction = AKeyEvent_getAction(event);
         int32_t aKeyCode = AKeyEvent_getKeyCode(event);
         int32_t aMetaState = AKeyEvent_getMetaState(event);
@@ -1770,11 +1767,6 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
 
             if (aAction == AKEY_EVENT_ACTION_UP) {
                 handled = display->keyFunc(display, keyCode, GLFMKeyActionReleased, modifiers);
-#if GLFM_HANDLE_BACK_BUTTON
-                if (handled == 0 && aKeyCode == AKEYCODE_BACK) {
-                    handled = glfm__handleBackButton(platformData) ? 1 : 0;
-                }
-#endif
             } else if (aAction == AKEY_EVENT_ACTION_DOWN) {
                 GLFMKeyAction keyAction;
                 if (AKeyEvent_getRepeatCount(event) > 0) {
@@ -1795,6 +1787,13 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
                 }
             }
         }
+
+#if GLFM_HANDLE_BACK_BUTTON
+        if (!handled && aAction == AKEY_EVENT_ACTION_UP && aKeyCode == AKEYCODE_BACK) {
+            handled = glfm__handleBackButton(platformData) ? 1 : 0;
+        }
+#endif
+
         if (display->charFunc && (aAction == AKEY_EVENT_ACTION_DOWN || aAction == AKEY_EVENT_ACTION_MULTIPLE)) {
             uint32_t unicode = glfm__getUnicodeChar(platformData, aKeyCode, aMetaState);
             if (unicode >= ' ') {
