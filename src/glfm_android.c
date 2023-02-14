@@ -1063,7 +1063,12 @@ static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUse
         }
     }
 
-    jboolean isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "isAttachedToWindow", "()Z", Boolean);
+    jboolean isDecorViewAttached;
+    if (SDK_INT >= 19) {
+        isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "isAttachedToWindow", "()Z", Boolean);
+    } else {
+        isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "getWindowToken", "()Landroid/os/IBinder;", Object) != NULL;
+    }
     if (!glfm__wasJavaExceptionThrown()) {
         if (isDecorViewAttached) {
             // TODO: If the decorView is attached, changing the systemUiVisibility needs to happen in the UI thread
