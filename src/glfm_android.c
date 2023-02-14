@@ -602,9 +602,11 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
             glfm__resetContentRect(platformData);
             pthread_cond_broadcast(&app->cond);
             pthread_mutex_unlock(&app->mutex);
-            glfm__updateSurfaceSizeIfNeeded(platformData->display, true);
-            glfm__reportOrientationChangeIfNeeded(platformData->display);
-            glfm__updateKeyboardVisibility(platformData);
+            if (platformData->app->window) {
+                glfm__updateSurfaceSizeIfNeeded(platformData->display, true);
+                glfm__reportOrientationChangeIfNeeded(platformData->display);
+                glfm__updateKeyboardVisibility(platformData);
+            }
             break;
         }
         case APP_CMD_LOW_MEMORY: {
