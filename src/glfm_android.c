@@ -34,6 +34,11 @@
 #define SENSOR_UPDATE_INTERVAL_MICROS ((int)(0.01 * 1000000))
 #define RESIZE_EVENT_MAX_WAIT_FRAMES 5
 
+// If GLFM_HANDLE_BACK_BUTTON is 1, when the user presses the back button, the task is moved to the
+// back. Otherwise, when the user presses the back button, the activity is destroyed.
+// On newer API levels (31) this may not be needed.
+#define GLFM_HANDLE_BACK_BUTTON 1
+
 // MARK: - Platform data (global singleton)
 
 typedef struct {
@@ -636,6 +641,7 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
         case APP_CMD_DESTROY: {
             GLFM_LOG_LIFECYCLE("APP_CMD_DESTROY");
             glfm__eglDestroy(platformData);
+            glfm__setAnimating(platformData, false);
             break;
         }
         default: {
@@ -890,7 +896,7 @@ void android_main(struct android_app *app) {
     }
 
     // Run the main loop
-    while (1) {
+    while (!app->destroyRequested) {
         int eventIdentifier;
         int events;
         struct android_poll_source *source;
@@ -900,25 +906,11 @@ void android_main(struct android_app *app) {
             if (source) {
                 source->process(app, source);
             }
-
             if (eventIdentifier == LOOPER_ID_SENSOR_EVENT_QUEUE) {
                 glfm__onSensorEvent(platformData);
             }
-
-            if (app->destroyRequested != 0) {
-                GLFM_LOG_LIFECYCLE("Destroying thread");
-                if (platformData->sensorEventQueue) {
-                    glfm__setAllRequestedSensorsEnabled(platformData->display, false);
-                    ASensorManager *sensorManager = ASensorManager_getInstance();
-                    ASensorManager_destroyEventQueue(sensorManager, platformData->sensorEventQueue);
-                    platformData->sensorEventQueue = NULL;
-                }
-                glfm__eglDestroy(platformData);
-                glfm__setAnimating(platformData, false);
-                (*vm)->DetachCurrentThread(vm);
-                platformData->app = NULL;
-                // App is destroyed, but android_main() can be called again in the same process.
-                return;
+            if (app->destroyRequested) {
+                break;
             }
         }
 
@@ -949,6 +941,21 @@ void android_main(struct android_app *app) {
             }
         }
     }
+
+    GLFM_LOG_LIFECYCLE("Destroying thread");
+    if (platformData->sensorEventQueue) {
+        glfm__setAllRequestedSensorsEnabled(platformData->display, false);
+        ASensorManager *sensorManager = ASensorManager_getInstance();
+        ASensorManager_destroyEventQueue(sensorManager, platformData->sensorEventQueue);
+        platformData->sensorEventQueue = NULL;
+    }
+    glfm__eglDestroy(platformData);
+    glfm__setAnimating(platformData, false);
+    (*vm)->DetachCurrentThread(vm);
+    platformData->app = NULL;
+    // App is destroyed, but android_main() can be called again in the same process.
+    // Set GLFM_HANDLE_BACK_BUTTON to 0 to test this code.
+    GLFM_LOG_LIFECYCLE("Good bye");
 }
 
 // MARK: - GLFM private functions
@@ -1768,9 +1775,11 @@ static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
 
             if (aAction == AKEY_EVENT_ACTION_UP) {
                 handled = display->keyFunc(display, keyCode, GLFMKeyActionReleased, modifiers);
+#if GLFM_HANDLE_BACK_BUTTON
                 if (handled == 0 && aKeyCode == AKEYCODE_BACK) {
                     handled = glfm__handleBackButton(platformData) ? 1 : 0;
                 }
+#endif
             } else if (aAction == AKEY_EVENT_ACTION_DOWN) {
                 GLFMKeyAction keyAction;
                 if (AKeyEvent_getRepeatCount(event) > 0) {
