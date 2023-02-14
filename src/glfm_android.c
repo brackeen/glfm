@@ -4,13 +4,17 @@
 #if defined(__ANDROID__)
 
 #include "glfm.h"
-
-#include "android_native_app_glue.h"
 #include "glfm_internal.h"
+
 #include <EGL/egl.h>
+#include <android/configuration.h>
+#include <android/looper.h>
+#include <android/native_activity.h>
 #include <android/sensor.h>
 #include <android/window.h>
+#include <assert.h>
 #include <dlfcn.h>
+#include <pthread.h>
 #include <unistd.h>
 
 #define GLFM_LOG_LIFECYCLE_ENABLE 0
@@ -29,7 +33,6 @@
 #endif
 
 #define MAX_SIMULTANEOUS_TOUCHES 5
-#define LOOPER_ID_SENSOR_EVENT_QUEUE 0xdb2a20
 // Same as iOS
 #define SENSOR_UPDATE_INTERVAL_MICROS ((int)(0.01 * 1000000))
 #define RESIZE_EVENT_MAX_WAIT_FRAMES 5
@@ -42,7 +45,25 @@
 // MARK: - Platform data (global singleton)
 
 typedef struct {
-    struct android_app *app;
+    ALooper *looper;
+    pthread_t thread;
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    int commandPipeRead;
+    int commandPipeWrite;
+    bool threadRunning;
+
+    ANativeWindow *window;
+    AInputQueue *inputQueue;
+    ARect contentRect;
+
+    ANativeWindow *pendingWindow;
+    AInputQueue *pendingInputQueue;
+    const ARect *pendingContentRect;
+
+    ANativeActivity *activity;
+    AConfiguration *config;
+    bool destroyRequested;
 
     bool multitouchEnabled;
 
@@ -83,6 +104,7 @@ static GLFMPlatformData *platformDataGlobal = NULL;
 
 // MARK: - Private function declarations
 
+static void *glfm__mainLoop(void *param);
 static void glfm__setAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
 static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display);
 static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force);
@@ -90,7 +112,7 @@ static float glfm__getRefreshRate(const GLFMDisplay *display);
 static void glfm__resetContentRect(GLFMPlatformData *platformData);
 static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData);
 static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUserInterfaceChrome uiChrome);
-static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event);
+static int32_t glfm__onInputEvent(GLFMPlatformData *platformData, AInputEvent *event);
 
 // MARK: - JNI code
 
@@ -267,7 +289,7 @@ static void glfm__eglSurfaceInit(GLFMPlatformData *platformData) {
     if (platformData->eglSurface == EGL_NO_SURFACE) {
         platformData->eglSurface = eglCreateWindowSurface(platformData->eglDisplay,
                                                           platformData->eglConfig,
-                                                          platformData->app->window, NULL);
+                                                          platformData->window, NULL);
 
         switch (platformData->display->swapBehavior) {
         case GLFMSwapBehaviorPlatformDefault:
@@ -434,7 +456,7 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
     eglGetConfigAttrib(platformData->eglDisplay, platformData->eglConfig, EGL_NATIVE_VISUAL_ID,
                        &format);
 
-    ANativeWindow_setBuffersGeometry(platformData->app->window, 0, 0, format);
+    ANativeWindow_setBuffersGeometry(platformData->window, 0, 0, format);
 
     return glfm__eglContextInit(platformData);
 }
@@ -516,31 +538,208 @@ static void glfm__drawFrame(GLFMPlatformData *platformData) {
     }
 }
 
-// MARK: - Native app glue extension
+// MARK: - ANativeActivity callbacks (UI thread)
+
+enum {
+    GLFMLooperIDCommand = 1,
+    GLFMLooperIDInput = 2,
+    GLFMLooperIDSensor = 3,
+};
+
+typedef enum {
+    GLFMActivityCommandOnStart,
+    GLFMActivityCommandOnPause,
+    GLFMActivityCommandOnResume,
+    GLFMActivityCommandOnStop,
+    GLFMActivityCommandOnDestroy,
+    GLFMActivityCommandOnWindowFocusGained,
+    GLFMActivityCommandOnWindowFocusLost,
+    GLFMActivityCommandOnNativeWindowCreated,
+    GLFMActivityCommandOnNativeWindowResized,
+    GLFMActivityCommandOnNativeWindowRedrawNeeded,
+    GLFMActivityCommandOnNativeWindowDestroyed,
+    GLFMActivityCommandOnInputQueueCreated,
+    GLFMActivityCommandOnInputQueueDestroyed,
+    GLFMActivityCommandOnContentRectChanged,
+    GLFMActivityCommandOnConfigurationChanged,
+    GLFMActivityCommandOnLowMemory,
+} GLFMActivityCommand;
+
+static void glfm__sendCommand(ANativeActivity *activity, GLFMActivityCommand command) {
+    GLFMPlatformData *platformData = activity->instance;
+    uint8_t data = (uint8_t)command;
+    if (write(platformData->commandPipeWrite, &data, sizeof(data)) != sizeof(data)) {
+        GLFM_LOG("Couldn't write to pipe");
+    }
+}
+
+static void glfm__activityOnStart(ANativeActivity *activity) {
+    glfm__sendCommand(activity, GLFMActivityCommandOnStart);
+}
+
+static void glfm__activityOnPause(ANativeActivity *activity) {
+    glfm__sendCommand(activity, GLFMActivityCommandOnPause);
+}
+
+static void glfm__activityOnResume(ANativeActivity *activity) {
+    glfm__sendCommand(activity, GLFMActivityCommandOnResume);
+}
+
+static void glfm__activityOnStop(ANativeActivity *activity) {
+    glfm__sendCommand(activity, GLFMActivityCommandOnStop);
+}
+
+static void glfm__activityOnWindowFocusChanged(ANativeActivity *activity, int hasFocus) {
+    glfm__sendCommand(activity, (hasFocus ? GLFMActivityCommandOnWindowFocusGained :
+        GLFMActivityCommandOnWindowFocusLost));
+}
+
+static void glfm__activityOnConfigurationChanged(ANativeActivity *activity) {
+    glfm__sendCommand(activity, GLFMActivityCommandOnConfigurationChanged);
+}
+
+static void glfm__activityOnLowMemory(ANativeActivity *activity) {
+    glfm__sendCommand(activity, GLFMActivityCommandOnLowMemory);
+}
+
+static void glfm__activityOnNativeWindowResized(ANativeActivity *activity, ANativeWindow *window) {
+    (void)window;
+    glfm__sendCommand(activity, GLFMActivityCommandOnNativeWindowResized);
+}
+
+static void glfm__activityOnNativeWindowRedrawNeeded(ANativeActivity *activity, ANativeWindow *window) {
+    (void)window;
+    glfm__sendCommand(activity, GLFMActivityCommandOnNativeWindowRedrawNeeded);
+}
+
+static void glfm__activityOnNativeWindowCreated(ANativeActivity *activity, ANativeWindow *window) {
+    GLFMPlatformData *platformData = activity->instance;
+    pthread_mutex_lock(&platformData->mutex);
+    platformData->pendingWindow = window;
+    glfm__sendCommand(activity, GLFMActivityCommandOnNativeWindowCreated);
+    while (platformData->window != window) {
+        pthread_cond_wait(&platformData->cond, &platformData->mutex);
+    }
+    pthread_mutex_unlock(&platformData->mutex);
+}
+
+static void glfm__activityOnNativeWindowDestroyed(ANativeActivity *activity, ANativeWindow *window) {
+    (void)window;
+    glfm__sendCommand(activity, GLFMActivityCommandOnNativeWindowDestroyed);
+}
+
+static void glfm__activityOnInputQueueCreated(ANativeActivity *activity, AInputQueue *queue) {
+    GLFMPlatformData *platformData = activity->instance;
+    pthread_mutex_lock(&platformData->mutex);
+    platformData->pendingInputQueue = queue;
+    glfm__sendCommand(activity, GLFMActivityCommandOnInputQueueCreated);
+    while (platformData->inputQueue != queue) {
+        pthread_cond_wait(&platformData->cond, &platformData->mutex);
+    }
+    pthread_mutex_unlock(&platformData->mutex);
+}
+
+static void glfm__activityOnInputQueueDestroyed(ANativeActivity *activity, AInputQueue *queue) {
+    (void)queue;
+    glfm__sendCommand(activity, GLFMActivityCommandOnInputQueueDestroyed);
+}
+
+static void glfm__activityOnContentRectChanged(ANativeActivity *activity, const ARect *rect) {
+    GLFMPlatformData *platformData = activity->instance;
+    pthread_mutex_lock(&platformData->mutex);
+    platformData->pendingContentRect = rect;
+    glfm__sendCommand(activity, GLFMActivityCommandOnContentRectChanged);
+    while (platformData->pendingContentRect) {
+        pthread_cond_wait(&platformData->cond, &platformData->mutex);
+    }
+    pthread_mutex_unlock(&platformData->mutex);
+}
+
+static void glfm__activityOnDestroy(ANativeActivity *activity) {
+    GLFMPlatformData *platformData = activity->instance;
+    pthread_mutex_lock(&platformData->mutex);
+    glfm__sendCommand(activity, GLFMActivityCommandOnDestroy);
+    while (platformData->threadRunning) {
+        pthread_cond_wait(&platformData->cond, &platformData->mutex);
+    }
+    pthread_mutex_unlock(&platformData->mutex);
+
+    close(platformData->commandPipeRead);
+    close(platformData->commandPipeWrite);
+    pthread_cond_destroy(&platformData->cond);
+    pthread_mutex_destroy(&platformData->mutex);
+    GLFM_LOG_LIFECYCLE("Goodbye");
+}
+
+static void *glfm__activityOnSaveInstanceState(ANativeActivity *activity, size_t *outSize) {
+    (void)activity;
+    *outSize = 0;
+    return NULL;
+}
+
+JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedState, size_t savedStateSize) {
+    (void)savedState;
+    (void)savedStateSize;
+
+    GLFM_LOG_LIFECYCLE("ANativeActivity_onCreate (API %i)", activity->sdkVersion);
+    int commandPipe[2];
+    if (pipe(commandPipe)) {
+        GLFM_LOG("Couldn't create pipe");
+        return;
+    }
+
+    activity->callbacks->onStart = glfm__activityOnStart;
+    activity->callbacks->onPause = glfm__activityOnPause;
+    activity->callbacks->onResume = glfm__activityOnResume;
+    activity->callbacks->onStop = glfm__activityOnStop;
+    activity->callbacks->onDestroy = glfm__activityOnDestroy;
+    activity->callbacks->onWindowFocusChanged = glfm__activityOnWindowFocusChanged;
+    activity->callbacks->onNativeWindowCreated = glfm__activityOnNativeWindowCreated;
+    activity->callbacks->onNativeWindowResized = glfm__activityOnNativeWindowResized;
+    activity->callbacks->onNativeWindowRedrawNeeded = glfm__activityOnNativeWindowRedrawNeeded;
+    activity->callbacks->onNativeWindowDestroyed = glfm__activityOnNativeWindowDestroyed;
+    activity->callbacks->onInputQueueCreated = glfm__activityOnInputQueueCreated;
+    activity->callbacks->onInputQueueDestroyed = glfm__activityOnInputQueueDestroyed;
+    activity->callbacks->onContentRectChanged = glfm__activityOnContentRectChanged;
+    activity->callbacks->onConfigurationChanged = glfm__activityOnConfigurationChanged;
+    activity->callbacks->onLowMemory = glfm__activityOnLowMemory;
+    activity->callbacks->onSaveInstanceState = glfm__activityOnSaveInstanceState;
+
+    GLFMPlatformData *platformData;
+    if (platformDataGlobal == NULL) {
+        platformDataGlobal = calloc(1, sizeof(GLFMPlatformData));
+    }
+    platformData = platformDataGlobal;
+
+    activity->instance = platformData;
+    platformData->activity = activity;
+    platformData->commandPipeRead = commandPipe[0];
+    platformData->commandPipeWrite = commandPipe[1];
+
+    pthread_mutex_init(&platformData->mutex, NULL);
+    pthread_cond_init(&platformData->cond, NULL);
+
+    // Start thread
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&platformData->thread, &attr, glfm__mainLoop,
+                   platformData);
+
+    // Wait for thread to start
+    pthread_mutex_lock(&platformData->mutex);
+    while (!platformData->threadRunning) {
+        pthread_cond_wait(&platformData->cond, &platformData->mutex);
+    }
+    pthread_mutex_unlock(&platformData->mutex);
+    GLFM_LOG_LIFECYCLE("Returning from ANativeActivity_onCreate");
+}
+
+// MARK: - App command callback
 
 static bool ARectsEqual(ARect r1, ARect r2) {
     return r1.left == r2.left && r1.top == r2.top && r1.right == r2.right && r1.bottom == r2.bottom;
 }
-
-static void glfm__writeCmd(struct android_app *android_app, int8_t cmd) {
-    write(android_app->msgwrite, &cmd, sizeof(cmd));
-}
-
-static void glfm__setContentRect(struct android_app *android_app, ARect rect) {
-    pthread_mutex_lock(&android_app->mutex);
-    android_app->pendingContentRect = rect;
-    glfm__writeCmd(android_app, APP_CMD_CONTENT_RECT_CHANGED);
-    while (!ARectsEqual(android_app->contentRect, android_app->pendingContentRect)) {
-        pthread_cond_wait(&android_app->cond, &android_app->mutex);
-    }
-    pthread_mutex_unlock(&android_app->mutex);
-}
-
-static void glfm__onContentRectChanged(ANativeActivity *activity, const ARect *rect) {
-    glfm__setContentRect((struct android_app *)activity->instance, *rect);
-}
-
-// MARK: - App command callback
 
 static void glfm__setAnimating(GLFMPlatformData *platformData, bool animating) {
     if (platformData->animating != animating) {
@@ -553,15 +752,15 @@ static void glfm__setAnimating(GLFMPlatformData *platformData, bool animating) {
     }
 }
 
-static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
-    switch (cmd) {
-        case APP_CMD_SAVE_STATE: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_SAVE_STATE");
-            break;
-        }
-        case APP_CMD_INIT_WINDOW: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_INIT_WINDOW");
+static void glfm__onAppCmd(GLFMPlatformData *platformData, GLFMActivityCommand command) {
+    switch (command) {
+        case GLFMActivityCommandOnNativeWindowCreated: {
+            GLFM_LOG_LIFECYCLE("OnNativeWindowCreated");
+            pthread_mutex_lock(&platformData->mutex);
+            platformData->window = platformData->pendingWindow;
+            pthread_cond_broadcast(&platformData->cond);
+            pthread_mutex_unlock(&platformData->mutex);
+
             const bool success = glfm__eglInit(platformData);
             if (!success) {
                 glfm__eglCheckError(platformData);
@@ -570,28 +769,29 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
             glfm__drawFrame(platformData);
             break;
         }
-        case APP_CMD_WINDOW_RESIZED: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_WINDOW_RESIZED");
+        case GLFMActivityCommandOnNativeWindowResized: {
+            GLFM_LOG_LIFECYCLE("OnNativeWindowResized");
             break;
         }
-        case APP_CMD_TERM_WINDOW: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_TERM_WINDOW");
+        case GLFMActivityCommandOnNativeWindowDestroyed: {
+            GLFM_LOG_LIFECYCLE("OnNativeWindowDestroyed");
+            platformData->window = NULL;
             glfm__eglSurfaceDestroy(platformData);
             glfm__setAnimating(platformData, false);
             break;
         }
-        case APP_CMD_WINDOW_REDRAW_NEEDED: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_WINDOW_REDRAW_NEEDED");
+        case GLFMActivityCommandOnNativeWindowRedrawNeeded: {
+            GLFM_LOG_LIFECYCLE("OnNativeWindowRedrawNeeded");
             platformData->refreshRequested = true;
             break;
         }
-        case APP_CMD_GAINED_FOCUS: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_GAINED_FOCUS");
+        case GLFMActivityCommandOnWindowFocusGained: {
+            GLFM_LOG_LIFECYCLE("OnWindowFocusGained");
             glfm__setAnimating(platformData, true);
             break;
         }
-        case APP_CMD_LOST_FOCUS: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_LOST_FOCUS");
+        case GLFMActivityCommandOnWindowFocusLost: {
+            GLFM_LOG_LIFECYCLE("OnWindowFocusLost");
             if (platformData->animating) {
                 platformData->refreshRequested = true;
                 glfm__drawFrame(platformData);
@@ -599,49 +799,88 @@ static void glfm__onAppCmd(struct android_app *app, int32_t cmd) {
             }
             break;
         }
-        case APP_CMD_CONTENT_RECT_CHANGED: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_CONTENT_RECT_CHANGED");
+        case GLFMActivityCommandOnContentRectChanged: {
+            if (!platformData->pendingContentRect) {
+                break;
+            }
+            GLFM_LOG_LIFECYCLE("OnContentRectChanged (from %i,%i,%i,%i to %i,%i,%i,%i)",
+                               platformData->contentRect.left, platformData->contentRect.top,
+                               platformData->contentRect.right, platformData->contentRect.bottom,
+                               platformData->pendingContentRect->left, platformData->pendingContentRect->top,
+                               platformData->pendingContentRect->right, platformData->pendingContentRect->bottom);
+
             platformData->refreshRequested = true;
-            pthread_mutex_lock(&app->mutex);
-            app->contentRect = app->pendingContentRect;
+            pthread_mutex_lock(&platformData->mutex);
+            platformData->contentRect = *platformData->pendingContentRect;
+            platformData->pendingContentRect = NULL;
+            pthread_cond_broadcast(&platformData->cond);
+            pthread_mutex_unlock(&platformData->mutex);
+
             glfm__resetContentRect(platformData);
-            pthread_cond_broadcast(&app->cond);
-            pthread_mutex_unlock(&app->mutex);
-            if (platformData->app->window) {
+
+            if (platformData->window) {
                 glfm__updateSurfaceSizeIfNeeded(platformData->display, true);
                 glfm__reportOrientationChangeIfNeeded(platformData->display);
                 glfm__updateKeyboardVisibility(platformData);
             }
             break;
         }
-        case APP_CMD_LOW_MEMORY: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_LOW_MEMORY");
+        case GLFMActivityCommandOnLowMemory: {
+            GLFM_LOG_LIFECYCLE("OnLowMemory");
             if (platformData->display && platformData->display->lowMemoryFunc) {
                 platformData->display->lowMemoryFunc(platformData->display);
             }
             break;
         }
-        case APP_CMD_START: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_START");
+        case GLFMActivityCommandOnStart: {
+            GLFM_LOG_LIFECYCLE("OnStart");
             glfm__setUserInterfaceChrome(platformData, platformData->display->uiChrome);
             break;
         }
-        case APP_CMD_RESUME: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_RESUME");
+        case GLFMActivityCommandOnResume: {
+            GLFM_LOG_LIFECYCLE("OnResume");
             break;
         }
-        case APP_CMD_PAUSE: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_PAUSE");
+        case GLFMActivityCommandOnPause: {
+            GLFM_LOG_LIFECYCLE("OnPause");
             break;
         }
-        case APP_CMD_STOP: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_STOP");
+        case GLFMActivityCommandOnStop: {
+            GLFM_LOG_LIFECYCLE("OnStop");
             break;
         }
-        case APP_CMD_DESTROY: {
-            GLFM_LOG_LIFECYCLE("APP_CMD_DESTROY");
+        case GLFMActivityCommandOnDestroy: {
+            GLFM_LOG_LIFECYCLE("OnDestroy");
             glfm__eglDestroy(platformData);
             glfm__setAnimating(platformData, false);
+            platformData->destroyRequested = true;
+            break;
+        }
+        case GLFMActivityCommandOnInputQueueCreated: {
+            GLFM_LOG_LIFECYCLE("OnInputQueueCreated");
+            pthread_mutex_lock(&platformData->mutex);
+            if (platformData->inputQueue) {
+                AInputQueue_detachLooper(platformData->inputQueue);
+            }
+            platformData->inputQueue = platformData->pendingInputQueue;
+            AInputQueue_attachLooper(platformData->inputQueue, platformData->looper,
+                                     GLFMLooperIDInput, NULL, NULL);
+            pthread_cond_broadcast(&platformData->cond);
+            pthread_mutex_unlock(&platformData->mutex);
+            break;
+        }
+        case GLFMActivityCommandOnInputQueueDestroyed: {
+            GLFM_LOG_LIFECYCLE("OnInputQueueDestroyed");
+            if (platformData->inputQueue) {
+                AInputQueue_detachLooper(platformData->inputQueue);
+                platformData->inputQueue = NULL;
+            }
+            break;
+        }
+        case GLFMActivityCommandOnConfigurationChanged: {
+            GLFM_LOG_LIFECYCLE("OnConfigurationChanged");
+            AConfiguration_fromAssetManager(platformData->config,
+                                            platformData->activity->assetManager);
             break;
         }
         default: {
@@ -685,7 +924,7 @@ static void glfm__onSensorEvent(GLFMPlatformData *platformData) {
             sensorEventReceived[GLFMSensorGyroscope] = true;
             platformData->sensorEventValid[GLFMSensorGyroscope] = true;
         } else if (event.type == ASENSOR_TYPE_ROTATION_VECTOR) {
-            const int SDK_INT = platformData->app->activity->sdkVersion;
+            const int SDK_INT = platformData->activity->sdkVersion;
 
             GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorRotationMatrix];
             sensorEvent->sensor = GLFMSensorRotationMatrix;
@@ -798,40 +1037,33 @@ static void glfm__onSensorEvent(GLFMPlatformData *platformData) {
     }
 }
 
-// MARK: - Main entry point
+// MARK: - Thread entry point
 
-void android_main(struct android_app *app) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    // Don't strip glue code. Although this is deprecated, it's easier with complex CMake files.
-    app_dummy();
-#pragma clang diagnostic pop
-
-    const int SDK_INT = app->activity->sdkVersion;
-    GLFM_LOG_LIFECYCLE("android_main. API %i", SDK_INT);
+static void *glfm__mainLoop(void *param) {
+    GLFM_LOG_LIFECYCLE("glfm__mainLoop");
 
     // Init platform data
-    GLFMPlatformData *platformData;
-    if (platformDataGlobal == NULL) {
-        platformDataGlobal = calloc(1, sizeof(GLFMPlatformData));
-    }
-    platformData = platformDataGlobal;
-
-    app->userData = platformData;
-    app->onAppCmd = glfm__onAppCmd;
-    app->onInputEvent = glfm__onInputEvent;
-    app->activity->callbacks->onContentRectChanged = glfm__onContentRectChanged;
-    platformData->app = app;
+    GLFMPlatformData *platformData = param;
+    platformData->window = NULL;
+    platformData->contentRect = (ARect){ 0 };
     platformData->refreshRequested = true;
+    platformData->destroyRequested = false;
     platformData->lastSwapTime = glfmGetTime();
+    platformData->config = AConfiguration_new();
+    AConfiguration_fromAssetManager(platformData->config, platformData->activity->assetManager);
+
+    // Init looper
+    platformData->looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
+    ALooper_addFd(platformData->looper, platformData->commandPipeRead,
+                  GLFMLooperIDCommand, ALOOPER_EVENT_INPUT, NULL, NULL);
 
     // Init java env
-    JavaVM *vm = app->activity->vm;
+    JavaVM *vm = platformData->activity->vm;
     (*vm)->AttachCurrentThread(vm, &platformData->jniEnv, NULL);
 
     // Get display scale
     const int ACONFIGURATION_DENSITY_ANY = 0xfffe; // Added in API 21
-    const int32_t density = AConfiguration_getDensity(app->config);
+    const int32_t density = AConfiguration_getDensity(platformData->config);
     if (density == ACONFIGURATION_DENSITY_DEFAULT || density == ACONFIGURATION_DENSITY_NONE ||
             density == ACONFIGURATION_DENSITY_ANY || density <= 0) {
         platformData->scale = 1.0;
@@ -839,10 +1071,9 @@ void android_main(struct android_app *app) {
         platformData->scale = density / 160.0;
     }
 
+    // Call glfmMain() (once per instance)
     if (platformData->display == NULL) {
         GLFM_LOG_LIFECYCLE("glfmMain");
-        // Only call glfmMain() once per instance
-        // This should call glfmInit()
         platformData->display = calloc(1, sizeof(GLFMDisplay));
         platformData->display->platformData = platformData;
         platformData->display->supportedOrientations = GLFMInterfaceOrientationAll;
@@ -863,18 +1094,18 @@ void android_main(struct android_app *app) {
             break;
     }
     bool fullscreen = platformData->display->uiChrome == GLFMUserInterfaceChromeNone;
-    ANativeActivity_setWindowFormat(app->activity, windowFormat);
-    ANativeActivity_setWindowFlags(app->activity,
+    ANativeActivity_setWindowFormat(platformData->activity, windowFormat);
+    ANativeActivity_setWindowFlags(platformData->activity,
                                    fullscreen ? AWINDOW_FLAG_FULLSCREEN : 0,
                                    AWINDOW_FLAG_FULLSCREEN);
     glfm__setUserInterfaceChrome(platformData, platformData->display->uiChrome);
-    if (SDK_INT >= 28) {
+    if (platformData->activity->sdkVersion >= 28) {
         // Allow rendering in cutout areas ("safe area") in both portrait and landscape.
         // Test this code in Settings -> Developer Options -> Simulate a display with a cutout.
         static const int LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES = 0x00000001;
 
         JNIEnv *jni = platformData->jniEnv;
-        jobject window = glfm__callJavaMethod(jni, app->activity->clazz, "getWindow",
+        jobject window = glfm__callJavaMethod(jni, platformData->activity->clazz, "getWindow",
                                               "()Landroid/view/Window;", Object);
         jobject attributes = glfm__callJavaMethod(jni, window, "getAttributes",
                                                   "()Landroid/view/WindowManager$LayoutParams;",
@@ -890,21 +1121,39 @@ void android_main(struct android_app *app) {
         (*jni)->DeleteLocalRef(jni, window);
     }
 
-    // Run the main loop
-    while (!app->destroyRequested) {
-        int eventIdentifier;
-        int events;
-        struct android_poll_source *source;
+    // Notify thread running
+    pthread_mutex_lock(&platformData->mutex);
+    platformData->threadRunning = true;
+    pthread_cond_broadcast(&platformData->cond);
+    pthread_mutex_unlock(&platformData->mutex);
 
-        while ((eventIdentifier = ALooper_pollAll(platformData->animating ? 0 : -1, NULL, &events,
-                (void **)&source)) >= 0) {
-            if (source) {
-                source->process(app, source);
-            }
-            if (eventIdentifier == LOOPER_ID_SENSOR_EVENT_QUEUE) {
+    // Run the main loop
+    while (!platformData->destroyRequested) {
+        int eventIdentifier;
+
+        while ((eventIdentifier = ALooper_pollAll(platformData->animating ? 0 : -1,
+                                                  NULL, NULL, NULL)) >= 0) {
+            if (eventIdentifier == GLFMLooperIDCommand) {
+                uint8_t cmd;
+                if (read(platformData->commandPipeRead, &cmd, sizeof(cmd)) == sizeof(cmd)) {
+                    GLFMActivityCommand command = (GLFMActivityCommand)cmd;
+                    glfm__onAppCmd(platformData, command);
+                } else {
+                    GLFM_LOG("Couldn't read from pipe");
+                }
+            } else if (eventIdentifier == GLFMLooperIDInput) {
+                AInputEvent *event = NULL;
+                while (AInputQueue_getEvent(platformData->inputQueue, &event) >= 0) {
+                    if (AInputQueue_preDispatchEvent(platformData->inputQueue, event)) {
+                        continue;
+                    }
+                    int32_t handled = glfm__onInputEvent(platformData, event);
+                    AInputQueue_finishEvent(platformData->inputQueue, event, handled);
+                }
+            } else if (eventIdentifier == GLFMLooperIDSensor) {
                 glfm__onSensorEvent(platformData);
             }
-            if (app->destroyRequested) {
+            if (platformData->destroyRequested) {
                 break;
             }
         }
@@ -937,33 +1186,50 @@ void android_main(struct android_app *app) {
         }
     }
 
+    // Cleanup
     GLFM_LOG_LIFECYCLE("Destroying thread");
+    if (platformData->inputQueue) {
+        AInputQueue_detachLooper(platformData->inputQueue);
+        platformData->inputQueue = NULL;
+    }
     if (platformData->sensorEventQueue) {
         glfm__setAllRequestedSensorsEnabled(platformData->display, false);
         ASensorManager *sensorManager = ASensorManager_getInstance();
         ASensorManager_destroyEventQueue(sensorManager, platformData->sensorEventQueue);
         platformData->sensorEventQueue = NULL;
     }
+    if (platformData->config) {
+        AConfiguration_delete(platformData->config);
+        platformData->config = NULL;
+    }
     glfm__eglDestroy(platformData);
     glfm__setAnimating(platformData, false);
     (*vm)->DetachCurrentThread(vm);
-    platformData->app = NULL;
-    // App is destroyed, but android_main() can be called again in the same process.
+    platformData->window = NULL;
+    platformData->looper = NULL;
+
+    // Notify thread no longer running
+    pthread_mutex_lock(&platformData->mutex);
+    platformData->threadRunning = false;
+    pthread_cond_broadcast(&platformData->cond);
+    pthread_mutex_unlock(&platformData->mutex);
+
+    // App is destroyed, but glfm__mainLoop() can be called again in the same process.
     // Set GLFM_HANDLE_BACK_BUTTON to 0 to test this code.
-    GLFM_LOG_LIFECYCLE("Good bye");
+    return NULL;
 }
 
 // MARK: - GLFM private functions
 
 static jobject glfm__getDecorView(GLFMPlatformData *platformData) {
-    if (!platformData || !platformData->app || !platformData->app->activity) {
+    if (!platformData || !platformData->activity) {
         return NULL;
     }
     JNIEnv *jni = platformData->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
         return NULL;
     }
-    jobject window = glfm__callJavaMethod(jni, platformData->app->activity->clazz, "getWindow", "()Landroid/view/Window;", Object);
+    jobject window = glfm__callJavaMethod(jni, platformData->activity->clazz, "getWindow", "()Landroid/view/Window;", Object);
     if (!window || glfm__wasJavaExceptionThrown()) {
         return NULL;
     }
@@ -1023,10 +1289,10 @@ static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUse
     static const unsigned int View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN = 0x00000400;
     static const unsigned int View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x00001000;
 
-    if (!platformData || !platformData->app || !platformData->app->activity) {
+    if (!platformData || !platformData->activity) {
         return;
     }
-    const int SDK_INT = platformData->app->activity->sdkVersion;
+    const int SDK_INT = platformData->activity->sdkVersion;
     if (SDK_INT < 11) {
         return;
     }
@@ -1093,13 +1359,13 @@ static void glfm__resetContentRect(GLFMPlatformData *platformData) {
         return;
     }
 
-    jfieldID field = glfm__getJavaFieldID(jni, platformData->app->activity->clazz,
+    jfieldID field = glfm__getJavaFieldID(jni, platformData->activity->clazz,
                                          "mLastContentWidth", "I");
     if (!field || glfm__wasJavaExceptionThrown()) {
         return;
     }
 
-    (*jni)->SetIntField(jni, platformData->app->activity->clazz, field, -1);
+    (*jni)->SetIntField(jni, platformData->activity->clazz, field, -1);
     glfm__clearJavaException();
 }
 
@@ -1161,7 +1427,7 @@ static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, 
 static bool glfm__getSafeInsets(const GLFMDisplay *display, double *top, double *right,
                                 double *bottom, double *left) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    const int SDK_INT = platformData->app->activity->sdkVersion;
+    const int SDK_INT = platformData->activity->sdkVersion;
     if (SDK_INT < 28) {
         return false;
     }
@@ -1197,7 +1463,7 @@ static bool glfm__getSafeInsets(const GLFMDisplay *display, double *top, double 
 static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, double *top, double *right,
                                         double *bottom, double *left) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    const int SDK_INT = platformData->app->activity->sdkVersion;
+    const int SDK_INT = platformData->activity->sdkVersion;
     if (SDK_INT < 20) {
         return false;
     }
@@ -1227,7 +1493,7 @@ static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, double *top,
 static float glfm__getRefreshRate(const GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     JNIEnv *jni = platformData->jniEnv;
-    jobject activity = platformData->app->activity->clazz;
+    jobject activity = platformData->activity->clazz;
     glfm__clearJavaException();
     jobject window = glfm__callJavaMethod(jni, activity, "getWindow", "()Landroid/view/Window;", Object);
     if (!window || glfm__wasJavaExceptionThrown()) {
@@ -1292,7 +1558,7 @@ static void glfm__setOrientation(GLFMPlatformData *platformData) {
     static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR_LANDSCAPE = 0x00000006;
     static const int ActivityInfo_SCREEN_ORIENTATION_SENSOR_PORTRAIT = 0x00000007;
 
-    if (!platformData || !platformData->app || !platformData->app->activity) {
+    if (!platformData || !platformData->activity) {
         return;
     }
     GLFMInterfaceOrientation orientations = platformData->display->supportedOrientations;
@@ -1314,7 +1580,7 @@ static void glfm__setOrientation(GLFMPlatformData *platformData) {
         return;
     }
 
-    glfm__callJavaMethodWithArgs(jni, platformData->app->activity->clazz, "setRequestedOrientation", "(I)V", Void, orientation);
+    glfm__callJavaMethodWithArgs(jni, platformData->activity->clazz, "setRequestedOrientation", "(I)V", Void, orientation);
     glfm__clearJavaException();
 }
 
@@ -1360,7 +1626,7 @@ static void glfm__setAllRequestedSensorsEnabled(GLFMDisplay *display, bool enabl
         if (platformData->sensorEventQueue == NULL) {
             ASensorManager *sensorManager = ASensorManager_getInstance();
             platformData->sensorEventQueue = ASensorManager_createEventQueue(sensorManager,
-                    ALooper_forThread(), LOOPER_ID_SENSOR_EVENT_QUEUE, NULL, NULL);
+                    ALooper_forThread(), GLFMLooperIDSensor, NULL, NULL);
             if (!platformData->sensorEventQueue) {
                 continue;
             }
@@ -1415,7 +1681,7 @@ static bool glfm__setKeyboardVisible(GLFMPlatformData *platformData, bool visibl
     if (!imString || glfm__wasJavaExceptionThrown()) {
         return false;
     }
-    jobject ime = glfm__callJavaMethodWithArgs(jni, platformData->app->activity->clazz,
+    jobject ime = glfm__callJavaMethodWithArgs(jni, platformData->activity->clazz,
                                                "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;",
                                                Object, imString);
     if (!ime || glfm__wasJavaExceptionThrown()) {
@@ -1424,7 +1690,7 @@ static bool glfm__setKeyboardVisible(GLFMPlatformData *platformData, bool visibl
 
     if (visible) {
         int flags = 0;
-        if (platformData->app->activity->sdkVersion < 23) {
+        if (platformData->activity->sdkVersion < 23) {
             // This flag was deprecated in API 33. It was required for older versions of Android,
             // but it kept the soft keyboard open when leaving the app. At some point, the flag was
             // no longer required (possibly for versions prior to 23.)
@@ -1452,7 +1718,7 @@ static bool glfm__setKeyboardVisible(GLFMPlatformData *platformData, bool visibl
 
 static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
     if (platformData->display) {
-        ARect windowRect = glfm__getDecorViewRect(platformData, platformData->app->contentRect);
+        ARect windowRect = glfm__getDecorViewRect(platformData, platformData->contentRect);
         ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, windowRect);
         ARect nonVisibleRect[4];
 
@@ -1576,14 +1842,14 @@ static uint32_t glfm__getUnicodeChar(GLFMPlatformData *platformData, jint keyCod
  * Move task to the back if it is root task. This make the back button have the same behavior
  * as the home button.
  *
- * Without this, when the user presses the back button, the loop in android_main() is exited, the
- * OpenGL context is destroyed, and the main thread is destroyed. The android_main() function
+ * Without this, when the user presses the back button, the loop in glfm__mainLoop() is exited, the
+ * OpenGL context is destroyed, and the main thread is destroyed. The glfm__mainLoop() function
  * would be called again in the same process if the user returns to the app.
  *
  * When this, when the app is in the background, the app will pause in the ALooper_pollAll() call.
  */
 static bool glfm__handleBackButton(GLFMPlatformData *platformData) {
-    if (!platformData || !platformData->app || !platformData->app->activity) {
+    if (!platformData || !platformData->activity) {
         return false;
     }
     JNIEnv *jni = platformData->jniEnv;
@@ -1591,13 +1857,12 @@ static bool glfm__handleBackButton(GLFMPlatformData *platformData) {
         return false;
     }
 
-    jboolean handled = glfm__callJavaMethodWithArgs(jni, platformData->app->activity->clazz,
+    jboolean handled = glfm__callJavaMethodWithArgs(jni, platformData->activity->clazz,
                                                     "moveTaskToBack", "(Z)Z", Boolean, false);
     return !glfm__wasJavaExceptionThrown() && handled;
 }
 
-static int32_t glfm__onInputEvent(struct android_app *app, AInputEvent *event) {
-    GLFMPlatformData *platformData = (GLFMPlatformData *)app->userData;
+static int32_t glfm__onInputEvent(GLFMPlatformData *platformData, AInputEvent *event) {
     if (!platformData || !platformData->display) {
         return 0;
     }
@@ -1927,7 +2192,7 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display)
 
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     JNIEnv *jni = platformData->jniEnv;
-    jobject activity = platformData->app->activity->clazz;
+    jobject activity = platformData->activity->clazz;
     glfm__clearJavaException();
     jobject window = glfm__callJavaMethod(jni, activity, "getWindow", "()Landroid/view/Window;", Object);
     if (!window || glfm__wasJavaExceptionThrown()) {
@@ -1984,7 +2249,7 @@ void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double 
     }
     if (!success) {
         GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-        ARect windowRect = platformData->app->contentRect;
+        ARect windowRect = platformData->contentRect;
         ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, windowRect);
         if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0) {
             if (top) *top = 0;
@@ -2088,7 +2353,7 @@ bool glfmIsHapticFeedbackSupported(const GLFMDisplay *display) {
         (*jni)->DeleteLocalRef(jni, contextClass);
         return false;
     }
-    jobject vibratorService = glfm__callJavaMethodWithArgs(jni, platformData->app->activity->clazz,
+    jobject vibratorService = glfm__callJavaMethodWithArgs(jni, platformData->activity->clazz,
                                                            "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;",
                                                            Object, vibratorServiceString);
     if (!vibratorService || glfm__wasJavaExceptionThrown()) {
@@ -2126,7 +2391,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
         return;
     }
 
-    const int SDK_INT = platformData->app->activity->sdkVersion;
+    const int SDK_INT = platformData->activity->sdkVersion;
     jint defaultFeedbackConstant = HapticFeedbackConstants_LONG_PRESS;
     jint feedbackConstant;
     jint feedbackFlags = HapticFeedbackConstants_FLAG_IGNORE_VIEW_SETTING | HapticFeedbackConstants_FLAG_IGNORE_GLOBAL_SETTING;
@@ -2170,8 +2435,8 @@ bool glfmIsMetalSupported(const GLFMDisplay *display) {
 }
 
 ANativeActivity *glfmAndroidGetActivity() {
-    if (platformDataGlobal && platformDataGlobal->app) {
-        return platformDataGlobal->app->activity;
+    if (platformDataGlobal) {
+        return platformDataGlobal->activity;
     } else {
         return NULL;
     }
