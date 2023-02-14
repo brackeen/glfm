@@ -736,10 +736,6 @@ JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedSt
 
 // MARK: - App command callback and input callbacks
 
-static bool ARectsEqual(ARect r1, ARect r2) {
-    return r1.left == r2.left && r1.top == r2.top && r1.right == r2.right && r1.bottom == r2.bottom;
-}
-
 static void glfm__setAnimating(GLFMPlatformData *platformData, bool animating) {
     if (platformData->animating != animating) {
         platformData->animating = animating;
@@ -2129,7 +2125,10 @@ static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
 
         // Send update notification
         if (platformData->keyboardVisible != keyboardVisible ||
-                !ARectsEqual(platformData->keyboardFrame, keyboardFrame)) {
+            platformData->keyboardFrame.left != keyboardFrame.left ||
+            platformData->keyboardFrame.top != keyboardFrame.top ||
+            platformData->keyboardFrame.right != keyboardFrame.right ||
+            platformData->keyboardFrame.bottom != keyboardFrame.bottom) {
             platformData->keyboardVisible = keyboardVisible;
             platformData->keyboardFrame = keyboardFrame;
             platformData->refreshRequested = true;
