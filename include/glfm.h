@@ -854,8 +854,14 @@ void *glfmGetViewController(const GLFMDisplay *display);
 typedef struct ANativeActivity ANativeActivity;
 #endif
 
-/// *Android only*: Returns a pointer to GLFM's `ANativeActivity` instance.
-ANativeActivity *glfmAndroidGetActivity(void);
+ANativeActivity *glfmAndroidGetActivity(void) GLFM_DEPRECATED("Use glfmGetAndroidActivity");
+
+/// *Android only*: Returns a pointer to the display's `ANativeActivity` instance.
+///
+/// The returned `ANativeActivity` may be invalidated when the surface is destroyed. If a reference
+/// to the `ANativeActivity` is kept, call this function again to get an updated reference in
+/// ``GLFMSurfaceCreatedFunc`` or ``GLFMAppFocusFunc``.
+ANativeActivity *glfmGetAndroidActivity(const GLFMDisplay *display);
 
 #endif // GLFM_EXPOSE_NATIVE_ANDROID
 

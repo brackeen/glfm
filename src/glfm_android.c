@@ -704,11 +704,13 @@ JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedSt
     activity->callbacks->onLowMemory = glfm__activityOnLowMemory;
     activity->callbacks->onSaveInstanceState = glfm__activityOnSaveInstanceState;
 
-    GLFMPlatformData *platformData;
     if (platformDataGlobal == NULL) {
+        // ANativeActivity_onCreate can be called multiple times for the same Activity.
+        // For now, use a global to prevent glfmMain() from being called multiple times.
+        // This behavior may need to change in the future.
         platformDataGlobal = calloc(1, sizeof(GLFMPlatformData));
     }
-    platformData = platformDataGlobal;
+    GLFMPlatformData *platformData = platformDataGlobal;
 
     activity->instance = platformData;
     platformData->activity = activity;
@@ -2445,6 +2447,15 @@ bool glfmIsMetalSupported(const GLFMDisplay *display) {
 ANativeActivity *glfmAndroidGetActivity() {
     if (platformDataGlobal) {
         return platformDataGlobal->activity;
+    } else {
+        return NULL;
+    }
+}
+
+ANativeActivity *glfmGetAndroidActivity(const GLFMDisplay *display) {
+    if (display && display->platformData) {
+        GLFMPlatformData *platformData = display->platformData;
+        return platformData->activity;
     } else {
         return NULL;
     }
