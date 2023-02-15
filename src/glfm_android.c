@@ -2169,7 +2169,7 @@ double glfmGetTime() {
         clock_gettime(clockID, &time);
     }
     // Subtract by initTime to ensure that conversion to double keeps nanosecond accuracy
-    return (time.tv_sec - initTime) + (double)time.tv_nsec / 1e9;
+    return (double)(time.tv_sec - initTime) + (double)time.tv_nsec / 1e9;
 }
 
 void glfmSwapBuffers(GLFMDisplay *display) {
