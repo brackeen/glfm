@@ -23,14 +23,18 @@
     | `fc_locale`  | Gets the user's preferred language (For example, "en-US").
     | `fc_resdir`  | Gets the current executable's resources directory.
     | `fc_datadir` | Gets the current executable's data directory, useful for saving preferences.
+    | `fc_cachedir`| Gets the current executable's cache directory, useful for saving downloaded files.
     
     ## Usage:
 
     For Android, define `FILE_COMPAT_ANDROID_ACTIVITY` to be a reference to an `ANativeActivity`
-    instance or to a function that returns an `ANativeActivity` instance. May be `NULL`.
+    instance or to a function that returns an `ANativeActivity` instance.
 
-        #define FILE_COMPAT_ANDROID_ACTIVITY app->activity
         #include "file_compat.h"
+        #define FILE_COMPAT_ANDROID_ACTIVITY functionThatGetsAndroidActivity()
+
+        ANativeActivity *functionThatGetsAndroidActivity(void);
+
  */
 
 #include <stdio.h>
@@ -147,134 +151,101 @@ static int fc_cachedir(const char *app_id, char *path, size_t path_max) FC_UNUSE
 /// - Returns: 0 on success, -1 on failure.
 static int fc_locale(char *locale, size_t locale_max) FC_UNUSED;
 
-// MARK: - Implementation
+// MARK: - Private
 
-#if defined(_WIN32)
-#  if !defined(WIN32_LEAN_AND_MEAN)
-#    define WIN32_LEAN_AND_MEAN
-#  endif
-#  include <windows.h>
-#  include <Shlobj.h>
-#  pragma comment(lib, "Shell32.lib")
-#  pragma comment(lib, "Ole32.lib")
-#  include <stdlib.h> // wcstombs_s
-#  if !defined(PATH_MAX)
-#    define PATH_MAX MAX_PATH
-#  endif
-#else
+#if !defined(_WIN32)
 #  include <limits.h> // PATH_MAX
 #endif
-#if defined(__APPLE__)
-#  include <TargetConditionals.h>
-#  include <CoreFoundation/CoreFoundation.h>
-#  include <objc/objc.h>
-#  include <objc/runtime.h>
-#  include <objc/message.h>
-#  include <objc/NSObjCRuntime.h>
-#  include <sys/stat.h> // mkdir
-#  if defined(__OBJC__) && __has_feature(objc_arc)
-#    define FC_AUTORELEASEPOOL_BEGIN @autoreleasepool {
-#    define FC_AUTORELEASEPOOL_END }
-#  else
-#    define FC_MSG_SEND ((id (*)(id, SEL))objc_msgSend)
-#    define FC_AUTORELEASEPOOL_BEGIN { \
-         id autoreleasePool = FC_MSG_SEND(FC_MSG_SEND((id)objc_getClass("NSAutoreleasePool"), \
-             sel_registerName("alloc")), sel_registerName("init"));
-#    define FC_AUTORELEASEPOOL_END \
-         FC_MSG_SEND(autoreleasePool, sel_registerName("release")); }
-#  endif
-#elif defined(__EMSCRIPTEN__)
-#  include <emscripten/emscripten.h>
-#  include <string.h>
-#  include <stdlib.h> // getenv
-#  include <sys/stat.h> // mkdir
-#  if !defined(PATH_MAX)
-#    define PATH_MAX 4096
-#  endif
-#elif defined(__ANDROID__)
-#  include <android/asset_manager.h>
-#  include <android/log.h>
-#  include <android/native_activity.h>
-#  include <jni.h>
-#  include <pthread.h>
-#  include <string.h>
-static JNIEnv *fc__jnienv(JavaVM *vm);
-#elif defined(__linux__)
-#  include <locale.h>
-#  include <string.h>
-#  include <unistd.h> // readlink
-#  include <stdlib.h> // getenv
-#  include <sys/stat.h> // mkdir
+
+#ifdef __cplusplus
+#  define FC_STATIC_CAST(value_type) static_cast<value_type>
+#  define FC_REINTERPRET_CAST(value_type) reinterpret_cast<value_type>
+#else
+#  define FC_STATIC_CAST(value_type) (value_type)
+#  define FC_REINTERPRET_CAST(value_type) (value_type)
 #endif
 
-static int fc_resdir(char *path, size_t path_max) {
-    if (!path || path_max == 0) {
-        return -1;
-    }
-#if defined(_WIN32)
-    DWORD length = GetModuleFileNameA(NULL, path, path_max);
-    if (length > 0 && length < path_max) {
-        for (DWORD i = length - 1; i > 0; i--) {
-            if (path[i] == FC_DIRECTORY_SEPARATOR) {
-                path[i + 1] = 0;
-                return 0;
-            }
+static void fc__locale_clean(char *locale) {
+    // Convert underscore to dash ("en_US" to "en-US")
+    // Remove encoding ("en-US.UTF-8" to "en-US")
+    char *ch = locale;
+    while (*ch != 0) {
+        if (*ch == '_') {
+            *ch = '-';
+        } else if (*ch == '.') {
+            *ch = 0;
+            break;
         }
+        ch++;
     }
-    path[0] = 0;
-    return -1;
-#elif defined(__linux__) && !defined(__ANDROID__)
-    ssize_t length = readlink("/proc/self/exe", path, path_max - 1);
-    if (length > 0 && (size_t)length < path_max) {
-        for (ssize_t i = length - 1; i > 0; i--) {
-            if (path[i] == FC_DIRECTORY_SEPARATOR) {
-                path[i + 1] = 0;
-                return 0;
-            }
-        }
-    }
-    path[0] = 0;
-    return -1;
-#elif defined(__APPLE__)
-    int result = -1;
-    FC_AUTORELEASEPOOL_BEGIN
-    CFBundleRef bundle = CFBundleGetMainBundle();
-    if (bundle) {
-        CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(bundle);
-        if (resourcesURL) {
-            Boolean success = CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (UInt8 *)path,
-                                                               (CFIndex)path_max - 1);
-            CFRelease(resourcesURL);
-            if (success) {
-                unsigned long length = strlen(path);
-                if (length > 0 && length < path_max - 1) {
-                    // Add trailing slash
-                    if (path[length - 1] != FC_DIRECTORY_SEPARATOR) {
-                        path[length] = FC_DIRECTORY_SEPARATOR;
-                        path[length + 1] = 0;
-                    }
-                    result = 0;
-                }
-            }
-        }
-    }
-    FC_AUTORELEASEPOOL_END
-    if (result != 0) {
-        path[0] = 0;
-    }
-    return result;
-#elif defined(__ANDROID__)
-    path[0] = 0;
-    return 0;
-#elif defined(__EMSCRIPTEN__)
-    path[0] = 0;
-    return 0;
-#else
-#error Unsupported platform
-#endif
 }
 
+#if defined(__unix__) && !defined(__ANDROID__)
+
+#include <stdlib.h> // getenv
+#include <sys/stat.h> // mkdir
+
+/// *Unix only:* Gets a path from an environment variable, and appends `app_id` to it.
+/// If the environment variable is not found, the `default_path` is used.
+///
+/// If `env_var` is available, the resulting path is `getenv(env_var)/app_id/`.
+/// Otherwise, the resulting path is `getenv("HOME")/default_path/app_id/`.
+///
+/// Example: `fc__unixdir("XDG_DATA_HOME", ".local/share", "MyApp", path, path_max);`
+static int fc__unixdir(const char *env_var, const char *default_path,
+                       const char *app_id, char *path, size_t path_max) {
+    int result = -1;
+    const char *env_path = getenv(env_var);
+    if (env_path && *env_path) {
+        result = snprintf(path, path_max, "%s/%s/", env_path, app_id);
+    } else {
+        const char *home_path = getenv("HOME");
+        if (home_path && *home_path) {
+            result = snprintf(path, path_max, "%s/%s/%s/", home_path, default_path, app_id);
+        }
+    }
+    if (result <= 0 || FC_STATIC_CAST(size_t)(result) >= path_max) {
+        path[0] = 0;
+        return -1;
+    }
+    char *ch = path;
+    while (*(++ch)) {
+        if (*ch == '/') {
+            *ch = 0;
+            if (mkdir(path, 0700) != 0 && errno != EEXIST) {
+                path[0] = 0;
+                return -1;
+            }
+            *ch = '/';
+        }
+    }
+    return 0;
+}
+
+#endif // defined(__unix__)
+
+// MARK: - Apple
+
 #if defined(__APPLE__)
+
+#include <TargetConditionals.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <objc/objc.h>
+#include <objc/runtime.h>
+#include <objc/message.h>
+#include <objc/NSObjCRuntime.h>
+#include <sys/stat.h> // mkdir
+#if defined(__OBJC__) && __has_feature(objc_arc)
+#  define FC_AUTORELEASEPOOL_BEGIN @autoreleasepool {
+#  define FC_AUTORELEASEPOOL_END }
+#else
+#  define FC_MSG_SEND (FC_REINTERPRET_CAST(id (*)(id, SEL))(objc_msgSend))
+#  define FC_AUTORELEASEPOOL_BEGIN { \
+       id autoreleasePool = FC_MSG_SEND(FC_MSG_SEND(FC_REINTERPRET_CAST(id)(objc_getClass("NSAutoreleasePool")), \
+           sel_registerName("alloc")), sel_registerName("init"));
+#  define FC_AUTORELEASEPOOL_END \
+       FC_MSG_SEND(autoreleasePool, sel_registerName("release")); }
+#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -303,16 +274,16 @@ static int fc__appledir(NSUInteger searchPathDirectory,
     FC_AUTORELEASEPOOL_BEGIN
     CFArrayRef array =
 #if __has_feature(objc_arc)
-    (__bridge CFArrayRef)
+    FC_REINTERPRET_CAST(__bridge CFArrayRef)
 #else
-    (CFArrayRef)
+    FC_REINTERPRET_CAST(CFArrayRef)
 #endif
-    NSSearchPathForDirectoriesInDomains(searchPathDirectory, NSUserDomainMask, TRUE);
+    (NSSearchPathForDirectoriesInDomains(searchPathDirectory, NSUserDomainMask, TRUE));
     if (!array || CFArrayGetCount(array) == 0) {
         goto fc_datadir_fail;
     }
-    dir = (CFStringRef)CFArrayGetValueAtIndex(array, 0);
-    success = CFStringGetFileSystemRepresentation(dir, path, (CFIndex)path_max - 1);
+    dir = FC_REINTERPRET_CAST(CFStringRef)(CFArrayGetValueAtIndex(array, 0));
+    success = CFStringGetFileSystemRepresentation(dir, path, FC_STATIC_CAST(CFIndex)(path_max) - 1);
     if (!success) {
         goto fc_datadir_fail;
     }
@@ -330,7 +301,7 @@ static int fc__appledir(NSUInteger searchPathDirectory,
         goto fc_datadir_fail;
     }
     result = 0;
-    
+
 #if TARGET_OS_OSX
     bundle = CFBundleGetMainBundle();
     if (bundle) {
@@ -345,11 +316,11 @@ static int fc__appledir(NSUInteger searchPathDirectory,
                 bundle_id_length = CFStringGetMaximumSizeForEncoding(bundle_id_length,
                                                                      kCFStringEncodingUTF8);
                 if (bundle_id_length > 0 &&
-                    length + (unsigned long)bundle_id_length + 1 < path_max - 1 &&
+                    length + FC_STATIC_CAST(unsigned long)(bundle_id_length) + 1 < path_max - 1 &&
                     CFStringGetCString(bundle_id, path + length, bundle_id_length,
                                        kCFStringEncodingUTF8)) {
-                    path[length + (unsigned long)bundle_id_length] = FC_DIRECTORY_SEPARATOR;
-                    path[length + (unsigned long)bundle_id_length + 1] = 0;
+                    path[length + FC_STATIC_CAST(unsigned long)(bundle_id_length)] = FC_DIRECTORY_SEPARATOR;
+                    path[length + FC_STATIC_CAST(unsigned long)(bundle_id_length) + 1] = 0;
                     if (mkdir(path, 0700) != 0 && errno != EEXIST) {
                         result = -1;
                         goto fc_datadir_fail;
@@ -390,50 +361,157 @@ fc_datadir_fail:
     return result;
 }
 
-#endif // __APPLE__
-
-#if defined(__unix__) && !defined(__ANDROID__)
-
-/// *Linux only:* Gets a path from an environment variable, and appends `app_id` to it.
-/// If the environment variable is not found, the `default_path` is used.
-///
-/// If `env_var` is available, the resulting path is `getenv(env_var)/app_id/`.
-/// Otherwise, the resulting path is `getenv("HOME")/default_path/app_id/`.
-///
-/// Example: `fc__unixdir("XDG_DATA_HOME", ".local/share", "MyApp", path, path_max);`
-static int fc__unixdir(const char *env_var, const char *default_path,
-                       const char *app_id, char *path, size_t path_max) {
-    int result = -1;
-    const char *env_path = getenv(env_var);
-    if (env_path && *env_path) {
-        result = snprintf(path, path_max, "%s/%s/", env_path, app_id);
-    } else {
-        const char *home_path = getenv("HOME");
-        if (home_path && *home_path) {
-            result = snprintf(path, path_max, "%s/%s/%s/", home_path, default_path, app_id);
-        }
-    }
-    if (result <= 0 || (size_t)result >= path_max) {
-        path[0] = 0;
+static int fc_resdir(char *path, size_t path_max) {
+    if (!path || path_max == 0) {
         return -1;
     }
-    char *ch = path;
-    while (*(++ch)) {
-        if (*ch == '/') {
-            *ch = 0;
-            if (mkdir(path, 0700) != 0 && errno != EEXIST) {
-                path[0] = 0;
-                return -1;
+    int result = -1;
+    FC_AUTORELEASEPOOL_BEGIN
+    CFBundleRef bundle = CFBundleGetMainBundle();
+    if (bundle) {
+        CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(bundle);
+        if (resourcesURL) {
+            Boolean success = CFURLGetFileSystemRepresentation(resourcesURL, TRUE,
+                                                               FC_REINTERPRET_CAST(UInt8 *)(path),
+                                                               FC_STATIC_CAST(CFIndex)(path_max) - 1);
+            CFRelease(resourcesURL);
+            if (success) {
+                unsigned long length = strlen(path);
+                if (length > 0 && length < path_max - 1) {
+                    // Add trailing slash
+                    if (path[length - 1] != FC_DIRECTORY_SEPARATOR) {
+                        path[length] = FC_DIRECTORY_SEPARATOR;
+                        path[length + 1] = 0;
+                    }
+                    result = 0;
+                }
             }
-            *ch = '/';
         }
     }
-    return 0;
+    FC_AUTORELEASEPOOL_END
+    if (result != 0) {
+        path[0] = 0;
+    }
+    return result;
 }
 
-#endif // __unix__
+static int fc_datadir(const char *app_id, char *path, size_t path_max) {
+    const NSUInteger NSApplicationSupportDirectory = 14;
+    return fc__appledir(NSApplicationSupportDirectory, app_id, path, path_max);
+}
+
+static int fc_cachedir(const char *app_id, char *path, size_t path_max) {
+    const NSUInteger NSCachesDirectory = 13;
+    return fc__appledir(NSCachesDirectory, app_id, path, path_max);
+}
+
+static int fc_locale(char *locale, size_t locale_max) {
+    if (!locale || locale_max < 3) {
+        return -1;
+    }
+    int result = -1;
+    FC_AUTORELEASEPOOL_BEGIN
+    CFArrayRef languages = CFLocaleCopyPreferredLanguages();
+    if (languages) {
+        if (CFArrayGetCount(languages) > 0) {
+            CFStringRef language = FC_REINTERPRET_CAST(CFStringRef)(CFArrayGetValueAtIndex(languages, 0));
+            if (language) {
+                CFIndex length = CFStringGetLength(language);
+                if (length > FC_STATIC_CAST(CFIndex)(locale_max) - 1) {
+                    length = FC_STATIC_CAST(CFIndex)(locale_max) - 1;
+                }
+                CFIndex outLength = CFStringGetBytes(language, CFRangeMake(0, length),
+                                                     kCFStringEncodingUTF8, 0, FALSE,
+                                                     FC_REINTERPRET_CAST(UInt8 *)(locale),
+                                                     FC_STATIC_CAST(CFIndex)(locale_max) - 1, NULL);
+                locale[outLength] = 0;
+                result = 0;
+            }
+        }
+        CFRelease(languages);
+    }
+    FC_AUTORELEASEPOOL_END
+    if (result == 0) {
+        fc__locale_clean(locale);
+    } else {
+        locale[0] = 0;
+    }
+    return result;
+}
+
+#endif // defined(__APPLE__)
+
+// MARK: - Linux
+
+#if defined(__linux__) && !defined(__ANDROID__)
+
+#include <locale.h>
+#include <string.h>
+#include <unistd.h> // readlink
+#include <sys/stat.h> // mkdir
+
+static int fc_resdir(char *path, size_t path_max) {
+    if (!path || path_max == 0) {
+        return -1;
+    }
+    ssize_t length = readlink("/proc/self/exe", path, path_max - 1);
+    if (length > 0 && FC_STATIC_CAST(size_t)(length) < path_max) {
+        for (ssize_t i = length - 1; i > 0; i--) {
+            if (path[i] == FC_DIRECTORY_SEPARATOR) {
+                path[i + 1] = 0;
+                return 0;
+            }
+        }
+    }
+    path[0] = 0;
+    return -1;
+}
+
+static int fc_datadir(const char *app_id, char *path, size_t path_max) {
+    return fc__unixdir("XDG_DATA_HOME", ".local/share", app_id, path, path_max);
+}
+
+static int fc_cachedir(const char *app_id, char *path, size_t path_max) {
+    return fc__unixdir("XDG_CACHE_HOME", ".cache", app_id, path, path_max);
+}
+
+static int fc_locale(char *locale, size_t locale_max) {
+    if (!locale || locale_max < 3) {
+        return -1;
+    }
+    int result = -1;
+    setlocale(LC_ALL, "");
+    char *lang = setlocale(LC_ALL, NULL);
+    if (lang && lang[0] != 0 && !(lang[0] == 'C' && lang[1] == 0)) {
+        result = 0;
+        strncpy(locale, lang, locale_max);
+        locale[locale_max - 1] = 0;
+    }
+    if (result == 0) {
+        fc__locale_clean(locale);
+    } else {
+        locale[0] = 0;
+    }
+    return result;
+}
+
+#endif // defined(__unix__)
+
+// MARK: - Windows
 
 #if defined(_WIN32)
+
+#if !defined(WIN32_LEAN_AND_MEAN)
+#  define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <Shlobj.h>
+#pragma comment(lib, "Shell32.lib")
+#pragma comment(lib, "Ole32.lib")
+#include <stdlib.h> // wcstombs_s
+#if !defined(PATH_MAX)
+#  define PATH_MAX MAX_PATH
+#endif
 
 /// *Windows only:* Gets a path using `SHGetKnownFolderPath`, and appends `app_id` to it.
 static int fc__win32dir(REFKNOWNFOLDERID folder_id,
@@ -469,114 +547,36 @@ static int fc__win32dir(REFKNOWNFOLDERID folder_id,
     }
 }
 
-#endif // _WIN32
-
-#if defined(__ANDROID__)
-
-/// *Android Only:* Gets a path from a `Context` method like `getFilesDir` or `getCacheDir`.
-static int fc__androiddir(const char *methodName, char *path, size_t path_max) {
-    ANativeActivity *activity = FILE_COMPAT_ANDROID_ACTIVITY;
-    if (!activity) {
-        path[0] = 0;
+static int fc_resdir(char *path, size_t path_max) {
+    if (!path || path_max == 0) {
         return -1;
     }
-    int result = -1;
-
-#ifdef __cplusplus
-    JNIEnv *jniEnv = fc__jnienv(activity->vm);
-    if (jniEnv->ExceptionCheck()) {
-        jniEnv->ExceptionClear();
-    }
-
-    if (jniEnv->PushLocalFrame(16) == JNI_OK) {
-        jclass activityClass = jniEnv->GetObjectClass(activity->clazz);
-        jmethodID getDirMethod = jniEnv->GetMethodID(activityClass, methodName, "()Ljava/io/File;");
-        jobject file = jniEnv->CallObjectMethod(activity->clazz, getDirMethod);
-        jclass fileClass = jniEnv->FindClass("java/io/File");
-        jmethodID getAbsolutePathMethod = jniEnv->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
-        jstring valueString = (jstring)jniEnv->CallObjectMethod(file, getAbsolutePathMethod);
-
-        const char *nativeString = jniEnv->GetStringUTFChars(valueString, 0);
-        if (nativeString) {
-            result = 0;
-            snprintf(path, path_max, "%s/", nativeString);
-            jniEnv->ReleaseStringUTFChars(valueString, nativeString);
+    size_t length = FC_STATIC_CAST(size_t)(GetModuleFileNameA(NULL, path, FC_STATIC_CAST(DWORD)(path_max)));
+    if (length > 0 && length < path_max) {
+        for (size_t i = length - 1; i > 0; i--) {
+            if (path[i] == FC_DIRECTORY_SEPARATOR) {
+                path[i + 1] = 0;
+                return 0;
+            }
         }
-        if (jniEnv->ExceptionCheck()) {
-            jniEnv->ExceptionClear();
-        }
-        jniEnv->PopLocalFrame(NULL);
     }
-#else
-    JNIEnv *jniEnv = fc__jnienv(activity->vm);
-    if ((*jniEnv)->ExceptionCheck(jniEnv)) {
-        (*jniEnv)->ExceptionClear(jniEnv);
-    }
-    if ((*jniEnv)->PushLocalFrame(jniEnv, 16) == JNI_OK) {
-        jclass activityClass = (*jniEnv)->GetObjectClass(jniEnv, activity->clazz);
-        jmethodID getDirMethod = (*jniEnv)->GetMethodID(jniEnv, activityClass, methodName, "()Ljava/io/File;");
-        jobject file = (*jniEnv)->CallObjectMethod(jniEnv, activity->clazz, getDirMethod);
-        jclass fileClass = (*jniEnv)->FindClass(jniEnv, "java/io/File");
-        jmethodID getAbsolutePathMethod = (*jniEnv)->GetMethodID(jniEnv, fileClass, "getAbsolutePath", "()Ljava/lang/String;");
-        jstring valueString = (jstring)(*jniEnv)->CallObjectMethod(jniEnv, file, getAbsolutePathMethod);
-
-        const char *nativeString = (*jniEnv)->GetStringUTFChars(jniEnv, valueString, 0);
-        if (nativeString) {
-            result = 0;
-            snprintf(path, path_max, "%s/", nativeString);
-            (*jniEnv)->ReleaseStringUTFChars(jniEnv, valueString, nativeString);
-        }
-        if ((*jniEnv)->ExceptionCheck(jniEnv)) {
-            (*jniEnv)->ExceptionClear(jniEnv);
-        }
-        (*jniEnv)->PopLocalFrame(jniEnv, NULL);
-    }
-#endif
-    if (result != 0) {
-        path[0] = 0;
-    }
-    return result;
+    path[0] = 0;
+    return -1;
 }
 
-#endif
-
 static int fc_datadir(const char *app_id, char *path, size_t path_max) {
-#if defined(_WIN32)
 #ifdef __cplusplus
     return fc__win32dir(FOLDERID_RoamingAppData, app_id, path, path_max);
 #else
     return fc__win32dir(&FOLDERID_RoamingAppData, app_id, path, path_max);
 #endif
-#elif defined(__unix__) && !defined(__ANDROID__)
-    return fc__unixdir("XDG_DATA_HOME", ".local/share", app_id, path, path_max);
-#elif defined(__ANDROID__)
-    (void)app_id;
-    return fc__androiddir("getFilesDir", path, path_max);
-#elif defined(__APPLE__)
-    const NSUInteger NSApplicationSupportDirectory = 14;
-    return fc__appledir(NSApplicationSupportDirectory, app_id, path, path_max);
-#else
-#error Unsupported platform
-#endif
 }
 
 static int fc_cachedir(const char *app_id, char *path, size_t path_max) {
-#if defined(_WIN32)
 #ifdef __cplusplus
     return fc__win32dir(FOLDERID_LocalAppData, app_id, path, path_max);
 #else
     return fc__win32dir(&FOLDERID_LocalAppData, app_id, path, path_max);
-#endif
-#elif defined(__unix__) && !defined(__ANDROID__)
-    return fc__unixdir("XDG_CACHE_HOME", ".cache", app_id, path, path_max);
-#elif defined(__ANDROID__)
-    (void)app_id;
-    return fc__androiddir("getCacheDir", path, path_max);
-#elif defined(__APPLE__)
-    const NSUInteger NSCachesDirectory = 13;
-    return fc__appledir(NSCachesDirectory, app_id, path, path_max);
-#else
-#error Unsupported platform
 #endif
 }
 
@@ -585,7 +585,6 @@ static int fc_locale(char *locale, size_t locale_max) {
         return -1;
     }
     int result = -1;
-#if defined(_WIN32)
     wchar_t wlocale[LOCALE_NAME_MAX_LENGTH];
     if (GetUserDefaultLocaleName(wlocale, LOCALE_NAME_MAX_LENGTH) > 0) {
         size_t count = 0;
@@ -593,151 +592,13 @@ static int fc_locale(char *locale, size_t locale_max) {
             result = 0;
         }
     }
-#elif defined(__linux__) && !defined(__ANDROID__)
-    setlocale(LC_ALL, "");
-    char *lang = setlocale(LC_ALL, NULL);
-    if (lang && lang[0] != 0 && !(lang[0] == 'C' && lang[1] == 0)) {
-        result = 0;
-        strncpy(locale, lang, locale_max);
-        locale[locale_max - 1] = 0;
-    }
-#elif defined(__APPLE__)
-    FC_AUTORELEASEPOOL_BEGIN
-    CFArrayRef languages = CFLocaleCopyPreferredLanguages();
-    if (languages) {
-        if (CFArrayGetCount(languages) > 0) {
-            CFStringRef language = (CFStringRef)CFArrayGetValueAtIndex(languages, 0);
-            if (language) {
-                CFIndex length = CFStringGetLength(language);
-                if (length > (CFIndex)locale_max - 1) {
-                    length = (CFIndex)locale_max - 1;
-                }
-                CFIndex outLength = CFStringGetBytes(language, CFRangeMake(0, length),
-                                                     kCFStringEncodingUTF8, 0, FALSE,
-                                                     (UInt8 *)locale, (CFIndex)locale_max - 1, NULL);
-                locale[outLength] = 0;
-                result = 0;
-            }
-        }
-        CFRelease(languages);
-    }
-    FC_AUTORELEASEPOOL_END
-#elif defined(__EMSCRIPTEN__)
-    static const char *script =
-        "(function() { try {"
-        "var lang = navigator.language || navigator.userLanguage || navigator.browserLanguage;"
-        "if (typeof lang === 'string') { return lang; } else { return ''; }"
-        "} catch(err) { return ''; } }())";
-
-    char *lang = emscripten_run_script_string(script);
-    if (lang && lang[0] != 0) {
-        result = 0;
-        strncpy(locale, lang, locale_max);
-        locale[locale_max - 1] = 0;
-    }
-#elif defined(__ANDROID__)
-    ANativeActivity *activity = FILE_COMPAT_ANDROID_ACTIVITY;
-    if (activity) {
-        // getResources().getConfiguration().locale.toString()
-#ifdef __cplusplus
-        JNIEnv *jniEnv = fc__jnienv(activity->vm);
-        if (jniEnv->ExceptionCheck()) {
-            jniEnv->ExceptionClear();
-        }
-
-        if (jniEnv->PushLocalFrame(16) == JNI_OK) {
-            jclass activityClass = jniEnv->GetObjectClass(activity->clazz);
-            jmethodID getResourcesMethod = jniEnv->GetMethodID(activityClass,
-                    "getResources", "()Landroid/content/res/Resources;");
-            jobject resources = jniEnv->CallObjectMethod(activity->clazz, getResourcesMethod);
-            jclass resourcesClass = jniEnv->GetObjectClass(resources);
-            jmethodID getConfigurationMethod = jniEnv->GetMethodID(resourcesClass,
-                    "getConfiguration", "()Landroid/content/res/Configuration;");
-            jobject configuration = jniEnv->CallObjectMethod(resources, getConfigurationMethod);
-            jclass configurationClass = jniEnv->GetObjectClass(configuration);
-            jfieldID localeField = jniEnv->GetFieldID(configurationClass, "locale", "Ljava/util/Locale;");
-            jobject localeObject = jniEnv->GetObjectField(configuration, localeField);
-            jclass localeClass = jniEnv->GetObjectClass(localeObject);
-            jmethodID toStringMethod = jniEnv->GetMethodID(localeClass, "toString", "()Ljava/lang/String;");
-            jstring valueString = (jstring)jniEnv->CallObjectMethod(localeObject, toStringMethod);
-
-            const char *nativeString = jniEnv->GetStringUTFChars(valueString, 0);
-            if (nativeString) {
-                result = 0;
-                strncpy(locale, nativeString, locale_max);
-                locale[locale_max - 1] = 0;
-                jniEnv->ReleaseStringUTFChars(valueString, nativeString);
-            }
-            if (jniEnv->ExceptionCheck()) {
-                jniEnv->ExceptionClear();
-            }
-            jniEnv->PopLocalFrame(NULL);
-        }
-#else
-        JNIEnv *jniEnv = fc__jnienv(activity->vm);
-        if ((*jniEnv)->ExceptionCheck(jniEnv)) {
-            (*jniEnv)->ExceptionClear(jniEnv);
-        }
-
-        if ((*jniEnv)->PushLocalFrame(jniEnv, 16) == JNI_OK) {
-            jclass activityClass = (*jniEnv)->GetObjectClass(jniEnv, activity->clazz);
-            jmethodID getResourcesMethod = (*jniEnv)->GetMethodID(jniEnv, activityClass,
-                "getResources", "()Landroid/content/res/Resources;");
-            jobject resources = (*jniEnv)->CallObjectMethod(jniEnv, activity->clazz,
-                getResourcesMethod);
-            jclass resourcesClass = (*jniEnv)->GetObjectClass(jniEnv, resources);
-            jmethodID getConfigurationMethod = (*jniEnv)->GetMethodID(jniEnv, resourcesClass,
-                "getConfiguration", "()Landroid/content/res/Configuration;");
-            jobject configuration = (*jniEnv)->CallObjectMethod(jniEnv, resources,
-                getConfigurationMethod);
-            jclass configurationClass = (*jniEnv)->GetObjectClass(jniEnv, configuration);
-            jfieldID localeField = (*jniEnv)->GetFieldID(jniEnv, configurationClass, "locale",
-                "Ljava/util/Locale;");
-            jobject localeObject = (*jniEnv)->GetObjectField(jniEnv, configuration, localeField);
-            jclass localeClass = (*jniEnv)->GetObjectClass(jniEnv, localeObject);
-            jmethodID toStringMethod = (*jniEnv)->GetMethodID(jniEnv, localeClass, "toString",
-                "()Ljava/lang/String;");
-            jstring valueString = (*jniEnv)->CallObjectMethod(jniEnv, localeObject, toStringMethod);
-
-            const char *nativeString = (*jniEnv)->GetStringUTFChars(jniEnv, valueString, 0);
-            if (nativeString) {
-                result = 0;
-                strncpy(locale, nativeString, locale_max);
-                locale[locale_max - 1] = 0;
-                (*jniEnv)->ReleaseStringUTFChars(jniEnv, valueString, nativeString);
-            }
-            if ((*jniEnv)->ExceptionCheck(jniEnv)) {
-                (*jniEnv)->ExceptionClear(jniEnv);
-            }
-            (*jniEnv)->PopLocalFrame(jniEnv, NULL);
-        }
-#endif
-    }
-#else
-#error Unsupported platform
-#endif
     if (result == 0) {
-        // Convert underscore to dash ("en_US" to "en-US")
-        // Remove encoding ("en-US.UTF-8" to "en-US")
-        char *ch = locale;
-        while (*ch != 0) {
-            if (*ch == '_') {
-                *ch = '-';
-            } else if (*ch == '.') {
-                *ch = 0;
-                break;
-            }
-            ch++;
-        }
+        fc__locale_clean(locale);
     } else {
         locale[0] = 0;
     }
     return result;
 }
-
-// MARK: - Windows
-
-#if defined(_WIN32)
 
 static inline FILE *fc__windows_fopen(const char *filename, const char *mode) {
     FILE *file = NULL;
@@ -790,6 +651,194 @@ static int fc__printf(const char *format, ...) {
 
 #if defined(__ANDROID__)
 
+#include <android/asset_manager.h>
+#include <android/log.h>
+#include <android/native_activity.h>
+#include <jni.h>
+#include <pthread.h>
+#include <string.h>
+
+static JNIEnv *fc__jnienv(JavaVM *vm);
+
+/// *Android Only:* Gets a path from a `Context` method like `getFilesDir` or `getCacheDir`.
+static int fc__android_dir(ANativeActivity *activity, const char *method_name,
+                           const char *app_id, char *path, size_t path_max) {
+    (void)app_id;
+    if (!activity) {
+        path[0] = 0;
+        return -1;
+    }
+    int result = -1;
+
+#ifdef __cplusplus
+    JNIEnv *jniEnv = fc__jnienv(activity->vm);
+    if (jniEnv->ExceptionCheck()) {
+        jniEnv->ExceptionClear();
+    }
+
+    if (jniEnv->PushLocalFrame(16) == JNI_OK) {
+        jclass activityClass = jniEnv->GetObjectClass(activity->clazz);
+        jmethodID getDirMethod = jniEnv->GetMethodID(activityClass, method_name, "()Ljava/io/File;");
+        jobject file = jniEnv->CallObjectMethod(activity->clazz, getDirMethod);
+        jclass fileClass = jniEnv->FindClass("java/io/File");
+        jmethodID getAbsolutePathMethod = jniEnv->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        jstring valueString = reinterpret_cast<jstring>(jniEnv->CallObjectMethod(file, getAbsolutePathMethod));
+
+        const char *nativeString = jniEnv->GetStringUTFChars(valueString, 0);
+        if (nativeString) {
+            result = 0;
+            snprintf(path, path_max, "%s/", nativeString);
+            jniEnv->ReleaseStringUTFChars(valueString, nativeString);
+        }
+        if (jniEnv->ExceptionCheck()) {
+            jniEnv->ExceptionClear();
+        }
+        jniEnv->PopLocalFrame(NULL);
+    }
+#else
+    JNIEnv *jniEnv = fc__jnienv(activity->vm);
+    if ((*jniEnv)->ExceptionCheck(jniEnv)) {
+        (*jniEnv)->ExceptionClear(jniEnv);
+    }
+    if ((*jniEnv)->PushLocalFrame(jniEnv, 16) == JNI_OK) {
+        jclass activityClass = (*jniEnv)->GetObjectClass(jniEnv, activity->clazz);
+        jmethodID getDirMethod = (*jniEnv)->GetMethodID(jniEnv, activityClass, method_name, "()Ljava/io/File;");
+        jobject file = (*jniEnv)->CallObjectMethod(jniEnv, activity->clazz, getDirMethod);
+        jclass fileClass = (*jniEnv)->FindClass(jniEnv, "java/io/File");
+        jmethodID getAbsolutePathMethod = (*jniEnv)->GetMethodID(jniEnv, fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        jstring valueString = (jstring)(*jniEnv)->CallObjectMethod(jniEnv, file, getAbsolutePathMethod);
+
+        const char *nativeString = (*jniEnv)->GetStringUTFChars(jniEnv, valueString, 0);
+        if (nativeString) {
+            result = 0;
+            snprintf(path, path_max, "%s/", nativeString);
+            (*jniEnv)->ReleaseStringUTFChars(jniEnv, valueString, nativeString);
+        }
+        if ((*jniEnv)->ExceptionCheck(jniEnv)) {
+            (*jniEnv)->ExceptionClear(jniEnv);
+        }
+        (*jniEnv)->PopLocalFrame(jniEnv, NULL);
+    }
+#endif
+    if (result != 0) {
+        path[0] = 0;
+    }
+    return result;
+}
+
+static int fc__android_locale(ANativeActivity *activity,
+                              char *locale, size_t locale_max) {
+    if (!locale || locale_max < 3 || !activity) {
+        return -1;
+    }
+    int result = -1;
+    // getResources().getConfiguration().locale.toString()
+#ifdef __cplusplus
+    JNIEnv *jniEnv = fc__jnienv(activity->vm);
+    if (jniEnv->ExceptionCheck()) {
+        jniEnv->ExceptionClear();
+    }
+
+    if (jniEnv->PushLocalFrame(16) == JNI_OK) {
+        jclass activityClass = jniEnv->GetObjectClass(activity->clazz);
+        jmethodID getResourcesMethod = jniEnv->GetMethodID(activityClass,
+                "getResources", "()Landroid/content/res/Resources;");
+        jobject resources = jniEnv->CallObjectMethod(activity->clazz, getResourcesMethod);
+        jclass resourcesClass = jniEnv->GetObjectClass(resources);
+        jmethodID getConfigurationMethod = jniEnv->GetMethodID(resourcesClass,
+                "getConfiguration", "()Landroid/content/res/Configuration;");
+        jobject configuration = jniEnv->CallObjectMethod(resources, getConfigurationMethod);
+        jclass configurationClass = jniEnv->GetObjectClass(configuration);
+        jfieldID localeField = jniEnv->GetFieldID(configurationClass, "locale", "Ljava/util/Locale;");
+        jobject localeObject = jniEnv->GetObjectField(configuration, localeField);
+        jclass localeClass = jniEnv->GetObjectClass(localeObject);
+        jmethodID toStringMethod = jniEnv->GetMethodID(localeClass, "toString", "()Ljava/lang/String;");
+        jstring valueString = reinterpret_cast<jstring>(jniEnv->CallObjectMethod(localeObject, toStringMethod));
+
+        const char *nativeString = jniEnv->GetStringUTFChars(valueString, 0);
+        if (nativeString) {
+            result = 0;
+            strncpy(locale, nativeString, locale_max);
+            locale[locale_max - 1] = 0;
+            jniEnv->ReleaseStringUTFChars(valueString, nativeString);
+        }
+        if (jniEnv->ExceptionCheck()) {
+            jniEnv->ExceptionClear();
+        }
+        jniEnv->PopLocalFrame(NULL);
+    }
+#else
+    JNIEnv *jniEnv = fc__jnienv(activity->vm);
+    if ((*jniEnv)->ExceptionCheck(jniEnv)) {
+        (*jniEnv)->ExceptionClear(jniEnv);
+    }
+
+    if ((*jniEnv)->PushLocalFrame(jniEnv, 16) == JNI_OK) {
+        jclass activityClass = (*jniEnv)->GetObjectClass(jniEnv, activity->clazz);
+        jmethodID getResourcesMethod = (*jniEnv)->GetMethodID(jniEnv, activityClass,
+            "getResources", "()Landroid/content/res/Resources;");
+        jobject resources = (*jniEnv)->CallObjectMethod(jniEnv, activity->clazz,
+            getResourcesMethod);
+        jclass resourcesClass = (*jniEnv)->GetObjectClass(jniEnv, resources);
+        jmethodID getConfigurationMethod = (*jniEnv)->GetMethodID(jniEnv, resourcesClass,
+            "getConfiguration", "()Landroid/content/res/Configuration;");
+        jobject configuration = (*jniEnv)->CallObjectMethod(jniEnv, resources,
+            getConfigurationMethod);
+        jclass configurationClass = (*jniEnv)->GetObjectClass(jniEnv, configuration);
+        jfieldID localeField = (*jniEnv)->GetFieldID(jniEnv, configurationClass, "locale",
+            "Ljava/util/Locale;");
+        jobject localeObject = (*jniEnv)->GetObjectField(jniEnv, configuration, localeField);
+        jclass localeClass = (*jniEnv)->GetObjectClass(jniEnv, localeObject);
+        jmethodID toStringMethod = (*jniEnv)->GetMethodID(jniEnv, localeClass, "toString",
+            "()Ljava/lang/String;");
+        jstring valueString = (*jniEnv)->CallObjectMethod(jniEnv, localeObject, toStringMethod);
+
+        const char *nativeString = (*jniEnv)->GetStringUTFChars(jniEnv, valueString, 0);
+        if (nativeString) {
+            result = 0;
+            strncpy(locale, nativeString, locale_max);
+            locale[locale_max - 1] = 0;
+            (*jniEnv)->ReleaseStringUTFChars(jniEnv, valueString, nativeString);
+        }
+        if ((*jniEnv)->ExceptionCheck(jniEnv)) {
+            (*jniEnv)->ExceptionClear(jniEnv);
+        }
+        (*jniEnv)->PopLocalFrame(jniEnv, NULL);
+    }
+#endif // !defined(__cplusplus)
+    if (result == 0) {
+        fc__locale_clean(locale);
+    } else {
+        locale[0] = 0;
+    }
+    return result;
+}
+
+static int fc_resdir(char *path, size_t path_max) {
+    if (!path || path_max == 0) {
+        return -1;
+    }
+    path[0] = 0;
+    return 0;
+}
+
+/// For Android, define `FILE_COMPAT_ANDROID_ACTIVITY` to be a reference to an `ANativeActivity`
+/// instance or to a function that returns an `ANativeActivity` instance.
+/// For example:
+///
+///     ANativeActivity *functionThatGetsAndroidActivity(void);
+///     #define FILE_COMPAT_ANDROID_ACTIVITY functionThatGetsAndroidActivity()
+#define fc__android_activity() FILE_COMPAT_ANDROID_ACTIVITY
+
+#define fc_datadir(app_id, path, path_max) \
+    fc__android_dir(fc__android_activity(), "getFilesDir", (app_id), (path), (path_max))
+
+#define fc_cachedir(app_id, path, path_max) \
+    fc__android_dir(fc__android_activity(), "getCacheDir", (app_id), (path), (path_max))
+
+#define fc_locale(locale, locale_max) \
+    fc__android_locale(fc__android_activity(), (locale), (locale_max))
+
 #if !defined(_BSD_SOURCE)
 FILE* funopen(const void* __cookie,
               int (*__read_fn)(void*, char*, int),
@@ -798,16 +847,12 @@ FILE* funopen(const void* __cookie,
               int (*__close_fn)(void*));
 #endif // _BSD_SOURCE
 
-#if !defined(FILE_COMPAT_ANDROID_ACTIVITY)
-#error FILE_COMPAT_ANDROID_ACTIVITY must be defined as a reference to an ANativeActivity (or NULL).
-#endif
-
 static pthread_key_t fc__jnienv_key;
 static pthread_once_t fc__jnienv_key_once = PTHREAD_ONCE_INIT;
 
 static void fc__jnienv_detach(void *value) {
     if (value) {
-        JavaVM *vm = (JavaVM *)value;
+        JavaVM *vm = FC_REINTERPRET_CAST(JavaVM *)(value);
 #ifdef __cplusplus
         vm->DetachCurrentThread();
 #else
@@ -822,9 +867,9 @@ static void fc__create_jnienv_key() {
 
 static JNIEnv *fc__jnienv(JavaVM *vm) {
     JNIEnv *jniEnv = NULL;
-    int setThreadLocal = 0;
+    int setThreadLocal;
 #ifdef __cplusplus
-    setThreadLocal = (vm->GetEnv((void **)&jniEnv, JNI_VERSION_1_4) != JNI_OK &&
+    setThreadLocal = (vm->GetEnv(FC_REINTERPRET_CAST(void **)(&jniEnv), JNI_VERSION_1_4) != JNI_OK &&
             vm->AttachCurrentThread(&jniEnv, NULL) == JNI_OK);
 #else
     setThreadLocal = ((*vm)->GetEnv(vm, (void **)&jniEnv, JNI_VERSION_1_4) != JNI_OK &&
@@ -838,7 +883,7 @@ static JNIEnv *fc__jnienv(JavaVM *vm) {
 }
 
 static int fc__android_read(void *cookie, char *buf, int size) {
-    return AAsset_read((AAsset *)cookie, buf, (size_t)size);
+    return AAsset_read(FC_REINTERPRET_CAST(AAsset *)(cookie), buf, FC_STATIC_CAST(size_t)(size));
 }
 
 static int fc__android_write(void *cookie, const char *buf, int size) {
@@ -850,16 +895,15 @@ static int fc__android_write(void *cookie, const char *buf, int size) {
 }
 
 static fpos_t fc__android_seek(void *cookie, fpos_t offset, int whence) {
-    return AAsset_seek((AAsset *)cookie, offset, whence);
+    return AAsset_seek(FC_REINTERPRET_CAST(AAsset *)(cookie), offset, whence);
 }
 
 static int fc__android_close(void *cookie) {
-    AAsset_close((AAsset *)cookie);
+    AAsset_close(FC_REINTERPRET_CAST(AAsset *)(cookie));
     return 0;
 }
 
-static FILE *fc__android_fopen(const char *filename, const char *mode) {
-    ANativeActivity *activity = FILE_COMPAT_ANDROID_ACTIVITY;
+static FILE *fc__android_fopen(ANativeActivity *activity, const char *filename, const char *mode) {
     AAssetManager *assetManager = NULL;
     AAsset *asset = NULL;
     if (activity) {
@@ -877,8 +921,62 @@ static FILE *fc__android_fopen(const char *filename, const char *mode) {
 }
 
 #define printf(...) __android_log_print(ANDROID_LOG_INFO, "stdout", __VA_ARGS__)
-#define fopen(filename, mode) fc__android_fopen(filename, mode)
+#define fopen(filename, mode) fc__android_fopen(fc__android_activity(), (filename), (mode))
 
-#endif // __ANDROID__
+#endif // defined(__ANDROID__)
+
+// MARK: - Emscripten
+
+#if defined(__EMSCRIPTEN__)
+
+#include <emscripten/emscripten.h>
+#include <string.h>
+#include <stdlib.h> // getenv
+#if !defined(PATH_MAX)
+#  define PATH_MAX 4096
+#endif
+
+static int fc_resdir(char *path, size_t path_max) {
+    if (!path || path_max == 0) {
+        return -1;
+    }
+    path[0] = 0;
+    return 0;
+}
+
+static int fc_datadir(const char *app_id, char *path, size_t path_max) {
+    return fc__unixdir("XDG_DATA_HOME", ".local/share", app_id, path, path_max);
+}
+
+static int fc_cachedir(const char *app_id, char *path, size_t path_max) {
+    return fc__unixdir("XDG_CACHE_HOME", ".cache", app_id, path, path_max);
+}
+
+static int fc_locale(char *locale, size_t locale_max) {
+    if (!locale || locale_max < 3) {
+        return -1;
+    }
+    int result = -1;
+    static const char *script =
+        "(function() { try {"
+        "var lang = navigator.language || navigator.userLanguage || navigator.browserLanguage;"
+        "if (typeof lang === 'string') { return lang; } else { return ''; }"
+        "} catch(err) { return ''; } }())";
+
+    char *lang = emscripten_run_script_string(script);
+    if (lang && lang[0] != 0) {
+        result = 0;
+        strncpy(locale, lang, locale_max);
+        locale[locale_max - 1] = 0;
+    }
+    if (result == 0) {
+        fc__locale_clean(locale);
+    } else {
+        locale[0] = 0;
+    }
+    return result;
+}
+
+#endif // defined(__EMSCRIPTEN__)
 
 #endif // FILE_COMPAT_H
