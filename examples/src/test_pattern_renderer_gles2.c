@@ -2,9 +2,9 @@
 
 #include <stdlib.h>
 #include <stddef.h>
-#include "glfm.h"
-#define FILE_COMPAT_ANDROID_ACTIVITY glfmAndroidGetActivity()
 #include "file_compat.h"
+
+#define FILE_COMPAT_ANDROID_ACTIVITY glfmGetAndroidActivity(display)
 
 typedef struct {
     Renderer renderer;
@@ -71,7 +71,7 @@ static void destroy(Renderer *renderer) {
     free(impl);
 }
 
-static GLuint compileShader(GLenum type, const char *shaderName) {
+static GLuint compileShader(GLFMDisplay *display, GLenum type, const char *shaderName) {
     char fullPath[PATH_MAX];
     fc_resdir(fullPath, sizeof(fullPath));
     strncat(fullPath, shaderName, sizeof(fullPath) - strlen(fullPath) - 1);
@@ -124,11 +124,11 @@ static GLuint compileShader(GLenum type, const char *shaderName) {
     return shader;
 }
 
-Renderer *createRendererGLES2() {
+Renderer *createRendererGLES2(GLFMDisplay *display) {
     RendererGLES2 *impl = calloc(1, sizeof(RendererGLES2));
     
-    GLuint vertShader = compileShader(GL_VERTEX_SHADER, "texture.vert");
-    GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, "texture.frag");
+    GLuint vertShader = compileShader(display, GL_VERTEX_SHADER, "texture.vert");
+    GLuint fragShader = compileShader(display, GL_FRAGMENT_SHADER, "texture.frag");
     if (vertShader != 0 && fragShader != 0) {
         impl->textureProgram = glCreateProgram();
         

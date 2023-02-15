@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "glfm.h"
-#define FILE_COMPAT_ANDROID_ACTIVITY glfmAndroidGetActivity()
 #include "file_compat.h"
+
+#define FILE_COMPAT_ANDROID_ACTIVITY glfmGetAndroidActivity(display)
 
 typedef struct {
     GLuint program;
@@ -138,7 +139,7 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
     printf("Goodbye\n");
 }
 
-static GLuint compileShader(GLenum type, const char *shaderName) {
+static GLuint compileShader(GLFMDisplay *display, GLenum type, const char *shaderName) {
     char fullPath[PATH_MAX];
     fc_resdir(fullPath, sizeof(fullPath));
     strncat(fullPath, shaderName, sizeof(fullPath) - strlen(fullPath) - 1);
@@ -191,11 +192,13 @@ static GLuint compileShader(GLenum type, const char *shaderName) {
     return shader;
 }
 
-static void draw(ExampleApp *app, int width, int height) {
+static void draw(GLFMDisplay *display, int width, int height) {
+    ExampleApp *app = glfmGetUserData(display);
+
     // Create shader
     if (app->program == 0) {
-        GLuint vertShader = compileShader(GL_VERTEX_SHADER, "simple.vert");
-        GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, "simple.frag");
+        GLuint vertShader = compileShader(display, GL_VERTEX_SHADER, "simple.vert");
+        GLuint fragShader = compileShader(display, GL_FRAGMENT_SHADER, "simple.frag");
         if (vertShader == 0 || fragShader == 0) {
             return;
         }
@@ -255,7 +258,7 @@ static void onFrame(GLFMDisplay *display) {
         
         int width, height;
         glfmGetDisplaySize(display, &width, &height);
-        draw(app, width,  height);
+        draw(display, width,  height);
         glfmSwapBuffers(display);
     }
 }

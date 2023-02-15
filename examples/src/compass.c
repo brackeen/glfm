@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include "glfm.h"
-#define FILE_COMPAT_ANDROID_ACTIVITY glfmAndroidGetActivity()
 #include "file_compat.h"
+
+#define FILE_COMPAT_ANDROID_ACTIVITY glfmGetAndroidActivity(display)
 
 static const char *VERT_SHADER =
 "#version 100\n"

@@ -5,6 +5,9 @@
 #include <string.h>
 #include "glfm.h"
 #include "test_pattern_renderer.h"
+#include "file_compat.h"
+
+#define FILE_COMPAT_ANDROID_ACTIVITY glfmGetAndroidActivity(display)
 
 typedef struct {
     Renderer *renderer;
@@ -69,12 +72,12 @@ static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
     TestPatternApp *app = glfmGetUserData(display);
 #if defined(__APPLE__)
     if (glfmGetRenderingAPI(display) == GLFMRenderingAPIMetal) {
-        app->renderer = createRendererMetal(glfmGetMetalView(display));
+        app->renderer = createRendererMetal(display);
         printf("Hello from Metal!\n");
     }
 #endif
     if (!app->renderer) {
-        app->renderer = createRendererGLES2();
+        app->renderer = createRendererGLES2(display);
         printf("Hello from GLES2!\n");
     }
     app->textureNeedsUpdate = true;

@@ -2,6 +2,7 @@
 #define TEST_PATTERN_RENDERER_H
 
 #include <stdint.h>
+#include "glfm.h"
 
 typedef struct Renderer Renderer;
 typedef uintptr_t Texture;
@@ -21,10 +22,10 @@ struct Renderer {
     void (*destroy)(Renderer *renderer);
 };
 
-Renderer *createRendererGLES2(void);
+Renderer *createRendererGLES2(GLFMDisplay *display);
 
 #if defined(__APPLE__)
-Renderer *createRendererMetal(void *metalView);
+Renderer *createRendererMetal(GLFMDisplay *display);
 #endif
 
 #endif

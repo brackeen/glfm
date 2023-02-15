@@ -104,8 +104,8 @@ static void destroy(Renderer *renderer) {
     free(impl);
 }
 
-Renderer *createRendererMetal(void *metalViewPtr) {
-    MTKView *mtkView = (__bridge MTKView *)(metalViewPtr);
+Renderer *createRendererMetal(GLFMDisplay *display) {
+    MTKView *mtkView = (__bridge MTKView *)glfmGetMetalView(display);
     id<MTLDevice> device = mtkView.device;
     id<MTLCommandQueue> commandQueue = [device newCommandQueue];
     if (!commandQueue) {

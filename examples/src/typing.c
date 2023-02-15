@@ -12,8 +12,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "glfm.h"
-#define FILE_COMPAT_ANDROID_ACTIVITY glfmAndroidGetActivity()
 #include "file_compat.h"
+
+#define FILE_COMPAT_ANDROID_ACTIVITY glfmGetAndroidActivity(display)
 
 enum {
     CONSOLE_COLS = 22,
@@ -291,7 +292,7 @@ static bool onKey(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAction actio
     }
 }
 
-static GLuint compileShader(GLenum type, const char *shaderName) {
+static GLuint compileShader(GLFMDisplay *display, GLenum type, const char *shaderName) {
     char fullPath[PATH_MAX];
     fc_resdir(fullPath, sizeof(fullPath));
     strncat(fullPath, shaderName, sizeof(fullPath) - strlen(fullPath) - 1);
@@ -367,8 +368,8 @@ static void onSurfaceCreatedOrResized(GLFMDisplay *display, int width, int heigh
 
     // Create shader
     if (app->program == 0) {
-        GLuint vertShader = compileShader(GL_VERTEX_SHADER, "texture.vert");
-        GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, "texture.frag");
+        GLuint vertShader = compileShader(display, GL_VERTEX_SHADER, "texture.vert");
+        GLuint fragShader = compileShader(display, GL_FRAGMENT_SHADER, "texture.frag");
         if (vertShader == 0 || fragShader == 0) {
             return;
         }
