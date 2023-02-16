@@ -32,10 +32,10 @@
 #  endif
 #endif
 
-#define MAX_SIMULTANEOUS_TOUCHES 5
-// Same as iOS
-#define SENSOR_UPDATE_INTERVAL_MICROS ((int)(0.01 * 1000000))
-#define RESIZE_EVENT_MAX_WAIT_FRAMES 5
+#define GLFM_MAX_SIMULTANEOUS_TOUCHES 5
+// Same update interval as iOS
+#define GLFM_SENSOR_UPDATE_INTERVAL_MICROS ((int)(0.01 * 1000000))
+#define GLFM_RESIZE_EVENT_MAX_WAIT_FRAMES 5
 
 // If GLFM_HANDLE_BACK_BUTTON is 1, when the user presses the back button, the task is moved to the
 // back. Otherwise, when the user presses the back button, the activity is destroyed.
@@ -1187,7 +1187,7 @@ static bool glfm__onTouchEvent(GLFMPlatformData *platformData, AInputEvent *even
         return false;
     }
     GLFMDisplay *display = platformData->display;
-    const int maxTouches = platformData->multitouchEnabled ? MAX_SIMULTANEOUS_TOUCHES : 1;
+    const int maxTouches = platformData->multitouchEnabled ? GLFM_MAX_SIMULTANEOUS_TOUCHES : 1;
     const int32_t action = AMotionEvent_getAction(event);
     const uint32_t maskedAction = (uint32_t)action & (uint32_t)AMOTION_EVENT_ACTION_MASK;
 
@@ -1448,7 +1448,7 @@ static void *glfm__mainLoop(void *param) {
         platformData->display->supportedOrientations = GLFMInterfaceOrientationAll;
         platformData->display->swapBehavior = GLFMSwapBehaviorPlatformDefault;
         platformData->orientation = glfmGetInterfaceOrientation(platformData->display);
-        platformData->resizeEventWaitFrames = RESIZE_EVENT_MAX_WAIT_FRAMES;
+        platformData->resizeEventWaitFrames = GLFM_RESIZE_EVENT_MAX_WAIT_FRAMES;
         glfmMain(platformData->display);
     }
 
@@ -1888,7 +1888,7 @@ static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
     if (width != platformData->width || height != platformData->height) {
         if (force || platformData->resizeEventWaitFrames <= 0) {
             GLFM_LOG_LIFECYCLE("Resize: %i x %i", width, height);
-            platformData->resizeEventWaitFrames = RESIZE_EVENT_MAX_WAIT_FRAMES;
+            platformData->resizeEventWaitFrames = GLFM_RESIZE_EVENT_MAX_WAIT_FRAMES;
             platformData->refreshRequested = true;
             platformData->width = width;
             platformData->height = height;
@@ -1997,7 +1997,7 @@ static void glfm__setAllRequestedSensorsEnabled(GLFMDisplay *display, bool enabl
             if (ASensorEventQueue_enableSensor(platformData->sensorEventQueue, deviceSensor) == 0) {
                 int minDelay = ASensor_getMinDelay(deviceSensor);
                 if (minDelay > 0) {
-                    int delay = SENSOR_UPDATE_INTERVAL_MICROS;
+                    int delay = GLFM_SENSOR_UPDATE_INTERVAL_MICROS;
                     if (delay < minDelay) {
                         delay = minDelay;
                     }

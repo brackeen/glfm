@@ -49,11 +49,11 @@
 #endif
 
 #if TARGET_OS_IOS || TARGET_OS_TV
-#  define MAX_SIMULTANEOUS_TOUCHES 10
+#  define GLFM_MAX_SIMULTANEOUS_TOUCHES 10
 #  ifdef NDEBUG
-#    define CHECK_GL_ERROR() ((void)0)
+#    define GLFM_CHECK_GL_ERROR() ((void)0)
 #  else
-#    define CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
+#    define GLFM_CHECK_GL_ERROR() do { GLenum error = glGetError(); if (error != GL_NO_ERROR) \
        GLFM_LOG("OpenGL error 0x%04x at glfm_apple.m:%i", error, __LINE__); } while(0)
 #  endif
 #endif
@@ -616,7 +616,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         GLFM_LOG("Error: Framebuffer incomplete: 0x%04x", status);
     }
 
-    CHECK_GL_ERROR();
+    GLFM_CHECK_GL_ERROR();
 }
 
 - (void)deleteDrawable {
@@ -652,7 +652,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         glBindFramebuffer(GL_FRAMEBUFFER, _defaultFramebuffer);
         glBindRenderbuffer(GL_RENDERBUFFER, _colorRenderbuffer);
     }
-    CHECK_GL_ERROR();
+    GLFM_CHECK_GL_ERROR();
 }
 
 - (void)swapBuffers {
@@ -699,7 +699,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     glBindRenderbuffer(GL_RENDERBUFFER, _colorRenderbuffer);
     [self.context presentRenderbuffer:GL_RENDERBUFFER];
 
-    CHECK_GL_ERROR();
+    GLFM_CHECK_GL_ERROR();
 }
 
 - (void)render:(CADisplayLink *)displayLink {
@@ -1114,7 +1114,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @implementation GLFMViewController {
 #if TARGET_OS_IOS || TARGET_OS_TV
-    const void *activeTouches[MAX_SIMULTANEOUS_TOUCHES];
+    const void *activeTouches[GLFM_MAX_SIMULTANEOUS_TOUCHES];
 #endif
 }
 
@@ -1461,7 +1461,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)clearTouches {
-    for (int i = 0; i < MAX_SIMULTANEOUS_TOUCHES; i++) {
+    for (int i = 0; i < GLFM_MAX_SIMULTANEOUS_TOUCHES; i++) {
         activeTouches[i] = NULL;
     }
 }
@@ -1469,7 +1469,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (void)addTouchEvent:(UITouch *)touch withType:(GLFMTouchPhase)phase {
     int firstNullIndex = -1;
     int index = -1;
-    for (int i = 0; i < MAX_SIMULTANEOUS_TOUCHES; i++) {
+    for (int i = 0; i < GLFM_MAX_SIMULTANEOUS_TOUCHES; i++) {
         if (activeTouches[i] == (__bridge const void *)touch) {
             index = i;
             break;

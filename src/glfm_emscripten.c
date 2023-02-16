@@ -21,10 +21,10 @@
 #  define GLFM_LOG(...) do { printf("%.3f: ", glfmGetTime()); printf(__VA_ARGS__); printf("\n"); } while (0)
 #endif
 
-#define MAX_ACTIVE_TOUCHES 10
+#define GLFM_MAX_ACTIVE_TOUCHES 10
 
 // If 1, test if keyboard event arrays are sorted.
-#define TEST_KEYBOARD_EVENT_ARRAYS 0
+#define GLFM_TEST_KEYBOARD_EVENT_ARRAYS 0
 
 typedef struct {
     long identifier;
@@ -39,7 +39,7 @@ typedef struct {
     GLFMRenderingAPI renderingAPI;
 
     bool mouseDown;
-    GLFMActiveTouch activeTouches[MAX_ACTIVE_TOUCHES];
+    GLFMActiveTouch activeTouches[GLFM_MAX_ACTIVE_TOUCHES];
 
     bool isVisible;
     bool isFocused;
@@ -50,7 +50,7 @@ typedef struct {
 
 // MARK: - GLFM private functions
 
-#if TEST_KEYBOARD_EVENT_ARRAYS
+#if GLFM_TEST_KEYBOARD_EVENT_ARRAYS
 
 static bool glfm__listIsSorted(const char *list[], size_t size) {
     for (size_t i = 1; i < size; i++) {
@@ -82,7 +82,7 @@ static int glfm__sortedListSearch(const char *list[], size_t size, const char *w
 }
 
 static void glfm__clearActiveTouches(GLFMPlatformData *platformData) {
-    for (int i = 0; i < MAX_ACTIVE_TOUCHES; i++) {
+    for (int i = 0; i < GLFM_MAX_ACTIVE_TOUCHES; i++) {
         platformData->activeTouches[i].active = false;
     }
 }
@@ -441,7 +441,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         // This list of code values is from https://www.w3.org/TR/uievents-code/
         // (Added functions keys F13-F24)
         // egrep -o '<code class="code" id="code-.*?</code>' uievents-code.html | sort | awk -F"[><]" '{print $3}' | awk 1 ORS=', '
-        // This array must be sorted for binary search. See TEST_KEYBOARD_EVENT_ARRAYS.
+        // This array must be sorted for binary search. See GLFM_TEST_KEYBOARD_EVENT_ARRAYS.
         // NOTE: e->keyCode is obsolete. Only e->key or e->code should be used.
         static const char *KEYBOARD_EVENT_CODES[] = {
             "AltLeft", "AltRight", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp",
@@ -479,7 +479,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
             GLFMKeyCodeSlash, GLFMKeyCodeSpace, GLFMKeyCodeTab,
         };
 
-#if TEST_KEYBOARD_EVENT_ARRAYS
+#if GLFM_TEST_KEYBOARD_EVENT_ARRAYS
         static bool KEYBOARD_EVENT_CODES_TESTED = false;
         if (!KEYBOARD_EVENT_CODES_TESTED) {
             KEYBOARD_EVENT_CODES_TESTED = true;
@@ -536,7 +536,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         // not one of the pre-defined key values.
         // This list of pre-defined key values is from https://www.w3.org/TR/uievents-key/
         // (Added functions keys F13-F24 and Soft5-Soft10)
-        // This array must be sorted for binary search. See TEST_KEYBOARD_EVENT_ARRAYS.
+        // This array must be sorted for binary search. See GLFM_TEST_KEYBOARD_EVENT_ARRAYS.
         // egrep -o '<code class="key" id="key-.*?</code>' uievents-key.html | sort | awk -F"[><]" '{print $3}' | awk 1 ORS=', '
         static const char *KEYBOARD_EVENT_KEYS[] = {
             "AVRInput", "AVRPower", "Accept", "Again", "AllCandidates", "Alphanumeric", "Alt", "AltGraph", "AppSwitch",
@@ -585,7 +585,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         };
         static const size_t KEYBOARD_EVENT_KEYS_LENGTH = sizeof(KEYBOARD_EVENT_KEYS) / sizeof(*KEYBOARD_EVENT_KEYS);
 
-#if TEST_KEYBOARD_EVENT_ARRAYS
+#if GLFM_TEST_KEYBOARD_EVENT_ARRAYS
         static bool KEYBOARD_EVENT_KEYS_TESTED = false;
         if (!KEYBOARD_EVENT_KEYS_TESTED) {
             KEYBOARD_EVENT_KEYS_TESTED = true;
@@ -705,7 +705,7 @@ static EM_BOOL glfm__mouseWheelCallback(int eventType, const EmscriptenWheelEven
 static int glfm__getTouchIdentifier(GLFMPlatformData *platformData, const EmscriptenTouchPoint *t) {
     int firstNullIndex = -1;
     int index = -1;
-    for (int i = 0; i < MAX_ACTIVE_TOUCHES; i++) {
+    for (int i = 0; i < GLFM_MAX_ACTIVE_TOUCHES; i++) {
         if (platformData->activeTouches[i].identifier == t->identifier &&
             platformData->activeTouches[i].active) {
             index = i;
