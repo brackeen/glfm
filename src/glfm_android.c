@@ -195,44 +195,50 @@ static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
         if (platformData->display->preferredAPI >= GLFMRenderingAPIOpenGLES32) {
             majorVersion = 3;
             minorVersion = 2;
-            const EGLint contextAttribs[] = {EGL_CONTEXT_MAJOR_VERSION_KHR, majorVersion,
-                                             EGL_CONTEXT_MINOR_VERSION_KHR, minorVersion, EGL_NONE};
+            const EGLint contextAttribList[] = { EGL_CONTEXT_MAJOR_VERSION_KHR, majorVersion,
+                                                 EGL_CONTEXT_MINOR_VERSION_KHR, minorVersion,
+                                                 EGL_NONE, EGL_NONE };
             platformData->eglContext = eglCreateContext(platformData->eglDisplay,
                                                         platformData->eglConfig,
-                                                        EGL_NO_CONTEXT, contextAttribs);
+                                                        EGL_NO_CONTEXT,
+                                                        contextAttribList);
             created = platformData->eglContext != EGL_NO_CONTEXT;
         }
         // OpenGL ES 3.1
         if (!created && platformData->display->preferredAPI >= GLFMRenderingAPIOpenGLES31) {
             majorVersion = 3;
             minorVersion = 1;
-            const EGLint contextAttribs[] = {EGL_CONTEXT_MAJOR_VERSION_KHR, majorVersion,
-                                             EGL_CONTEXT_MINOR_VERSION_KHR, minorVersion, EGL_NONE};
+            const EGLint contextAttribList[] = { EGL_CONTEXT_MAJOR_VERSION_KHR, majorVersion,
+                                                 EGL_CONTEXT_MINOR_VERSION_KHR, minorVersion,
+                                                 EGL_NONE, EGL_NONE };
             platformData->eglContext = eglCreateContext(platformData->eglDisplay,
                                                         platformData->eglConfig,
-                                                        EGL_NO_CONTEXT, contextAttribs);
+                                                        EGL_NO_CONTEXT,
+                                                        contextAttribList);
             created = platformData->eglContext != EGL_NO_CONTEXT;
         }
         // OpenGL ES 3.0
         if (!created && platformData->display->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
             majorVersion = 3;
             minorVersion = 0;
-            const EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, majorVersion,
-                                             EGL_NONE, EGL_NONE};
+            const EGLint contextAttribList[] = { EGL_CONTEXT_CLIENT_VERSION, majorVersion,
+                                                 EGL_NONE, EGL_NONE };
             platformData->eglContext = eglCreateContext(platformData->eglDisplay,
                                                         platformData->eglConfig,
-                                                        EGL_NO_CONTEXT, contextAttribs);
+                                                        EGL_NO_CONTEXT,
+                                                        contextAttribList);
             created = platformData->eglContext != EGL_NO_CONTEXT;
         }
         // OpenGL ES 2.0
         if (!created) {
             majorVersion = 2;
             minorVersion = 0;
-            const EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, majorVersion,
-                                             EGL_NONE, EGL_NONE};
+            const EGLint contextAttribList[] = { EGL_CONTEXT_CLIENT_VERSION, majorVersion,
+                                                 EGL_NONE, EGL_NONE };
             platformData->eglContext = eglCreateContext(platformData->eglDisplay,
                                                         platformData->eglConfig,
-                                                        EGL_NO_CONTEXT, contextAttribs);
+                                                        EGL_NO_CONTEXT,
+                                                        contextAttribList);
             created = platformData->eglContext != EGL_NO_CONTEXT;
         }
 
@@ -394,7 +400,7 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
     eglInitialize(platformData->eglDisplay, &majorVersion, &minorVersion);
 
     while (true) {
-        const EGLint attribs[] = {
+        const EGLint attribList[] = {
             EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
             EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
             EGL_RED_SIZE, rBits,
@@ -405,9 +411,10 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
             EGL_STENCIL_SIZE, stencilBits,
             EGL_SAMPLE_BUFFERS, samples > 0 ? 1 : 0,
             EGL_SAMPLES, samples > 0 ? samples : 0,
-            EGL_NONE};
-
-        eglChooseConfig(platformData->eglDisplay, attribs, &platformData->eglConfig, 1, &numConfigs);
+            EGL_NONE, EGL_NONE
+        };
+        eglChooseConfig(platformData->eglDisplay, attribList,
+                        &platformData->eglConfig, 1, &numConfigs);
         if (numConfigs) {
             // Found!
             //glfm__eglLogConfig(platformData, platformData->eglConfig);
