@@ -831,6 +831,7 @@ int main(void) {
         }
     }
     if (!contextHandle) {
+        GLFM_LOG("Couldn't create GL context");
         glfm__reportSurfaceError(glfmDisplay, "Couldn't create GL context");
         return 0;
     }
