@@ -63,11 +63,11 @@ typedef struct {
 
     ANativeWindow *window;
     AInputQueue *inputQueue;
-    ARect contentRect;
+    ARect contentRectArray[2];
+    int contentRectIndex;
 
     ANativeWindow *pendingWindow;
     AInputQueue *pendingInputQueue;
-    const ARect *pendingContentRect;
 
     ANativeActivity *activity;
     AConfiguration *config;
@@ -665,13 +665,11 @@ static void glfm__activityOnInputQueueDestroyed(ANativeActivity *activity, AInpu
 
 static void glfm__activityOnContentRectChanged(ANativeActivity *activity, const ARect *rect) {
     GLFMPlatformData *platformData = activity->instance;
-    pthread_mutex_lock(&platformData->mutex);
-    platformData->pendingContentRect = rect;
+    int nextContentRectIndex = platformData->contentRectIndex ^ 1;
+    platformData->contentRectArray[nextContentRectIndex] = *rect;
+    platformData->contentRectIndex = nextContentRectIndex;
+    glfm__resetContentRect(platformData); // Reset so that onContentRectChanged acts as a global layout listener.
     glfm__sendCommand(activity, GLFMActivityCommandOnContentRectChanged);
-    while (platformData->pendingContentRect) {
-        pthread_cond_wait(&platformData->cond, &platformData->mutex);
-    }
-    pthread_mutex_unlock(&platformData->mutex);
 }
 
 static void glfm__activityOnDestroy(ANativeActivity *activity) {
@@ -749,6 +747,11 @@ JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedSt
 
     activity->instance = platformData;
     platformData->activity = activity;
+    platformData->window = NULL;
+    platformData->threadRunning = false;
+    platformData->destroyRequested = false;
+    platformData->contentRectArray[0] = (ARect) { 0 };
+    platformData->contentRectArray[1] = (ARect) { 0 };
     platformData->commandPipeRead = commandPipe[0];
     platformData->commandPipeWrite = commandPipe[1];
 
@@ -934,24 +937,16 @@ static void glfm__onAppCmd(GLFMPlatformData *platformData, GLFMActivityCommand c
             break;
         }
         case GLFMActivityCommandOnContentRectChanged: {
-            if (!platformData->pendingContentRect) {
-                break;
-            }
+            // NOTE: Content rect might be the same, as this is also used as a global layout listener
+#if GLFM_LOG_LIFECYCLE_ENABLE
+            ARect *oldRect = &platformData->contentRectArray[platformData->contentRectIndex ^ 1];
+            ARect *newRect = &platformData->contentRectArray[platformData->contentRectIndex];
             GLFM_LOG_LIFECYCLE("OnContentRectChanged (from %i,%i,%i,%i to %i,%i,%i,%i)",
-                               platformData->contentRect.left, platformData->contentRect.top,
-                               platformData->contentRect.right, platformData->contentRect.bottom,
-                               platformData->pendingContentRect->left, platformData->pendingContentRect->top,
-                               platformData->pendingContentRect->right, platformData->pendingContentRect->bottom);
+                               oldRect->left, oldRect->top, oldRect->right, oldRect->bottom,
+                               newRect->left, newRect->top, newRect->right, newRect->bottom);
+#endif
 
             platformData->refreshRequested = true;
-            pthread_mutex_lock(&platformData->mutex);
-            platformData->contentRect = *platformData->pendingContentRect;
-            platformData->pendingContentRect = NULL;
-            pthread_cond_broadcast(&platformData->cond);
-            pthread_mutex_unlock(&platformData->mutex);
-
-            glfm__resetContentRect(platformData);
-
             if (platformData->window) {
                 glfm__updateSurfaceSizeIfNeeded(platformData->display, true);
                 glfm__reportOrientationChangeIfNeeded(platformData->display);
@@ -1549,10 +1544,7 @@ static void *glfm__mainLoop(void *param) {
 
     // Init platform data
     GLFMPlatformData *platformData = param;
-    platformData->window = NULL;
-    platformData->contentRect = (ARect){ 0 };
     platformData->refreshRequested = true;
-    platformData->destroyRequested = false;
     platformData->lastSwapTime = glfmGetTime();
     platformData->config = AConfiguration_new();
     AConfiguration_fromAssetManager(platformData->config, platformData->activity->assetManager);
@@ -1732,21 +1724,21 @@ static jobject glfm__getDecorView(JNIEnv *jni, GLFMPlatformData *platformData) {
     return glfm__wasJavaExceptionThrown(jni) ? NULL : decorView;
 }
 
-static ARect glfm__getDecorViewRect(GLFMPlatformData *platformData, ARect defaultRect) {
+static ARect glfm__getDecorViewRect(GLFMPlatformData *platformData, const ARect *defaultRect) {
     JNIEnv *jni = platformData->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
-        return defaultRect;
+        return *defaultRect;
     }
 
     jobject decorView = glfm__getDecorView(jni, platformData);
     if (!decorView) {
-        return defaultRect;
+        return *defaultRect;
     }
 
     jintArray locationArray = (*jni)->NewIntArray(jni, 2);
     if (!locationArray) {
         (*jni)->DeleteLocalRef(jni, decorView);
-        return defaultRect;
+        return *defaultRect;
     }
 
     jint location[2] = { 0 };
@@ -1755,14 +1747,14 @@ static ARect glfm__getDecorViewRect(GLFMPlatformData *platformData, ARect defaul
     (*jni)->DeleteLocalRef(jni, locationArray);
     if ((*jni)->ExceptionCheck(jni)) {
         (*jni)->DeleteLocalRef(jni, decorView);
-        return defaultRect;
+        return *defaultRect;
     }
 
     jint width = glfm__callJavaMethod(jni, decorView, "getWidth", "()I", Int);
     jint height = glfm__callJavaMethod(jni, decorView, "getHeight", "()I", Int);
     (*jni)->DeleteLocalRef(jni, decorView);
     if ((*jni)->ExceptionCheck(jni)) {
-        return defaultRect;
+        return *defaultRect;
     }
 
     ARect result;
@@ -1871,8 +1863,10 @@ static void glfm__resetContentRect(GLFMPlatformData *platformData) {
     // OnGlobalLayoutListener. This is needed to detect changes to getWindowVisibleDisplayFrame()
     // HACK: This uses undocumented fields.
 
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
+    JavaVM *vm = platformData->activity->vm;
+    JNIEnv *jni = NULL;
+    (*vm)->GetEnv(vm, (void **) &jni, JNI_VERSION_1_2);
+    if (!jni || (*jni)->ExceptionCheck(jni)) {
         return;
     }
 
@@ -1886,31 +1880,31 @@ static void glfm__resetContentRect(GLFMPlatformData *platformData) {
     glfm__clearJavaException(jni);
 }
 
-static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, ARect defaultRect) {
+static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, const ARect *defaultRect) {
     JNIEnv *jni = platformData->jniEnv;
     if ((*jni)->ExceptionCheck(jni)) {
-        return defaultRect;
+        return *defaultRect;
     }
 
     jobject decorView = glfm__getDecorView(jni, platformData);
     if (!decorView) {
-        return defaultRect;
+        return *defaultRect;
     }
 
     jclass javaRectClass = (*jni)->FindClass(jni, "android/graphics/Rect");
     if (glfm__wasJavaExceptionThrown(jni)) {
-        return defaultRect;
+        return *defaultRect;
     }
 
     jobject javaRect = (*jni)->AllocObject(jni, javaRectClass);
     if (glfm__wasJavaExceptionThrown(jni)) {
-        return defaultRect;
+        return *defaultRect;
     }
 
     glfm__callJavaMethodWithArgs(jni, decorView, "getWindowVisibleDisplayFrame",
                                  "(Landroid/graphics/Rect;)V", Void, javaRect);
     if (glfm__wasJavaExceptionThrown(jni)) {
-        return defaultRect;
+        return *defaultRect;
     }
 
     ARect rect;
@@ -1921,7 +1915,7 @@ static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, 
     (*jni)->DeleteLocalRef(jni, javaRect);
     (*jni)->DeleteLocalRef(jni, javaRectClass);
     if (glfm__wasJavaExceptionThrown(jni)) {
-        return defaultRect;
+        return *defaultRect;
     }
 
     jintArray locationArray = (*jni)->NewIntArray(jni, 2);
@@ -2235,8 +2229,9 @@ static bool glfm__setKeyboardVisible(GLFMPlatformData *platformData, bool visibl
 
 static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
     if (platformData->display) {
-        ARect windowRect = glfm__getDecorViewRect(platformData, platformData->contentRect);
-        ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, windowRect);
+        const ARect *contentRect = &platformData->contentRectArray[platformData->contentRectIndex];
+        ARect windowRect = glfm__getDecorViewRect(platformData, contentRect);
+        ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, &windowRect);
         ARect nonVisibleRect[4];
 
         // Left
@@ -2414,8 +2409,8 @@ void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double 
     }
     if (!success) {
         GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-        ARect windowRect = platformData->contentRect;
-        ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, windowRect);
+        const ARect *contentRect = &platformData->contentRectArray[platformData->contentRectIndex];
+        ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, contentRect);
         if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0) {
             if (top) *top = 0;
             if (right) *right = 0;
