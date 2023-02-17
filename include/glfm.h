@@ -482,6 +482,11 @@ typedef void (*GLFMKeyboardVisibilityChangedFunc)(GLFMDisplay *display, bool vis
 typedef void (*GLFMOrientationChangedFunc)(GLFMDisplay *display,
                                            GLFMInterfaceOrientation orientation);
 
+/// Callback function when the chrome insets ("safe area insets") changes.
+/// See ``glfmSetDisplayChromeInsetsChangedFunc`` and ``glfmGetDisplayChromeInsets``.
+typedef void (*GLFMDisplayChromeInsetsChangedFunc)(GLFMDisplay *display, double top, double right,
+                                                   double bottom, double left);
+
 /// Callback function when the surface could not be created.
 /// See ``glfmSetSurfaceErrorFunc``.
 typedef void (*GLFMSurfaceErrorFunc)(GLFMDisplay *display, const char *message);
@@ -638,6 +643,9 @@ GLFMUserInterfaceChrome glfmGetDisplayChrome(const GLFMDisplay *display);
 
 /// Sets the user interface chrome.
 ///
+/// This may modify the chrome insets, but not immediately.
+/// Use ``glfmSetDisplayChromeInsetsChangedFunc`` to be notified when insets change.
+///
 /// - Emscripten: To switch to fullscreen, this function must be called from an user-generated
 /// event handler.
 void glfmSetDisplayChrome(GLFMDisplay *display, GLFMUserInterfaceChrome uiChrome);
@@ -714,6 +722,12 @@ GLFMSurfaceDestroyedFunc glfmSetSurfaceDestroyedFunc(GLFMDisplay *display,
 GLFMOrientationChangedFunc
 glfmSetOrientationChangedFunc(GLFMDisplay *display,
                               GLFMOrientationChangedFunc orientationChangedFunc);
+
+/// Sets the function to call when display chrome insets ("safe area insets") changes.
+/// See also ``glfmGetDisplayChromeInsets``
+GLFMDisplayChromeInsetsChangedFunc
+glfmSetDisplayChromeInsetsChangedFunc(GLFMDisplay *display,
+                                      GLFMDisplayChromeInsetsChangedFunc chromeInsetsChangedFunc);
 
 /// Sets the function to call when the system sends a "low memory" warning.
 GLFMMemoryWarningFunc glfmSetMemoryWarningFunc(GLFMDisplay *display,

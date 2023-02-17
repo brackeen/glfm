@@ -54,6 +54,7 @@ struct GLFMDisplay {
     GLFMSurfaceDestroyedFunc surfaceDestroyedFunc;
     GLFMKeyboardVisibilityChangedFunc keyboardVisibilityChangedFunc;
     GLFMOrientationChangedFunc orientationChangedFunc;
+    GLFMDisplayChromeInsetsChangedFunc displayChromeInsetsChangedFunc;
     GLFMMemoryWarningFunc lowMemoryFunc;
     GLFMAppFocusFunc focusFunc;
     GLFMSensorFunc sensorFuncs[GLFM_NUM_SENSORS];
@@ -212,6 +213,16 @@ GLFMOrientationChangedFunc glfmSetOrientationChangedFunc(GLFMDisplay *display,
     if (display) {
         previous = display->orientationChangedFunc;
         display->orientationChangedFunc = func;
+    }
+    return previous;
+}
+
+GLFMDisplayChromeInsetsChangedFunc glfmSetDisplayChromeInsetsChangedFunc(GLFMDisplay *display,
+                                                                         GLFMDisplayChromeInsetsChangedFunc func) {
+    GLFMDisplayChromeInsetsChangedFunc previous = NULL;
+    if (display) {
+        previous = display->displayChromeInsetsChangedFunc;
+        display->displayChromeInsetsChangedFunc = func;
     }
     return previous;
 }

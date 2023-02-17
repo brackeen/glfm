@@ -1102,6 +1102,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @interface GLFMViewController ()
 
+@property(nonatomic, assign) NSEdgeInsets insets;
 @property(nonatomic, strong) NSCursor *transparentCursor;
 @property(nonatomic, strong) NSCursor *currentCursor;
 @property(nonatomic, assign) BOOL hideMouseCursorWhileTyping;
@@ -1127,6 +1128,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @synthesize keyboardRequested, noSoftKeyboardView, motionManager = _motionManager, orientation, multipleTouchEnabled;
 #endif
 #if TARGET_OS_OSX
+@synthesize insets;
 @synthesize transparentCursor, currentCursor, hideMouseCursorWhileTyping;
 @synthesize mouseInside, fnModifier;
 #endif
@@ -1282,6 +1284,27 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #endif
 }
 
+#if TARGET_OS_OSX
+
+- (void)viewDidLayout {
+    [super viewDidLayout];
+
+    // There doesn't appear to be a notification for insets changed on macOS.
+    if (@available(macOS 11, *)) {
+        double top, right, bottom, left;
+        glfmGetDisplayChromeInsets(self.glfmDisplay, &top, &right, &bottom, &left);
+        NSEdgeInsets newInsets = NSEdgeInsetsMake((CGFloat)top, (CGFloat)left, (CGFloat)bottom, (CGFloat)right);
+        if (!NSEdgeInsetsEqual(self.insets, newInsets)) {
+            self.insets = newInsets;
+            if (self.glfmDisplay->displayChromeInsetsChangedFunc) {
+                self.glfmDisplay->displayChromeInsetsChangedFunc(self.glfmDisplay, top, right, bottom, left);
+            }
+        }
+    }
+}
+
+#endif
+
 #if TARGET_OS_IOS || TARGET_OS_TV
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -1295,6 +1318,15 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     [super didReceiveMemoryWarning];
     if (self.glfmDisplay->lowMemoryFunc) {
         self.glfmDisplay->lowMemoryFunc(self.glfmDisplay);
+    }
+}
+
+- (void)viewSafeAreaInsetsDidChange {
+    [super viewSafeAreaInsetsDidChange];
+    if (self.glfmDisplay->displayChromeInsetsChangedFunc) {
+        double top, right, bottom, left;
+        glfmGetDisplayChromeInsets(self.glfmDisplay, &top, &right, &bottom, &left);
+        self.glfmDisplay->displayChromeInsetsChangedFunc(self.glfmDisplay, top, right, bottom, left);
     }
 }
 

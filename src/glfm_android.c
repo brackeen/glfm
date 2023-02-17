@@ -93,6 +93,11 @@ typedef struct {
     double scale;
     int resizeEventWaitFrames;
 
+    struct {
+        int top, right, bottom, left;
+        bool valid;
+    } insets;
+
     GLFMDisplay *display;
     GLFMRenderingAPI renderingAPI;
 
@@ -114,8 +119,11 @@ static void *glfm__mainLoop(void *param);
 static int glfm__looperCallback(int fd, int events, void *userData);
 static void glfm__setAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
 static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display);
-static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force);
+static void glfm__reportInsetsChangedIfNeeded(GLFMDisplay *display);
+static bool glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force);
 static float glfm__getRefreshRate(const GLFMDisplay *display);
+static void glfm__getDisplayChromeInsets(const GLFMDisplay *display, int *top, int *right,
+                                         int *bottom, int *left);
 static void glfm__resetContentRect(GLFMPlatformData *platformData);
 static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData);
 static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUserInterfaceChrome uiChrome);
@@ -895,9 +903,12 @@ static void glfm__onAppCmd(GLFMPlatformData *platformData, GLFMActivityCommand c
 
             platformData->refreshRequested = true;
             if (platformData->window) {
-                glfm__updateSurfaceSizeIfNeeded(platformData->display, true);
-                glfm__reportOrientationChangeIfNeeded(platformData->display);
-                glfm__updateKeyboardVisibility(platformData);
+                bool sizedChanged = glfm__updateSurfaceSizeIfNeeded(platformData->display, true);
+                if (!sizedChanged) {
+                    glfm__reportOrientationChangeIfNeeded(platformData->display);
+                    glfm__reportInsetsChangedIfNeeded(platformData->display);
+                    glfm__updateKeyboardVisibility(platformData);
+                }
             }
             break;
         }
@@ -1522,7 +1533,6 @@ static void *glfm__mainLoop(void *param) {
         platformData->display->platformData = platformData;
         platformData->display->supportedOrientations = GLFMInterfaceOrientationAll;
         platformData->display->swapBehavior = GLFMSwapBehaviorPlatformDefault;
-        platformData->orientation = glfmGetInterfaceOrientation(platformData->display);
         platformData->resizeEventWaitFrames = GLFM_RESIZE_EVENT_MAX_WAIT_FRAMES;
         glfmMain(platformData->display);
     }
@@ -1564,6 +1574,10 @@ static void *glfm__mainLoop(void *param) {
         (*jni)->DeleteLocalRef(jni, attributes);
         (*jni)->DeleteLocalRef(jni, window);
     }
+
+    // Get initial values for reporting changes. First insets are valid until later.
+    platformData->orientation = glfmGetInterfaceOrientation(platformData->display);
+    platformData->insets.valid = false;
 
     // Notify thread running
     pthread_mutex_lock(&platformData->mutex);
@@ -1881,8 +1895,8 @@ static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, 
     return rect;
 }
 
-static bool glfm__getSafeInsets(const GLFMDisplay *display, double *top, double *right,
-                                double *bottom, double *left) {
+static bool glfm__getSafeInsets(const GLFMDisplay *display, int *top, int *right,
+                                int *bottom, int *left) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     const int SDK_INT = platformData->activity->sdkVersion;
     if (SDK_INT < 28) {
@@ -1908,17 +1922,17 @@ static bool glfm__getSafeInsets(const GLFMDisplay *display, double *top, double 
         return false;
     }
 
-    if (top) *top = glfm__callJavaMethod(jni, cutouts, "getSafeInsetTop", "()I", Int);
-    if (right) *right = glfm__callJavaMethod(jni, cutouts, "getSafeInsetRight", "()I", Int);
-    if (bottom) *bottom = glfm__callJavaMethod(jni, cutouts, "getSafeInsetBottom", "()I", Int);
-    if (left) *left = glfm__callJavaMethod(jni, cutouts, "getSafeInsetLeft", "()I", Int);
+    *top = glfm__callJavaMethod(jni, cutouts, "getSafeInsetTop", "()I", Int);
+    *right = glfm__callJavaMethod(jni, cutouts, "getSafeInsetRight", "()I", Int);
+    *bottom = glfm__callJavaMethod(jni, cutouts, "getSafeInsetBottom", "()I", Int);
+    *left = glfm__callJavaMethod(jni, cutouts, "getSafeInsetLeft", "()I", Int);
 
     (*jni)->DeleteLocalRef(jni, cutouts);
     return true;
 }
 
-static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, double *top, double *right,
-                                        double *bottom, double *left) {
+static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, int *top, int *right,
+                                        int *bottom, int *left) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     const int SDK_INT = platformData->activity->sdkVersion;
     if (SDK_INT < 20) {
@@ -1938,10 +1952,10 @@ static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, double *top,
         return false;
     }
 
-    if (top) *top = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetTop", "()I", Int);
-    if (right) *right = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetRight", "()I", Int);
-    if (bottom) *bottom = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetBottom", "()I", Int);
-    if (left) *left = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetLeft", "()I", Int);
+    *top = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetTop", "()I", Int);
+    *right = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetRight", "()I", Int);
+    *bottom = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetBottom", "()I", Int);
+    *left = glfm__callJavaMethod(jni, insets, "getSystemWindowInsetLeft", "()I", Int);
 
     (*jni)->DeleteLocalRef(jni, insets);
     return true;
@@ -1974,7 +1988,7 @@ static float glfm__getRefreshRate(const GLFMDisplay *display) {
     return refreshRate;
 }
 
-static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
+static bool glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     int32_t width;
     int32_t height;
@@ -1987,15 +2001,64 @@ static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
             platformData->refreshRequested = true;
             platformData->width = width;
             platformData->height = height;
-            glfm__reportOrientationChangeIfNeeded(platformData->display);
             if (platformData->display && platformData->display->surfaceResizedFunc) {
                 platformData->display->surfaceResizedFunc(platformData->display, width, height);
             }
+            glfm__reportOrientationChangeIfNeeded(platformData->display);
+            glfm__reportInsetsChangedIfNeeded(platformData->display);
+            glfm__updateKeyboardVisibility(platformData);
+            return true;
         } else {
             // Prefer to wait until after content rect changed, if possible
             platformData->resizeEventWaitFrames--;
         }
     }
+    return false;
+}
+
+static void glfm__getDisplayChromeInsets(const GLFMDisplay *display, int *top, int *right,
+                                         int *bottom, int *left) {
+
+    bool success;
+    if (glfmGetDisplayChrome(display) == GLFMUserInterfaceChromeNone) {
+        success = glfm__getSafeInsets(display, top, right, bottom, left);
+    } else {
+        success = glfm__getSystemWindowInsets(display, top, right, bottom, left);
+    }
+    if (!success) {
+        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+        const ARect *contentRect = &platformData->contentRectArray[platformData->contentRectIndex];
+        ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, contentRect);
+        if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0) {
+            *top = 0;
+            *right = 0;
+            *bottom = 0;
+            *left = 0;
+        } else {
+            *top = visibleRect.top;
+            *right = platformData->width - visibleRect.right;
+            *bottom = platformData->height - visibleRect.bottom;
+            *left = visibleRect.left;
+        }
+    }
+}
+
+static void glfm__reportInsetsChangedIfNeeded(GLFMDisplay *display) {
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    int top, right, bottom, left;
+    glfm__getDisplayChromeInsets(display, &top, &right, &bottom, &left);
+    if (platformData->insets.top != top || platformData->insets.right != right ||
+        platformData->insets.bottom != bottom || platformData->insets.left != left) {
+        platformData->insets.top = top;
+        platformData->insets.right = right;
+        platformData->insets.bottom = bottom;
+        platformData->insets.left = left;
+        if (display->displayChromeInsetsChangedFunc && platformData->insets.valid) {
+            display->displayChromeInsetsChangedFunc(display, (double)top, (double)top,
+                                                    (double)bottom, (double)left);
+        }
+    }
+    platformData->insets.valid = true;
 }
 
 static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display) {
@@ -2346,29 +2409,12 @@ double glfmGetDisplayScale(const GLFMDisplay *display) {
 
 void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
                                 double *bottom, double *left) {
-
-    bool success;
-    if (glfmGetDisplayChrome(display) == GLFMUserInterfaceChromeNone) {
-        success = glfm__getSafeInsets(display, top, right, bottom, left);
-    } else {
-        success = glfm__getSystemWindowInsets(display, top, right, bottom, left);
-    }
-    if (!success) {
-        GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-        const ARect *contentRect = &platformData->contentRectArray[platformData->contentRectIndex];
-        ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, contentRect);
-        if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0) {
-            if (top) *top = 0;
-            if (right) *right = 0;
-            if (bottom) *bottom = 0;
-            if (left) *left = 0;
-        } else {
-            if (top) *top = visibleRect.top;
-            if (right) *right = platformData->width - visibleRect.right;
-            if (bottom) *bottom = platformData->height - visibleRect.bottom;
-            if (left) *left = visibleRect.left;
-        }
-    }
+    int intTop, intRight, intBottom, intLeft;
+    glfm__getDisplayChromeInsets(display, &intTop, &intRight, &intBottom, &intLeft);
+    if (top) *top = (double)intTop;
+    if (right) *right = (double)intRight;
+    if (bottom) *bottom = (double)intBottom;
+    if (left) *left = (double)intLeft;
 }
 
 GLFMRenderingAPI glfmGetRenderingAPI(const GLFMDisplay *display) {
