@@ -137,7 +137,7 @@ static void drawCompass(CompassApp *app, int width, int height) {
     glDrawArrays(GL_TRIANGLES, 0, vertexCount);
 }
 
-static void onFrame(GLFMDisplay *display) {
+static void onDraw(GLFMDisplay *display) {
     CompassApp *app = glfmGetUserData(display);
     int width, height;
     glfmGetDisplaySize(display, &width, &height);
@@ -223,7 +223,7 @@ void glfmMain(GLFMDisplay *display) {
                          GLFMMultisampleNone);
     glfmSetUserData(display, app);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
-    glfmSetRenderFunc(display, onFrame);
+    glfmSetRenderFunc(display, onDraw);
     
     if (glfmIsSensorAvailable(display, GLFMSensorRotationMatrix)) {
         // Enable sensor for the device's rotation matrix. To disable, set the callback function to NULL.

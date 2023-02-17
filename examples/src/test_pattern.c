@@ -137,7 +137,7 @@ static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, doubl
     }
 }
 
-static void onFrame(GLFMDisplay *display) {
+static void onDraw(GLFMDisplay *display) {
     TestPatternApp *app = glfmGetUserData(display);
     if (!app->textureNeedsUpdate && !app->needsRedraw) {
         return;
@@ -182,6 +182,7 @@ void glfmMain(GLFMDisplay *display) {
                          GLFMMultisampleNone);
 
     glfmSetUserData(display, app);
+    glfmSetDisplayChrome(display, GLFMUserInterfaceChromeNavigationAndStatusBar);
     glfmSetTouchFunc(display, onTouch);
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
     glfmSetSurfaceResizedFunc(display, onSurfaceResized);
@@ -189,5 +190,5 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
     glfmSetOrientationChangedFunc(display, onOrientationChange);
     glfmSetDisplayChromeInsetsChangedFunc(display, onInsetsChange);
-    glfmSetRenderFunc(display, onFrame);
+    glfmSetRenderFunc(display, onDraw);
 }

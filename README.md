@@ -67,7 +67,7 @@ Without CMake:
 For release builds, define `NDEBUG` to remove superfluous logging statements. `NDEBUG` is automatically defined for release builds in Android Studio, but not in Xcode.
 
 ## Example
-This example initializes the display in `glfmMain()` and draws a triangle in `onFrame()`. A more detailed example is available [here](examples/src/touch.c).
+This example initializes the display in `glfmMain()` and draws a triangle in `onDraw()`. A more detailed example is available [here](examples/src/touch.c).
 
 ```C
 #include "glfm.h"
@@ -76,7 +76,7 @@ static GLint program = 0;
 static GLuint vertexBuffer = 0;
 static GLuint vertexArray = 0;
 
-static void onFrame(GLFMDisplay *display);
+static void onDraw(GLFMDisplay *display);
 static void onSurfaceDestroyed(GLFMDisplay *display);
 
 void glfmMain(GLFMDisplay *display) {
@@ -86,7 +86,7 @@ void glfmMain(GLFMDisplay *display) {
                          GLFMDepthFormatNone,
                          GLFMStencilFormatNone,
                          GLFMMultisampleNone);
-    glfmSetRenderFunc(display, onFrame);
+    glfmSetRenderFunc(display, onDraw);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
 }
 
@@ -104,7 +104,7 @@ static GLuint compileShader(const GLenum type, const GLchar *shaderString, GLint
     return shader;
 }
 
-static void onFrame(GLFMDisplay *display) {
+static void onDraw(GLFMDisplay *display) {
     if (program == 0) {
         const GLchar vertexShader[] =
             "#version 100\n"

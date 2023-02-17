@@ -21,7 +21,7 @@ typedef struct {
     bool needsRedraw;
 } ExampleApp;
 
-static void onFrame(GLFMDisplay *display);
+static void onDraw(GLFMDisplay *display);
 static void onSurfaceCreated(GLFMDisplay *display, int width, int height);
 static void onSurfaceRefresh(GLFMDisplay *display);
 static void onSurfaceDestroyed(GLFMDisplay *display);
@@ -44,7 +44,7 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
     glfmSetSurfaceRefreshFunc(display, onSurfaceRefresh);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
-    glfmSetRenderFunc(display, onFrame);
+    glfmSetRenderFunc(display, onDraw);
     glfmSetTouchFunc(display, onTouch);
     glfmSetKeyFunc(display, onKey);
     glfmSetMouseWheelFunc(display, onScroll);
@@ -251,7 +251,7 @@ static void draw(GLFMDisplay *display, int width, int height) {
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
-static void onFrame(GLFMDisplay *display) {
+static void onDraw(GLFMDisplay *display) {
     ExampleApp *app = glfmGetUserData(display);
     if (app->needsRedraw) {
         app->needsRedraw = false;

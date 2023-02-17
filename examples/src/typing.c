@@ -494,7 +494,7 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
     app->texture = 0;
 }
 
-static void onFrame(GLFMDisplay *display) {
+static void onDraw(GLFMDisplay *display) {
     TypingApp *app = glfmGetUserData(display);
     double frameTime = glfmGetTime();
 
@@ -586,7 +586,7 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetSurfaceCreatedFunc(display, onSurfaceCreatedOrResized);
     glfmSetSurfaceResizedFunc(display, onSurfaceCreatedOrResized);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
-    glfmSetRenderFunc(display, onFrame);
+    glfmSetRenderFunc(display, onDraw);
     glfmSetTouchFunc(display, onTouch);
     glfmSetKeyFunc(display, onKey);
     glfmSetCharFunc(display, onChar);

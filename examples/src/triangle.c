@@ -5,7 +5,7 @@ static GLint program = 0;
 static GLuint vertexBuffer = 0;
 static GLuint vertexArray = 0;
 
-static void onFrame(GLFMDisplay *display);
+static void onDraw(GLFMDisplay *display);
 static void onSurfaceDestroyed(GLFMDisplay *display);
 
 void glfmMain(GLFMDisplay *display) {
@@ -15,7 +15,7 @@ void glfmMain(GLFMDisplay *display) {
                          GLFMDepthFormatNone,
                          GLFMStencilFormatNone,
                          GLFMMultisampleNone);
-    glfmSetRenderFunc(display, onFrame);
+    glfmSetRenderFunc(display, onDraw);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
 }
 
@@ -33,7 +33,7 @@ static GLuint compileShader(const GLenum type, const GLchar *shaderString, GLint
     return shader;
 }
 
-static void onFrame(GLFMDisplay *display) {
+static void onDraw(GLFMDisplay *display) {
     if (program == 0) {
         const GLchar vertexShader[] =
             "#version 100\n"
