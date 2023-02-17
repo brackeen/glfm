@@ -472,6 +472,7 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
             }
 #endif
 
+            GLFM_LOG("eglChooseConfig() failed");
             glfm__reportSurfaceError(platformData->eglDisplay, "eglChooseConfig() failed");
             eglTerminate(platformData->eglDisplay);
             platformData->eglDisplay = EGL_NO_DISPLAY;

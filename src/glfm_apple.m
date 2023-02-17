@@ -419,6 +419,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         }
         
         if (!self.context) {
+            GLFM_LOG("Failed to create ES context");
             glfm__reportSurfaceError(glfmDisplay, "Failed to create ES context");
             GLFM_RELEASE(self);
             return nil;
@@ -872,6 +873,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     NSOpenGLPixelFormat *pixelFormat = GLFM_AUTORELEASE([[NSOpenGLPixelFormat alloc]
                                                          initWithAttributes:attributes]);
     if (!pixelFormat) {
+        GLFM_LOG("Failed to create GL pixel format");
         glfm__reportSurfaceError(glfmDisplay, "Failed to create GL pixel format");
         return nil;
     }
@@ -879,6 +881,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     // Initialize view
     self = [super initWithFrame:frame pixelFormat:pixelFormat];
     if (!self) {
+        GLFM_LOG("Failed to create GL context");
         glfm__reportSurfaceError(glfmDisplay, "Failed to create GL context");
         return nil;
     }
