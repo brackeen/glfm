@@ -21,7 +21,7 @@ static Texture createTestPatternTexture(GLFMDisplay *display, uint32_t width, ui
     glfmGetDisplayChromeInsets(display, &top, &right, &bottom, &left);
 
     static const uint32_t borderColor = 0xff0000ff;
-    static const uint32_t insetColor = 0xff00ffff;
+    static const uint32_t insetColor = 0xffff3322;
 
     TestPatternApp *app = glfmGetUserData(display);
     Texture texture = 0;
@@ -96,7 +96,12 @@ static void onSurfaceRefresh(GLFMDisplay *display) {
 
 static void onOrientationChange(GLFMDisplay *display, GLFMInterfaceOrientation orientation) {
     TestPatternApp *app = glfmGetUserData(display);
-    app->textureNeedsUpdate = true; // Insets may have changed
+    app->textureNeedsUpdate = true;
+}
+
+static void onInsetsChange(GLFMDisplay *display, double top, double right, double bottom, double left) {
+    TestPatternApp *app = glfmGetUserData(display);
+    app->textureNeedsUpdate = true;
 }
 
 static void onSurfaceDestroyed(GLFMDisplay *display) {
@@ -109,20 +114,23 @@ static void onSurfaceDestroyed(GLFMDisplay *display) {
 
 static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, double x, double y) {
     if (phase == GLFMTouchPhaseBegan) {
+        char *chromeString = NULL;
         GLFMUserInterfaceChrome chrome = glfmGetDisplayChrome(display);
         switch (chrome) {
             case GLFMUserInterfaceChromeNavigation:
+                chromeString = "Navigation+StatusBar";
                 glfmSetDisplayChrome(display, GLFMUserInterfaceChromeNavigationAndStatusBar);
                 break;
             case GLFMUserInterfaceChromeNavigationAndStatusBar:
+                chromeString = "None";
                 glfmSetDisplayChrome(display, GLFMUserInterfaceChromeNone);
                 break;
             case GLFMUserInterfaceChromeNone: default:
+                chromeString = "Navigation";
                 glfmSetDisplayChrome(display, GLFMUserInterfaceChromeNavigation);
                 break;
         }
-        TestPatternApp *app = glfmGetUserData(display);
-        app->textureNeedsUpdate = true; // Insets may have changed
+        printf("Chrome set to: %s\n", chromeString);
         return true;
     } else {
         return false;
@@ -180,5 +188,6 @@ void glfmMain(GLFMDisplay *display) {
     glfmSetSurfaceRefreshFunc(display, onSurfaceRefresh);
     glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
     glfmSetOrientationChangedFunc(display, onOrientationChange);
+    glfmSetDisplayChromeInsetsChangedFunc(display, onInsetsChange);
     glfmSetRenderFunc(display, onFrame);
 }
