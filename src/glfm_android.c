@@ -169,6 +169,15 @@ static jfieldID glfm__getJavaFieldID(JNIEnv *jni, jobject object, const char *na
     }
 }
 
+static jmethodID glfm__getJavaStaticMethodID(JNIEnv *jni, jclass class, const char *name, const char *sig) {
+    if (class) {
+        jmethodID methodID = (*jni)->GetStaticMethodID(jni, class, name, sig);
+        return glfm__wasJavaExceptionThrown(jni) ? NULL : methodID;
+    } else {
+        return NULL;
+    }
+}
+
 static jfieldID glfm__getJavaStaticFieldID(JNIEnv *jni, jclass class, const char *name, const char *sig) {
     if (class) {
         jfieldID fieldID = (*jni)->GetStaticFieldID(jni, class, name, sig);
@@ -185,6 +194,10 @@ static jfieldID glfm__getJavaStaticFieldID(JNIEnv *jni, jclass class, const char
 #define glfm__callJavaMethodWithArgs(jni, object, methodName, methodSig, returnType, ...) \
     (*(jni))->Call##returnType##Method(jni, object, \
         glfm__getJavaMethodID(jni, object, methodName, methodSig), __VA_ARGS__)
+
+#define glfm__callJavaStaticMethod(jni, class, methodName, methodSig, returnType) \
+    (*(jni))->CallStatic##returnType##Method(jni, class, \
+        glfm__getJavaStaticMethodID(jni, class, methodName, methodSig))
 
 #define glfm__getJavaField(jni, object, fieldName, fieldSig, fieldType) \
     (*(jni))->Get##fieldType##Field(jni, object, \
@@ -1763,30 +1776,6 @@ static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUse
         return;
     }
 
-    unsigned int systemUiVisibility = 0;
-    if (uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
-        systemUiVisibility = 0;
-    } else if (SDK_INT >= 11 && SDK_INT < 14) {
-        systemUiVisibility = View_STATUS_BAR_HIDDEN;
-    } else if (SDK_INT >= 14 && SDK_INT < 19) {
-        if (uiChrome == GLFMUserInterfaceChromeNavigation) {
-            systemUiVisibility = View_SYSTEM_UI_FLAG_FULLSCREEN;
-        } else {
-            systemUiVisibility = (View_SYSTEM_UI_FLAG_LOW_PROFILE | View_SYSTEM_UI_FLAG_FULLSCREEN);
-        }
-    } else if (SDK_INT >= 19) {
-        if (uiChrome == GLFMUserInterfaceChromeNavigation) {
-            systemUiVisibility = View_SYSTEM_UI_FLAG_FULLSCREEN;
-        } else {
-            systemUiVisibility = (View_SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                                  View_SYSTEM_UI_FLAG_FULLSCREEN |
-                                  View_SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                                  View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                                  View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                                  View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-        }
-    }
-
     bool setNow;
     bool isUiThread = ALooper_forThread() == platformData->uiLooper;
     if (isUiThread) {
@@ -1804,16 +1793,72 @@ static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUse
         }
         setNow = !isDecorViewAttached;
     }
-    if (setNow) {
-        // Set now
-        glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                     (jint)systemUiVisibility);
-        glfm__clearJavaException(jni);
-    } else {
+
+    if (!setNow) {
         // Set on the UI thread
         GLFMUserInterfaceChrome *uiChromePointer = malloc(sizeof(GLFMUserInterfaceChrome)); // Freed in callback
         *uiChromePointer = uiChrome;
         glfm__runOnUIThread(platformData, glfm__setUserInterfaceChromeCallback, uiChromePointer);
+    } else {
+        // Set now
+        if (SDK_INT >= 30) {
+            jobject windowInsetsController = glfm__callJavaMethod(jni, decorView, "getWindowInsetsController", "()Landroid/view/WindowInsetsController;", Object);
+            jclass windowInsetsTypeClass = (*jni)->FindClass(jni, "android/view/WindowInsets$Type");
+            if (windowInsetsController && windowInsetsTypeClass && !glfm__wasJavaExceptionThrown(jni)) {
+                static const jint WindowInsetsController_BEHAVIOR_DEFAULT = 1;
+                static const jint WindowInsetsController_BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE = 2;
+
+                const jint systemBars = glfm__callJavaStaticMethod(jni, windowInsetsTypeClass, "systemBars", "()I", Int);
+
+                if (uiChrome == GLFMUserInterfaceChromeNone) {
+                    glfm__callJavaMethodWithArgs(jni, windowInsetsController, "setSystemBarsBehavior", "(I)V", Void,
+                                                 WindowInsetsController_BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                    glfm__callJavaMethodWithArgs(jni, windowInsetsController, "hide", "(I)V", Void, systemBars);
+                } else {
+                    glfm__callJavaMethodWithArgs(jni, windowInsetsController, "setSystemBarsBehavior", "(I)V", Void,
+                                                 WindowInsetsController_BEHAVIOR_DEFAULT);
+                    if (uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
+                        glfm__callJavaMethodWithArgs(jni, windowInsetsController, "show", "(I)V", Void, systemBars);
+                    } else if (uiChrome == GLFMUserInterfaceChromeNavigation) {
+                        const jint statusBars = glfm__callJavaStaticMethod(jni, windowInsetsTypeClass, "statusBars", "()I", Int);
+                        glfm__callJavaMethodWithArgs(jni, windowInsetsController, "hide", "(I)V", Void, statusBars);
+                        glfm__callJavaMethodWithArgs(jni, windowInsetsController, "show", "(I)V", Void, systemBars & ~statusBars);
+                    }
+                }
+
+                (*jni)->DeleteLocalRef(jni, windowInsetsController);
+                (*jni)->DeleteLocalRef(jni, windowInsetsTypeClass);
+                glfm__clearJavaException(jni);
+            }
+        } else {
+            unsigned int systemUiVisibility = 0;
+            if (uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
+                systemUiVisibility = 0;
+            } else if (SDK_INT >= 11 && SDK_INT < 14) {
+                systemUiVisibility = View_STATUS_BAR_HIDDEN;
+            } else if (SDK_INT >= 14 && SDK_INT < 19) {
+                if (uiChrome == GLFMUserInterfaceChromeNavigation) {
+                    systemUiVisibility = View_SYSTEM_UI_FLAG_FULLSCREEN;
+                } else {
+                    systemUiVisibility = (View_SYSTEM_UI_FLAG_LOW_PROFILE | View_SYSTEM_UI_FLAG_FULLSCREEN);
+                }
+            } else if (SDK_INT >= 19) {
+                if (uiChrome == GLFMUserInterfaceChromeNavigation) {
+                    systemUiVisibility = View_SYSTEM_UI_FLAG_FULLSCREEN;
+                } else {
+                    systemUiVisibility = (View_SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                                          View_SYSTEM_UI_FLAG_FULLSCREEN |
+                                          View_SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                                          View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                                          View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                                          View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                }
+            }
+
+            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
+                                         (jint)systemUiVisibility);
+            glfm__clearJavaException(jni);
+        }
     }
     (*jni)->DeleteLocalRef(jni, decorView);
 }
