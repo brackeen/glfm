@@ -53,6 +53,14 @@ typedef struct {
     int commandPipeWrite;
     bool threadRunning;
 
+    ALooper *uiLooper;
+    pthread_mutex_t uiMutex;
+    pthread_cond_t uiCond;
+    int uiCommandPipeRead;
+    int uiCommandPipeWrite;
+    uint64_t uiMessageId;
+    bool uiMessageRunning;
+
     ANativeWindow *window;
     AInputQueue *inputQueue;
     ARect contentRect;
@@ -105,6 +113,7 @@ static GLFMPlatformData *platformDataGlobal = NULL;
 // MARK: - Private function declarations
 
 static void *glfm__mainLoop(void *param);
+static int glfm__looperCallback(int fd, int events, void *userData);
 static void glfm__setAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
 static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display);
 static void glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force);
@@ -580,6 +589,10 @@ static void glfm__sendCommand(ANativeActivity *activity, GLFMActivityCommand com
 }
 
 static void glfm__activityOnStart(ANativeActivity *activity) {
+    GLFMPlatformData *platformData = activity->instance;
+    if (platformData && platformData->display) {
+        glfm__setUserInterfaceChrome(platformData, platformData->display->uiChrome);
+    }
     glfm__sendCommand(activity, GLFMActivityCommandOnStart);
 }
 
@@ -674,6 +687,11 @@ static void glfm__activityOnDestroy(ANativeActivity *activity) {
     close(platformData->commandPipeWrite);
     pthread_cond_destroy(&platformData->cond);
     pthread_mutex_destroy(&platformData->mutex);
+
+    close(platformData->uiCommandPipeRead);
+    close(platformData->uiCommandPipeWrite);
+    pthread_cond_destroy(&platformData->uiCond);
+    pthread_mutex_destroy(&platformData->uiMutex);
     GLFM_LOG_LIFECYCLE("Goodbye");
 }
 
@@ -688,9 +706,19 @@ JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedSt
     (void)savedStateSize;
 
     GLFM_LOG_LIFECYCLE("ANativeActivity_onCreate (API %i)", activity->sdkVersion);
+    ALooper *looper = ALooper_forThread();
+    if (!looper) {
+        GLFM_LOG("No looper");
+        return;
+    }
     int commandPipe[2];
+    int uiCommandPipe[2];
     if (pipe(commandPipe)) {
         GLFM_LOG("Couldn't create pipe");
+        return;
+    }
+    if (pipe(uiCommandPipe)) {
+        GLFM_LOG("Couldn't create UI pipe");
         return;
     }
 
@@ -727,6 +755,16 @@ JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedSt
     pthread_mutex_init(&platformData->mutex, NULL);
     pthread_cond_init(&platformData->cond, NULL);
 
+    // Setup UI thread callbacks
+    platformData->uiLooper = looper;
+    platformData->uiCommandPipeRead = uiCommandPipe[0];
+    platformData->uiCommandPipeWrite = uiCommandPipe[1];
+    pthread_mutex_init(&platformData->uiMutex, NULL);
+    pthread_cond_init(&platformData->uiCond, NULL);
+    ALooper_addFd(platformData->uiLooper, platformData->uiCommandPipeRead,
+                  ALOOPER_POLL_CALLBACK,ALOOPER_EVENT_INPUT,
+                  glfm__looperCallback, platformData);
+
     // Start thread
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -741,6 +779,98 @@ JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedSt
     }
     pthread_mutex_unlock(&platformData->mutex);
     GLFM_LOG_LIFECYCLE("Returning from ANativeActivity_onCreate");
+}
+
+// MARK: - UI thread callbacks
+
+typedef struct {
+    void (*function)(GLFMPlatformData *platformData, void *userData);
+    void *userData;
+    uint64_t messageId;
+} GLFMLooperMessage;
+
+// Called from the UI thread
+static int glfm__looperCallback(int fd, int events, void *userData) {
+    GLFMPlatformData *platformData = userData;
+    GLFMLooperMessage message;
+    assert(ALooper_forThread() == platformData->uiLooper);
+    if ((events & ALOOPER_EVENT_INPUT) != 0) {
+        if (read(fd, &message, sizeof(message)) == sizeof(message)) {
+            if (message.function) {
+                message.function(platformData, message.userData);
+            }
+            pthread_mutex_lock(&platformData->uiMutex);
+            if (platformData->uiMessageId == message.messageId) {
+                platformData->uiMessageRunning = false;
+            }
+            pthread_cond_broadcast(&platformData->uiCond);
+            pthread_mutex_unlock(&platformData->uiMutex);
+        }
+    }
+    return 1;
+}
+
+/// Executes a function on the UI thread.
+/// Returns true if the function was executed, false on error or timeout.
+static bool glfm__runOnUIThreadAndWait(GLFMPlatformData *platformData,
+                                       void (*function)(GLFMPlatformData *platformData, void *userData),
+                                       void *userData) {
+    assert(platformData->looper == ALooper_forThread());
+    if (platformData->looper != ALooper_forThread()) {
+        return false;
+    }
+
+    // Set message ID
+    pthread_mutex_lock(&platformData->uiMutex);
+    platformData->uiMessageId++;
+    platformData->uiMessageRunning = true;
+    pthread_mutex_unlock(&platformData->uiMutex);
+
+    // Write message
+    GLFMLooperMessage message = { 0 };
+    message.function = function;
+    message.userData = userData;
+    message.messageId = platformData->uiMessageId;
+    if (write(platformData->uiCommandPipeWrite, &message, sizeof(message)) != sizeof(message)) {
+        // The pipe is full.
+        return false;
+    }
+
+    // Check for pthread_cond_timedwait_monotonic_np function (API 28)
+    typedef int (*pthread_cond_timedwait_monotonic_np_function)(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *timeout);
+    static pthread_cond_timedwait_monotonic_np_function pthread_cond_timedwait_monotonic_np = NULL;
+    if (platformData->activity->sdkVersion >= 28) {
+        static bool pthread_cond_timedwait_monotonic_np_function_checked = false;
+        if (!pthread_cond_timedwait_monotonic_np_function_checked) {
+            pthread_cond_timedwait_monotonic_np_function_checked = true;
+            pthread_cond_timedwait_monotonic_np = (pthread_cond_timedwait_monotonic_np_function)glfmGetProcAddress("pthread_cond_timedwait_monotonic_np");
+
+        }
+    }
+
+    // Create timespec for timeout
+    const long timeoutMillis = 100;
+    const clockid_t clock = pthread_cond_timedwait_monotonic_np ? CLOCK_MONOTONIC : CLOCK_REALTIME;
+    struct timespec timeout;
+    clock_gettime(clock, &timeout);
+    timeout.tv_nsec += timeoutMillis * 1000000L;
+    if (timeout.tv_nsec >= 1000000000L) {
+        timeout.tv_nsec -= 1000000000L;
+        timeout.tv_sec += 1;
+    }
+
+    // Wait for completion
+    pthread_mutex_lock(&platformData->uiMutex);
+    int result = 0;
+    while (platformData->uiMessageRunning && result == 0) {
+        if (pthread_cond_timedwait_monotonic_np) {
+            result = pthread_cond_timedwait_monotonic_np(&platformData->uiCond, &platformData->uiMutex, &timeout);
+        } else {
+            result = pthread_cond_timedwait(&platformData->uiCond, &platformData->uiMutex, &timeout);
+        }
+    }
+    pthread_mutex_unlock(&platformData->uiMutex);
+    return !platformData->uiMessageRunning;
 }
 
 // MARK: - App command callback and input callbacks
@@ -838,7 +968,6 @@ static void glfm__onAppCmd(GLFMPlatformData *platformData, GLFMActivityCommand c
         }
         case GLFMActivityCommandOnStart: {
             GLFM_LOG_LIFECYCLE("OnStart");
-            glfm__setUserInterfaceChrome(platformData, platformData->display->uiChrome);
             break;
         }
         case GLFMActivityCommandOnResume: {
@@ -1590,12 +1719,8 @@ static void *glfm__mainLoop(void *param) {
 
 // MARK: - GLFM private functions
 
-static jobject glfm__getDecorView(GLFMPlatformData *platformData) {
-    if (!platformData || !platformData->activity) {
-        return NULL;
-    }
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
+static jobject glfm__getDecorView(JNIEnv *jni, GLFMPlatformData *platformData) {
+    if (!platformData || !platformData->activity || (*jni)->ExceptionCheck(jni)) {
         return NULL;
     }
     jobject window = glfm__callJavaMethod(jni, platformData->activity->clazz, "getWindow", "()Landroid/view/Window;", Object);
@@ -1613,7 +1738,7 @@ static ARect glfm__getDecorViewRect(GLFMPlatformData *platformData, ARect defaul
         return defaultRect;
     }
 
-    jobject decorView = glfm__getDecorView(platformData);
+    jobject decorView = glfm__getDecorView(jni, platformData);
     if (!decorView) {
         return defaultRect;
     }
@@ -1648,6 +1773,13 @@ static ARect glfm__getDecorViewRect(GLFMPlatformData *platformData, ARect defaul
     return result;
 }
 
+static void glfm__setUserInterfaceChromeCallback(GLFMPlatformData *platformData, void *userData) {
+    GLFMUserInterfaceChrome *uiChrome = userData;
+    glfm__setUserInterfaceChrome(platformData, *uiChrome);
+    free(userData);
+}
+
+// Can be called from either native thread or UI thread
 static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUserInterfaceChrome uiChrome) {
     static const unsigned int View_STATUS_BAR_HIDDEN = 0x00000001;
     static const unsigned int View_SYSTEM_UI_FLAG_LOW_PROFILE = 0x00000001;
@@ -1666,12 +1798,14 @@ static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUse
         return;
     }
 
-    JNIEnv *jni = platformData->jniEnv;
-    if ((*jni)->ExceptionCheck(jni)) {
+    JavaVM *vm = platformData->activity->vm;
+    JNIEnv *jni = NULL;
+    (*vm)->GetEnv(vm, (void **) &jni, JNI_VERSION_1_2);
+    if (!jni || (*jni)->ExceptionCheck(jni)) {
         return;
     }
 
-    jobject decorView = glfm__getDecorView(platformData);
+    jobject decorView = glfm__getDecorView(jni, platformData);
     if (!decorView) {
         return;
     }
@@ -1700,20 +1834,34 @@ static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUse
         }
     }
 
-    jboolean isDecorViewAttached;
-    if (SDK_INT >= 19) {
-        isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "isAttachedToWindow", "()Z", Boolean);
+    bool setNow;
+    bool isUiThread = ALooper_forThread() == platformData->uiLooper;
+    if (isUiThread) {
+        setNow = true;
     } else {
-        isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "getWindowToken", "()Landroid/os/IBinder;", Object) != NULL;
-    }
-    if (!glfm__wasJavaExceptionThrown(jni)) {
-        if (isDecorViewAttached) {
-            // TODO: If the decorView is attached, changing the systemUiVisibility needs to happen in the UI thread
+        jboolean isDecorViewAttached;
+        if (SDK_INT >= 19) {
+            isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "isAttachedToWindow", "()Z", Boolean);
         } else {
-            glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
-                                         (jint)systemUiVisibility);
-            glfm__clearJavaException(jni);
+            isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "getWindowToken", "()Landroid/os/IBinder;", Object) != NULL;
         }
+        if (glfm__wasJavaExceptionThrown(jni)) {
+            (*jni)->DeleteLocalRef(jni, decorView);
+            return;
+        }
+        setNow = !isDecorViewAttached;
+    }
+    if (setNow) {
+        // Set now
+        glfm__callJavaMethodWithArgs(jni, decorView, "setSystemUiVisibility", "(I)V", Void,
+                                     (jint)systemUiVisibility);
+        glfm__clearJavaException(jni);
+    } else {
+        // Set on the UI thread
+        GLFMUserInterfaceChrome *uiChromePointer = malloc(sizeof(GLFMUserInterfaceChrome)); // Freed in callback
+        *uiChromePointer = uiChrome;
+        glfm__runOnUIThreadAndWait(platformData, glfm__setUserInterfaceChromeCallback,
+                                   uiChromePointer);
     }
     (*jni)->DeleteLocalRef(jni, decorView);
 }
@@ -1744,7 +1892,7 @@ static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, 
         return defaultRect;
     }
 
-    jobject decorView = glfm__getDecorView(platformData);
+    jobject decorView = glfm__getDecorView(jni, platformData);
     if (!decorView) {
         return defaultRect;
     }
@@ -1802,7 +1950,7 @@ static bool glfm__getSafeInsets(const GLFMDisplay *display, double *top, double 
     }
 
     JNIEnv *jni = platformData->jniEnv;
-    jobject decorView = glfm__getDecorView(platformData);
+    jobject decorView = glfm__getDecorView(jni, platformData);
     if (!decorView) {
         return false;
     }
@@ -1838,7 +1986,7 @@ static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, double *top,
     }
 
     JNIEnv *jni = platformData->jniEnv;
-    jobject decorView = glfm__getDecorView(platformData);
+    jobject decorView = glfm__getDecorView(jni, platformData);
     if (!decorView) {
         return false;
     }
@@ -2035,7 +2183,7 @@ static bool glfm__setKeyboardVisible(GLFMPlatformData *platformData, bool visibl
         return false;
     }
 
-    jobject decorView = glfm__getDecorView(platformData);
+    jobject decorView = glfm__getDecorView(jni, platformData);
     if (!decorView) {
         return false;
     }
@@ -2432,7 +2580,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
             break;
     }
 
-    jobject decorView = glfm__getDecorView(platformData);
+    jobject decorView = glfm__getDecorView(jni, platformData);
     if (!decorView) {
         return;
     }
