@@ -58,8 +58,6 @@ typedef struct {
     pthread_cond_t uiCond;
     int uiCommandPipeRead;
     int uiCommandPipeWrite;
-    uint64_t uiMessageId;
-    bool uiMessageRunning;
 
     ANativeWindow *window;
     AInputQueue *inputQueue;
@@ -789,7 +787,6 @@ JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedSt
 typedef struct {
     void (*function)(GLFMPlatformData *platformData, void *userData);
     void *userData;
-    uint64_t messageId;
 } GLFMLooperMessage;
 
 // Called from the UI thread
@@ -799,81 +796,31 @@ static int glfm__looperCallback(int fd, int events, void *userData) {
     assert(ALooper_forThread() == platformData->uiLooper);
     if ((events & ALOOPER_EVENT_INPUT) != 0) {
         if (read(fd, &message, sizeof(message)) == sizeof(message)) {
-            if (message.function) {
-                message.function(platformData, message.userData);
-            }
-            pthread_mutex_lock(&platformData->uiMutex);
-            if (platformData->uiMessageId == message.messageId) {
-                platformData->uiMessageRunning = false;
-            }
-            pthread_cond_broadcast(&platformData->uiCond);
-            pthread_mutex_unlock(&platformData->uiMutex);
+            message.function(platformData, message.userData);
         }
     }
     return 1;
 }
 
-/// Executes a function on the UI thread.
-/// Returns true if the function was executed, false on error or timeout.
-static bool glfm__runOnUIThreadAndWait(GLFMPlatformData *platformData,
-                                       void (*function)(GLFMPlatformData *platformData, void *userData),
-                                       void *userData) {
+/// Queues a function to execute on the UI thread.
+/// Returns true if the function was queued, false otherwise.
+static bool glfm__runOnUIThread(GLFMPlatformData *platformData,
+                                void (*function)(GLFMPlatformData *platformData, void *userData),
+                                void *userData) {
     assert(platformData->looper == ALooper_forThread());
-    if (platformData->looper != ALooper_forThread()) {
+    assert(function != NULL);
+    if (platformData->looper != ALooper_forThread() || !function) {
         return false;
     }
 
-    // Set message ID
-    pthread_mutex_lock(&platformData->uiMutex);
-    platformData->uiMessageId++;
-    platformData->uiMessageRunning = true;
-    pthread_mutex_unlock(&platformData->uiMutex);
-
-    // Write message
     GLFMLooperMessage message = { 0 };
     message.function = function;
     message.userData = userData;
-    message.messageId = platformData->uiMessageId;
     if (write(platformData->uiCommandPipeWrite, &message, sizeof(message)) != sizeof(message)) {
         // The pipe is full.
         return false;
     }
-
-    // Check for pthread_cond_timedwait_monotonic_np function (API 28)
-    typedef int (*pthread_cond_timedwait_monotonic_np_function)(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *timeout);
-    static pthread_cond_timedwait_monotonic_np_function pthread_cond_timedwait_monotonic_np = NULL;
-    if (platformData->activity->sdkVersion >= 28) {
-        static bool pthread_cond_timedwait_monotonic_np_function_checked = false;
-        if (!pthread_cond_timedwait_monotonic_np_function_checked) {
-            pthread_cond_timedwait_monotonic_np_function_checked = true;
-            pthread_cond_timedwait_monotonic_np = (pthread_cond_timedwait_monotonic_np_function)glfmGetProcAddress("pthread_cond_timedwait_monotonic_np");
-
-        }
-    }
-
-    // Create timespec for timeout
-    const long timeoutMillis = 100;
-    const clockid_t clock = pthread_cond_timedwait_monotonic_np ? CLOCK_MONOTONIC : CLOCK_REALTIME;
-    struct timespec timeout;
-    clock_gettime(clock, &timeout);
-    timeout.tv_nsec += timeoutMillis * 1000000L;
-    if (timeout.tv_nsec >= 1000000000L) {
-        timeout.tv_nsec -= 1000000000L;
-        timeout.tv_sec += 1;
-    }
-
-    // Wait for completion
-    pthread_mutex_lock(&platformData->uiMutex);
-    int result = 0;
-    while (platformData->uiMessageRunning && result == 0) {
-        if (pthread_cond_timedwait_monotonic_np) {
-            result = pthread_cond_timedwait_monotonic_np(&platformData->uiCond, &platformData->uiMutex, &timeout);
-        } else {
-            result = pthread_cond_timedwait(&platformData->uiCond, &platformData->uiMutex, &timeout);
-        }
-    }
-    pthread_mutex_unlock(&platformData->uiMutex);
-    return !platformData->uiMessageRunning;
+    return true;
 }
 
 // MARK: - App command callback and input callbacks
@@ -1852,8 +1799,7 @@ static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUse
         // Set on the UI thread
         GLFMUserInterfaceChrome *uiChromePointer = malloc(sizeof(GLFMUserInterfaceChrome)); // Freed in callback
         *uiChromePointer = uiChrome;
-        glfm__runOnUIThreadAndWait(platformData, glfm__setUserInterfaceChromeCallback,
-                                   uiChromePointer);
+        glfm__runOnUIThread(platformData, glfm__setUserInterfaceChromeCallback, uiChromePointer);
     }
     (*jni)->DeleteLocalRef(jni, decorView);
 }
