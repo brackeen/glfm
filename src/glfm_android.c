@@ -54,8 +54,6 @@ typedef struct {
     bool threadRunning;
 
     ALooper *uiLooper;
-    pthread_mutex_t uiMutex;
-    pthread_cond_t uiCond;
     int uiCommandPipeRead;
     int uiCommandPipeWrite;
 
@@ -707,8 +705,6 @@ static void glfm__activityOnDestroy(ANativeActivity *activity) {
 
     close(platformData->uiCommandPipeRead);
     close(platformData->uiCommandPipeWrite);
-    pthread_cond_destroy(&platformData->uiCond);
-    pthread_mutex_destroy(&platformData->uiMutex);
     GLFM_LOG_LIFECYCLE("Goodbye");
 }
 
@@ -781,8 +777,6 @@ JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedSt
     platformData->uiLooper = looper;
     platformData->uiCommandPipeRead = uiCommandPipe[0];
     platformData->uiCommandPipeWrite = uiCommandPipe[1];
-    pthread_mutex_init(&platformData->uiMutex, NULL);
-    pthread_cond_init(&platformData->uiCond, NULL);
     ALooper_addFd(platformData->uiLooper, platformData->uiCommandPipeRead,
                   ALOOPER_POLL_CALLBACK,ALOOPER_EVENT_INPUT,
                   glfm__looperCallback, platformData);
