@@ -124,7 +124,7 @@ static void glfm__getDisplayChromeInsets(const GLFMDisplay *display, int *top, i
                                          int *bottom, int *left);
 static void glfm__resetContentRect(GLFMPlatformData *platformData);
 static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData);
-static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUserInterfaceChrome uiChrome);
+static void glfm__updateUserInterfaceChrome(GLFMPlatformData *platformData);
 
 // MARK: - JNI code
 
@@ -608,7 +608,7 @@ static void glfm__sendCommand(ANativeActivity *activity, GLFMActivityCommand com
 static void glfm__activityOnStart(ANativeActivity *activity) {
     GLFMPlatformData *platformData = activity->instance;
     if (platformData && platformData->display) {
-        glfm__setUserInterfaceChrome(platformData, platformData->display->uiChrome);
+        glfm__updateUserInterfaceChrome(platformData);
     }
     glfm__sendCommand(activity, GLFMActivityCommandOnStart);
 }
@@ -1559,7 +1559,7 @@ static void *glfm__mainLoop(void *param) {
     ANativeActivity_setWindowFlags(platformData->activity,
                                    fullscreen ? AWINDOW_FLAG_FULLSCREEN : 0,
                                    AWINDOW_FLAG_FULLSCREEN);
-    glfm__setUserInterfaceChrome(platformData, platformData->display->uiChrome);
+    glfm__updateUserInterfaceChrome(platformData);
     if (platformData->activity->sdkVersion >= 28) {
         // Allow rendering in cutout areas ("safe area") in both portrait and landscape.
         // Test this code in Settings -> Developer Options -> Simulate a display with a cutout.
@@ -1733,14 +1733,13 @@ static ARect glfm__getDecorViewRect(GLFMPlatformData *platformData, const ARect 
     return result;
 }
 
-static void glfm__setUserInterfaceChromeCallback(GLFMPlatformData *platformData, void *userData) {
-    GLFMUserInterfaceChrome *uiChrome = userData;
-    glfm__setUserInterfaceChrome(platformData, *uiChrome);
-    free(userData);
+static void glfm__updateUserInterfaceChromeCallback(GLFMPlatformData *platformData, void *userData) {
+    (void)userData;
+    glfm__updateUserInterfaceChrome(platformData);
 }
 
 // Can be called from either native thread or UI thread
-static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUserInterfaceChrome uiChrome) {
+static void glfm__updateUserInterfaceChrome(GLFMPlatformData *platformData) {
     static const unsigned int View_STATUS_BAR_HIDDEN = 0x00000001;
     static const unsigned int View_SYSTEM_UI_FLAG_LOW_PROFILE = 0x00000001;
     static const unsigned int View_SYSTEM_UI_FLAG_HIDE_NAVIGATION = 0x00000002;
@@ -1770,6 +1769,7 @@ static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUse
         return;
     }
 
+    GLFMUserInterfaceChrome uiChrome = platformData->display->uiChrome;
     bool setNow;
     bool isUiThread = ALooper_forThread() == platformData->uiLooper;
     if (isUiThread) {
@@ -1790,9 +1790,7 @@ static void glfm__setUserInterfaceChrome(GLFMPlatformData *platformData, GLFMUse
 
     if (!setNow) {
         // Set on the UI thread
-        GLFMUserInterfaceChrome *uiChromePointer = malloc(sizeof(GLFMUserInterfaceChrome)); // Freed in callback
-        *uiChromePointer = uiChrome;
-        glfm__runOnUIThread(platformData, glfm__setUserInterfaceChromeCallback, uiChromePointer);
+        glfm__runOnUIThread(platformData, glfm__updateUserInterfaceChromeCallback, NULL);
     } else {
         // Set now
         if (SDK_INT >= 30) {
@@ -2145,7 +2143,7 @@ static void glfm__setOrientation(GLFMPlatformData *platformData) {
 
 static void glfm__displayChromeUpdated(GLFMDisplay *display) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    glfm__setUserInterfaceChrome(platformData, display->uiChrome);
+    glfm__updateUserInterfaceChrome(platformData);
 }
 
 static const ASensor *glfm__getDeviceSensor(GLFMSensor sensor) {
@@ -2329,6 +2327,9 @@ static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
             platformData->keyboardFrame.top != keyboardFrame.top ||
             platformData->keyboardFrame.right != keyboardFrame.right ||
             platformData->keyboardFrame.bottom != keyboardFrame.bottom) {
+            if (platformData->keyboardVisible != keyboardVisible) {
+                glfm__updateUserInterfaceChrome(platformData);
+            }
             platformData->keyboardVisible = keyboardVisible;
             platformData->keyboardFrame = keyboardFrame;
             platformData->refreshRequested = true;
@@ -2503,11 +2504,7 @@ bool glfmHasVirtualKeyboard(const GLFMDisplay *display) {
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     if (glfm__setKeyboardVisible(platformData, visible)) {
-        if (visible && display->uiChrome == GLFMUserInterfaceChromeNone) {
-            // This seems to be required to reset to fullscreen when the keyboard is shown.
-            glfm__setUserInterfaceChrome(platformData,
-                                         GLFMUserInterfaceChromeNavigationAndStatusBar);
-        }
+        glfm__updateUserInterfaceChrome(platformData);
     }
 }
 
