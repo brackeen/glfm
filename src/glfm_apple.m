@@ -1707,24 +1707,27 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
         UIKey *key = press.key;
         if (key) {
+            BOOL isControlKey = NO;
             hasKey = YES;
             if ((key.modifierFlags & UIKeyModifierShift) != 0) {
                 modifierFlags |= GLFMKeyModifierShift;
             }
             if ((key.modifierFlags & UIKeyModifierControl) != 0) {
                 modifierFlags |= GLFMKeyModifierControl;
+                isControlKey = YES;
             }
             if ((key.modifierFlags & UIKeyModifierAlternate) != 0) {
                 modifierFlags |= GLFMKeyModifierAlt;
             }
             if ((key.modifierFlags & UIKeyModifierCommand) != 0) {
                 modifierFlags |= GLFMKeyModifierMeta;
+                isControlKey = YES;
             }
             if (key.keyCode >= 0 && (size_t)key.keyCode < sizeof(HID_MAP) / sizeof(*HID_MAP)) {
                 keyCode = HID_MAP[key.keyCode];
             }
             if (self.isFirstResponder && self.glfmDisplay->charFunc != NULL &&
-                action != GLFMKeyActionReleased &&
+                action != GLFMKeyActionReleased && !isControlKey &&
                 keyCode >= GLFMKeyCodeSpace && keyCode != GLFMKeyCodeDelete) {
                 NSString *chars = key.charactersIgnoringModifiers;
                 isPrintable = (chars.length > 0 && [chars characterAtIndex:0] >= ' ' &&
