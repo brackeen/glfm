@@ -649,8 +649,9 @@ GLFMProc glfmGetProcAddress(const char *functionName);
 
 /// Gets whether there is currently text available in the system clipboard.
 ///
-/// On Emscripten, this function returns true if the Clipboard API is available. It is not
-/// possible to know if text is available in the system clipboard until it is requested.
+/// - Emscripten: Returns true if the Clipboard API is available. It is not possible to know if
+///               text is available in the system clipboard until it is requested.
+/// - tvOS: No clipboard API is available. Always returns false.
 bool glfmHasClipboardText(const GLFMDisplay *display);
 
 /// Requests the system clipboard text.
@@ -667,9 +668,13 @@ bool glfmHasClipboardText(const GLFMDisplay *display);
 /// - Emscripten: On some browsers, this function can only be called in an event handler, like
 ///               ``GLFMTouchFunc`` or ``GLFMKeyFunc``. Currently, Firefox does not support reading
 ///               from the clipboard.
+/// - tvOS: No clipboard API is available. The `clipboardTextFunc` callback is invoked with a NULL
+///         string.
 void glfmRequestClipboardText(GLFMDisplay *display, GLFMClipboardTextFunc clipboardTextFunc);
 
 /// Set the system clipboard text.
+///
+/// - tvOS: No clipboard API is available. Always returns false.
 ///
 /// - Parameters:
 ///   - string: A NULL-terminated UTF-8 string.

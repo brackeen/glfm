@@ -32,7 +32,7 @@ Additionally, GLFM provides Metal support on iOS and tvOS.
 | Virtual keyboard visibility events | ✔️    |       | ✔️     |      |
 | Accelerometer, magnetometer, gyroscope, device rotation | ✔️ | N/A | ✔️ |    |
 | Haptic feedback                    | ✔️[^3]| N/A   | ✔️     |      |
-| Clipboard                          | ✔️    | ✔️    | ✔️     | ✔️   |
+| Clipboard                          | ✔️    | N/A   | ✔️     | ✔️   |
 | Chrome insets ("safe area")        | ✔️[^4]| ✔️    | ✔️     |      |
 | Chrome insets changed events       | ✔️[^4]| ✔️    | ✔️     |      |
 | Focus events                       | ✔️    | ✔️    | ✔️     | ✔️   |

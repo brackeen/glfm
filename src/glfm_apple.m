@@ -3214,6 +3214,28 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
 #endif
 }
 
+#if TARGET_OS_TV
+
+bool glfmHasClipboardText(const GLFMDisplay *display) {
+    (void)display;
+    return false;
+}
+
+void glfmRequestClipboardText(GLFMDisplay *display, GLFMClipboardTextFunc clipboardTextFunc) {
+    (void)display;
+    if (clipboardTextFunc) {
+        clipboardTextFunc(display, NULL);
+    }
+}
+
+bool glfmSetClipboardText(GLFMDisplay *display, const char *string) {
+    (void)display;
+    (void)string;
+    return false;
+}
+
+#else
+
 bool glfmHasClipboardText(const GLFMDisplay *display) {
     (void)display;
 #if TARGET_OS_OSX
@@ -3266,6 +3288,8 @@ bool glfmSetClipboardText(GLFMDisplay *display, const char *string) {
 #endif
     }
 }
+
+#endif // !TARGET_OS_TV
 
 // MARK: - Apple-specific functions
 
