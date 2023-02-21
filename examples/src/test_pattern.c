@@ -130,6 +130,7 @@ static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, doubl
                 glfmSetDisplayChrome(display, GLFMUserInterfaceChromeNavigation);
                 break;
         }
+        glfmPerformHapticFeedback(display, GLFMHapticFeedbackLight);
         printf("Chrome set to: %s\n", chromeString);
         return true;
     } else {
