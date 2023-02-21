@@ -4,6 +4,7 @@
 /// Devices with a physical keyboard:
 /// * Ctrl-M to switch to KeyCode mode.
 /// * Ctrl-L to clear the screen.
+/// * Ctrl-X, Ctrl-C, Ctrl-V for cut, copy, paste.
 /// Tips:
 /// * iOS Simulator: Toggle "I/O -> Keyboard -> Connect Hardware Keyboard" to test with it both
 ///   enabled (physical keyboard) and disabled (virtual keyboard).
@@ -204,6 +205,33 @@ static void consolePrint(TypingApp *app, const char *utf8) {
     }
 }
 
+static void consoleCopy(TypingApp *app, char *buffer, size_t bufferSize) {
+    if (bufferSize == 0) {
+        return;
+    }
+    const char *bufferEnd = buffer + bufferSize - 1;
+    for (size_t i = app->consoleLineCount; i > 0; i--) {
+        if (buffer >= bufferEnd) {
+            break;
+        }
+        size_t line = (app->consoleLineFirst + i - 1) % CONSOLE_MAX_LINES;
+        for (size_t col = 0; col < CONSOLE_COLS; col++) {
+            char ch = (char)app->console[line][col];
+            if (ch == 0) {
+                if (col > 0 || i > 1) {
+                    *buffer++ = '\n';
+                }
+                break;
+            }
+            *buffer++ = ch;
+            if (buffer >= bufferEnd) {
+                break;
+            }
+        }
+    }
+    *buffer = '\0';
+}
+
 static void consoleClear(TypingApp *app) {
     app->consoleLineCount = 0;
     consolePrint(app, "");
@@ -250,6 +278,13 @@ static void onChar(GLFMDisplay *display, const char *utf8, int modifiers) {
     consolePrint(app, utf8);
 }
 
+static void onClipboardPasteText(GLFMDisplay *display, const char *string) {
+    if (string) {
+        TypingApp *app = glfmGetUserData(display);
+        consolePrint(app, string);
+    }
+}
+
 static bool onKey(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAction action, int modifiers) {
     TypingApp *app = glfmGetUserData(display);
     if (action == GLFMKeyActionPressed) {
@@ -268,6 +303,19 @@ static bool onKey(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAction actio
                 consolePrint(app, "KeyCode mode: off\n");
                 glfmSetCharFunc(display, onChar);
             }
+            return true;
+        } else if ((keyCode == GLFMKeyCodeC || keyCode == GLFMKeyCodeX) &&
+                   (modifiers == GLFMKeyModifierMeta || modifiers == GLFMKeyModifierControl)) {
+            char buffer[CONSOLE_COLS * CONSOLE_MAX_LINES + 1];
+            consoleCopy(app, buffer, sizeof(buffer));
+            bool success = glfmSetClipboardText(display, buffer);
+            if (success && keyCode == GLFMKeyCodeX) {
+                consoleClear(app);
+            }
+            return true;
+        } else if (keyCode == GLFMKeyCodeV &&
+                   (modifiers == GLFMKeyModifierMeta || modifiers == GLFMKeyModifierControl)) {
+            glfmRequestClipboardText(display, onClipboardPasteText);
             return true;
         }
     }
