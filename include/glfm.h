@@ -428,9 +428,18 @@ typedef bool (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAc
 ///
 /// - Parameters:
 ///   - string: A NULL-terminated UTF-8 string. The string is only valid during the callback, and
-///             should be copied if it is needed after the callback returns.
+///             should be copied if it is needed after the callback returns. The string is never
+///             NULL.
 ///   - modifier: Deprecated and always set to 0.
 typedef void (*GLFMCharFunc)(GLFMDisplay *display, const char *string, int modifiers);
+
+/// Callback function when clipboard text is received. See ``glfmRequestClipboardText``.
+///
+/// - Parameters:
+///   - string: A NULL-terminated UTF-8 string. The string is only valid during the callback, and
+///             should be copied if it is needed after the callback returns. May be NULL if there
+///             is no text in the clipboard, or if the text could not be converted to UTF-8.
+typedef void (*GLFMClipboardTextFunc)(GLFMDisplay *display, const char *string);
 
 /// Callback function when mouse wheel input events occur. See ``glfmSetMouseWheelFunc``.
 /// - Parameters:
@@ -637,6 +646,35 @@ GLFMSwapBehavior glfmGetSwapBehavior(const GLFMDisplay *display);
 
 /// Gets the address of the specified function.
 GLFMProc glfmGetProcAddress(const char *functionName);
+
+/// Gets whether there is currently text available in the system clipboard.
+///
+/// On Emscripten, this function returns true if the Clipboard API is available. It is not
+/// possible to know if text is available in the system clipboard until it is requested.
+bool glfmHasClipboardText(const GLFMDisplay *display);
+
+/// Requests the system clipboard text.
+///
+/// The `clipboardTextFunc` callback may be invoked after a delay because the clipboard text
+/// may be retrieved from the network (iCloud clipboard) or may require user confirmation (web
+/// dialog) before proceeding.
+///
+/// The `clipboardTextFunc` callback is invoked only once.
+///
+/// If there was no text in the clipboard, the `clipboardTextFunc` callback is invoked with a NULL
+/// string.
+///
+/// - Emscripten: On some browsers, this function can only be called in an event handler, like
+///               ``GLFMTouchFunc`` or ``GLFMKeyFunc``. Currently, Firefox does not support reading
+///               from the clipboard.
+void glfmRequestClipboardText(GLFMDisplay *display, GLFMClipboardTextFunc clipboardTextFunc);
+
+/// Set the system clipboard text.
+///
+/// - Parameters:
+///   - string: A NULL-terminated UTF-8 string.
+/// - Returns: `true` on success, `false` otherwise.
+bool glfmSetClipboardText(GLFMDisplay *display, const char *string);
 
 /// Gets the value of the highest precision time available, in seconds.
 ///

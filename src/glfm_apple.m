@@ -3214,6 +3214,59 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
 #endif
 }
 
+bool glfmHasClipboardText(const GLFMDisplay *display) {
+    (void)display;
+#if TARGET_OS_OSX
+    NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+    return [pasteboard.types containsObject:NSPasteboardTypeString];
+#else
+    UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+    return [pasteboard hasStrings];
+#endif
+}
+
+void glfmRequestClipboardText(GLFMDisplay *display, GLFMClipboardTextFunc clipboardTextFunc) {
+    if (!clipboardTextFunc) {
+        return;
+    }
+
+    // Run in a background thread because the text may be retrieved from the network (iCloud clipboard)
+    // or show a confirmation dialog on iOS.
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSString *text = nil;
+        if (glfmHasClipboardText(display)) {
+#if TARGET_OS_OSX
+            NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+            text = [pasteboard stringForType:NSPasteboardTypeString];
+#else
+            UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+            text = pasteboard.string;
+#endif
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            clipboardTextFunc(display, text.UTF8String);
+        });
+    });
+}
+
+bool glfmSetClipboardText(GLFMDisplay *display, const char *string) {
+    (void)display;
+    @autoreleasepool {
+        NSString *text = string ? [NSString stringWithUTF8String:string] : nil;
+        if (!text) {
+            return false;
+        }
+#if TARGET_OS_OSX
+        NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+        [pasteboard declareTypes:@[NSPasteboardTypeString] owner:nil];
+        return ([pasteboard setString:text forType:NSPasteboardTypeString] == YES);
+#else
+        [UIPasteboard generalPasteboard].string = text;
+        return true;
+#endif
+    }
+}
+
 // MARK: - Apple-specific functions
 
 bool glfmIsMetalSupported(const GLFMDisplay *display) {

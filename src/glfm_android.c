@@ -197,6 +197,10 @@ static jfieldID glfm__getJavaStaticFieldID(JNIEnv *jni, jclass class, const char
     (*(jni))->CallStatic##returnType##Method(jni, class, \
         glfm__getJavaStaticMethodID(jni, class, methodName, methodSig))
 
+#define glfm__callJavaStaticMethodWithArgs(jni, class, methodName, methodSig, returnType, ...) \
+    (*(jni))->CallStatic##returnType##Method(jni, class, \
+        glfm__getJavaStaticMethodID(jni, class, methodName, methodSig), __VA_ARGS__)
+
 #define glfm__getJavaField(jni, object, fieldName, fieldSig, fieldType) \
     (*(jni))->Get##fieldType##Field(jni, object, \
         glfm__getJavaFieldID(jni, object, fieldName, fieldSig))
@@ -2615,6 +2619,164 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
         glfm__callJavaMethodWithArgs(jni, decorView, "performHapticFeedback", "(II)Z", Boolean, defaultFeedbackConstant, feedbackFlags);
     }
     (*jni)->DeleteLocalRef(jni, decorView);
+}
+
+bool glfmHasClipboardText(const GLFMDisplay *display) {
+    if (!display || !display->platformData) {
+        return false;
+    }
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    JNIEnv *jni = platformData->jniEnv;
+
+    // ClipboardManager clipboardManager = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
+    jobject clipboardManager = glfm__getSystemService(platformData, "CLIPBOARD_SERVICE");
+    if (!clipboardManager) {
+        return false;
+    }
+
+    // Invoke clipboardManager.getPrimaryClipDescription()
+    jobject primaryClipDescription = glfm__callJavaMethod(jni, clipboardManager, "getPrimaryClipDescription",
+                                                   "()Landroid/content/ClipDescription;", Object);
+    (*jni)->DeleteLocalRef(jni, clipboardManager);
+    if (glfm__wasJavaExceptionThrown(jni) || !primaryClipDescription) {
+        return false;
+    }
+
+    // Invoke primaryClipDescription.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)
+    jclass class = (*jni)->GetObjectClass(jni, primaryClipDescription);
+    jobject mimeType = glfm__getJavaStaticField(jni, class, "MIMETYPE_TEXT_PLAIN",
+                                                "Ljava/lang/String;", Object);
+    (*jni)->DeleteLocalRef(jni, class);
+    if (glfm__wasJavaExceptionThrown(jni) || !mimeType) {
+        return false;
+    }
+    jboolean hasText = glfm__callJavaMethodWithArgs(jni, primaryClipDescription, "hasMimeType",
+                                                    "(Ljava/lang/String;)Z", Boolean, mimeType);
+
+    (*jni)->DeleteLocalRef(jni, primaryClipDescription);
+    if (glfm__wasJavaExceptionThrown(jni)) {
+        return false;
+    } else {
+        return hasText;
+    }
+}
+
+void glfmRequestClipboardText(GLFMDisplay *display, GLFMClipboardTextFunc clipboardTextFunc) {
+    if (!clipboardTextFunc) {
+        return;
+    }
+
+    // First check glfmHasClipboardText(), to prevent a toast from being show if there is something
+    // other than text in the clipboard
+    if (!display || !display->platformData || !glfmHasClipboardText(display)) {
+        clipboardTextFunc(display, NULL);
+    }
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    JNIEnv *jni = platformData->jniEnv;
+
+    // ClipboardManager clipboardManager = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
+    jobject clipboardManager = glfm__getSystemService(platformData, "CLIPBOARD_SERVICE");
+    if (!clipboardManager) {
+        clipboardTextFunc(display, NULL);
+        return;
+    }
+
+    // Invoke clipboardManager.getPrimaryClip()?.getItemAt(0)?.getText()?.toString()
+    // Note, there appears no reason to do this asynchronously.
+    jobject clipData = glfm__callJavaMethod(jni, clipboardManager, "getPrimaryClip",
+                                            "()Landroid/content/ClipData;", Object);
+    (*jni)->DeleteLocalRef(jni, clipboardManager);
+    if (glfm__wasJavaExceptionThrown(jni) || !clipData) {
+        clipboardTextFunc(display, NULL);
+        return;
+    }
+    jobject clipDataItem = glfm__callJavaMethodWithArgs(jni, clipData, "getItemAt",
+                                                        "(I)Landroid/content/ClipData$Item;",
+                                                        Object, 0);
+    (*jni)->DeleteLocalRef(jni, clipData);
+    if (glfm__wasJavaExceptionThrown(jni) || !clipDataItem) {
+        clipboardTextFunc(display, NULL);
+        return;
+    }
+    jobject clipDataItemText = glfm__callJavaMethod(jni, clipDataItem, "getText",
+                                                    "()Ljava/lang/CharSequence;", Object);
+    (*jni)->DeleteLocalRef(jni, clipDataItem);
+    if (glfm__wasJavaExceptionThrown(jni) || !clipDataItemText) {
+        clipboardTextFunc(display, NULL);
+        return;
+    }
+    jstring javaString = glfm__callJavaMethod(jni, clipDataItemText, "toString",
+                                              "()Ljava/lang/String;", Object);
+    (*jni)->DeleteLocalRef(jni, clipDataItemText);
+    if (glfm__wasJavaExceptionThrown(jni) || !javaString) {
+        clipboardTextFunc(display, NULL);
+        return;
+    }
+
+    // Convert Java string to C string
+    const char *cString = (*jni)->GetStringUTFChars(jni, javaString, NULL);
+    if (glfm__wasJavaExceptionThrown(jni) || !cString) {
+        clipboardTextFunc(display, NULL);
+        return;
+    }
+
+    // Call
+    clipboardTextFunc(display, cString);
+
+    // Cleanup
+    (*jni)->ReleaseStringUTFChars(jni, javaString, cString);
+    (*jni)->DeleteLocalRef(jni, javaString);
+}
+
+bool glfmSetClipboardText(GLFMDisplay *display, const char *string) {
+    if (!string || !display || !display->platformData) {
+        return false;
+    }
+    GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
+    JNIEnv *jni = platformData->jniEnv;
+
+    // Convert C string to java String
+    jstring javaString = (*jni)->NewStringUTF(jni, string);
+    if (glfm__wasJavaExceptionThrown(jni) || !javaString) {
+        return false;
+    }
+
+    // Create ClipData
+    // ClipData clipData = ClipData.newPlainText("simple text", javaString);
+    jclass clipDataClass = (*jni)->FindClass(jni, "android/content/ClipData");
+    if (glfm__wasJavaExceptionThrown(jni) || !clipDataClass) {
+        (*jni)->DeleteLocalRef(jni, javaString);
+        return false;
+    }
+    jstring label = (*jni)->NewStringUTF(jni, "simple text");
+    if (glfm__wasJavaExceptionThrown(jni) || !label) {
+        (*jni)->DeleteLocalRef(jni, clipDataClass);
+        (*jni)->DeleteLocalRef(jni, javaString);
+        return false;
+    }
+    jobject clipData = glfm__callJavaStaticMethodWithArgs(jni, clipDataClass, "newPlainText",
+                                                          "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/ClipData;",
+                                                          Object, label, javaString);
+    (*jni)->DeleteLocalRef(jni, clipDataClass);
+    (*jni)->DeleteLocalRef(jni, javaString);
+    if (glfm__wasJavaExceptionThrown(jni) || !clipData) {
+        return false;
+    }
+
+    // Set the clipboard text
+    // ClipboardManager clipboardManager = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
+    // clipboardManager.setPrimaryClip(clipData);
+    jobject clipboardManager = glfm__getSystemService(platformData, "CLIPBOARD_SERVICE");
+    if (glfm__wasJavaExceptionThrown(jni) || !clipboardManager) {
+        (*jni)->DeleteLocalRef(jni, clipData);
+        return false;
+    }
+    glfm__callJavaMethodWithArgs(jni, clipboardManager, "setPrimaryClip",
+                                 "(Landroid/content/ClipData;)V", Void, clipData);
+    (*jni)->DeleteLocalRef(jni, clipData);
+    (*jni)->DeleteLocalRef(jni, clipboardManager);
+
+    return !glfm__wasJavaExceptionThrown(jni);
 }
 
 // MARK: - Platform-specific functions

@@ -96,6 +96,19 @@ void glfm__sensorFuncUpdated(GLFMDisplay *display) {
     // TODO: Sensors
 }
 
+EMSCRIPTEN_KEEPALIVE extern
+void glfm__requestClipboardTextCallback(GLFMDisplay *display,
+                                        GLFMClipboardTextFunc clipboardTextFunc, const char *text);
+
+void glfm__requestClipboardTextCallback(GLFMDisplay *display,
+                                        GLFMClipboardTextFunc clipboardTextFunc, const char *text) {
+    if (text && text[0] != '\0') {
+        clipboardTextFunc(display, text);
+    } else {
+        clipboardTextFunc(display, NULL);
+    }
+}
+
 // MARK: - GLFM public functions
 
 double glfmGetTime(void) {
@@ -283,6 +296,78 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
     (void)display;
     (void)style;
     // Do nothing
+}
+
+bool glfmHasClipboardText(const GLFMDisplay *display) {
+    (void)display;
+    // Currently, chrome supports navigator.userActivation, but Safari and Firefox do not.
+    int result = EM_ASM_INT({
+        var hasReadText = (navigator && navigator.clipboard && navigator.clipboard.readText);
+        var hasUserActivation = (navigator && navigator.userActivation) ? navigator.userActivation.isActive : true;
+        return (hasReadText && hasUserActivation) ? 1 : 0;
+    });
+    return result != 0;
+}
+
+void glfmRequestClipboardText(GLFMDisplay *display, GLFMClipboardTextFunc clipboardTextFunc) {
+    if (!clipboardTextFunc) {
+        return;
+    }
+    if (!glfmHasClipboardText(display)) {
+        clipboardTextFunc(display, NULL);
+        return;
+    }
+
+    EM_ASM({
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+            _glfm__requestClipboardTextCallback($0, $1, null);
+            return;
+        }
+        var promise = navigator.clipboard.readText();
+        if (promise === undefined) {
+            _glfm__requestClipboardTextCallback($0, $1, null);
+            return;
+        }
+        var errorCaught = false;
+        promise.catch(error => {
+            _glfm__requestClipboardTextCallback($0, $1, null);
+            errorCaught = true;
+        }).then((clipText) => {
+            if (clipText === undefined || clipText.length == 0) {
+                if (!errorCaught) {
+                    _glfm__requestClipboardTextCallback($0, $1, null);
+                }
+                return;
+            }
+            var len = lengthBytesUTF8(clipText);
+            var buffer = _malloc(len + 1);
+            if (buffer) {
+                stringToUTF8(clipText, buffer, len + 1);
+                _glfm__requestClipboardTextCallback($0, $1, buffer);
+                _free(buffer);
+            } else {
+                _glfm__requestClipboardTextCallback($0, $1, null);
+            }
+        });
+    }, display, clipboardTextFunc);
+}
+
+bool glfmSetClipboardText(GLFMDisplay *display, const char *string) {
+    (void)display;
+    if (!string) {
+        return false;
+    }
+    int result = EM_ASM_INT({
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            var text = UTF8ToString($0);
+            if (text) {
+                navigator.clipboard.writeText(text);
+                return 1;
+            }
+        }
+        return 0;
+    }, string);
+    return result == 1;
 }
 
 // MARK: - Platform-specific functions
