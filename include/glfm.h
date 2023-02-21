@@ -426,42 +426,11 @@ typedef bool (*GLFMKeyFunc)(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAc
 
 /// Callback function when character input events occur. See ``glfmSetCharFunc``.
 ///
-/// This function is called for key repeat events in some case, but not all. No repeat events occur
-/// in the following situations:
-/// * Android virtual keyboard (Except for the backspace key, which does send repeat events).
-/// * iOS virtual keyboard.
-/// * tvOS physical keyboard.
-///
-/// On Android, non-ASCII characters are not automatically received due to a limitation in the NDK.
-/// To receive them, insert this code in your `Activity`:
-///
-/// ```
-/// public class MyActivity extends NativeActivity {
-///
-///     // Send unicode keyboard input to GLFM (using keycode value Integer.MAX_VALUE)
-///     // Override
-///     public boolean dispatchKeyEvent(KeyEvent event) {
-///         if (event.getKeyCode() == KeyEvent.KEYCODE_UNKNOWN && event.getCharacters() != null &&
-///             getWindow() != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-///             String s = event.getCharacters();
-///             for (int offset = 0; offset < s.length(); ) {
-///                 int codepoint = s.codePointAt(offset);
-///                 getWindow().injectInputEvent(new KeyEvent(event.getDownTime(), event.getEventTime(),
-///                     KeyEvent.ACTION_DOWN, Integer.MAX_VALUE, 0, 0, 0, codepoint));
-///                 offset += Character.charCount(codepoint);
-///             }
-///             return true;
-///         }
-///         return super.dispatchKeyEvent(event);
-///     }
-/// }
-/// ```
-/// This code intercepts character events and re-dispatches them with the unicode values to GLFM.
-///
 /// - Parameters:
-///   - utf8: The input string in UTF-8 format.
+///   - string: A NULL-terminated UTF-8 string. The string is only valid during the callback, and
+///             should be copied if it is needed after the callback returns.
 ///   - modifier: Deprecated and always set to 0.
-typedef void (*GLFMCharFunc)(GLFMDisplay *display, const char *utf8, int modifiers);
+typedef void (*GLFMCharFunc)(GLFMDisplay *display, const char *string, int modifiers);
 
 /// Callback function when mouse wheel input events occur. See ``glfmSetMouseWheelFunc``.
 /// - Parameters:
@@ -804,7 +773,39 @@ GLFMKeyFunc glfmSetKeyFunc(GLFMDisplay *display, GLFMKeyFunc keyFunc);
 /// Character events occur when a user types with a virtual keyboard on iOS and Android, or when
 /// typing with a connected physical keyboard.
 ///
-/// - iOS and Android: Use ``glfmSetKeyboardVisible`` to show the virtual keyboard.
+/// On iOS and Android, use ``glfmSetKeyboardVisible`` to show the virtual keyboard.
+///
+/// The callback function is called for key repeat events in some case, but not all. No repeat
+/// events occur in the following situations:
+/// * Android virtual keyboard (Except for the backspace key, which does send repeat events).
+/// * iOS virtual keyboard.
+/// * tvOS physical keyboard.
+///
+/// On Android, non-ASCII characters are not automatically received due to a limitation in the NDK.
+/// To receive them, add this code in your `Activity`:
+///
+/// ```
+/// public class MyActivity extends NativeActivity {
+///
+///     // Send unicode keyboard input to GLFM (using keycode value Integer.MAX_VALUE)
+///     // Override
+///     public boolean dispatchKeyEvent(KeyEvent event) {
+///         if (event.getKeyCode() == KeyEvent.KEYCODE_UNKNOWN && event.getCharacters() != null &&
+///             getWindow() != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+///             String s = event.getCharacters();
+///             for (int offset = 0; offset < s.length(); ) {
+///                 int codepoint = s.codePointAt(offset);
+///                 getWindow().injectInputEvent(new KeyEvent(event.getDownTime(), event.getEventTime(),
+///                     KeyEvent.ACTION_DOWN, Integer.MAX_VALUE, 0, 0, 0, codepoint));
+///                 offset += Character.charCount(codepoint);
+///             }
+///             return true;
+///         }
+///         return super.dispatchKeyEvent(event);
+///     }
+/// }
+/// ```
+/// This code intercepts character events and re-dispatches them with the unicode values to GLFM.
 GLFMCharFunc glfmSetCharFunc(GLFMDisplay *display, GLFMCharFunc charFunc);
 
 /// Sets the function to call when the mouse wheel is moved.
