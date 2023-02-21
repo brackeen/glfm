@@ -8,7 +8,7 @@ set(GLFM_HEADERS include/glfm.h)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     set(GLFM_SRC src/glfm_internal.h src/glfm_emscripten.c)
-    set(GLFM_COMPILE_OPTIONS "-Wno-declaration-after-statement;-Wno-gnu-zero-variadic-macro-arguments")
+    set(GLFM_COMPILE_OPTIONS "-Wno-declaration-after-statement;-Wno-gnu-zero-variadic-macro-arguments;-Wno-dollar-in-identifier-extension")
 elseif (CMAKE_SYSTEM_NAME MATCHES "Android")
     set(GLFM_SRC src/glfm_internal.h src/glfm_android.c)
 elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
