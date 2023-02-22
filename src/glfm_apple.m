@@ -1284,6 +1284,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(deviceOrientationChanged:)
                                                name:UIDeviceOrientationDidChangeNotification
                                              object:self.view.window];
+
+    if (@available(iOS 13.4, *)) {
+        UIHoverGestureRecognizer *hover = [[UIHoverGestureRecognizer alloc] initWithTarget:self action:@selector(hover:)];
+        [self.view addGestureRecognizer:hover];
+    }
 #endif
 }
 
@@ -1558,6 +1563,22 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         [self addTouchEvent:touch withType:GLFMTouchPhaseCancelled];
     }
 }
+
+#if TARGET_OS_IOS
+
+- (void)hover:(UIHoverGestureRecognizer *)recognizer API_AVAILABLE(ios(13.4)) {
+    if (self.glfmDisplay->touchFunc && (recognizer.state == UIGestureRecognizerStateBegan ||
+                                        recognizer.state == UIGestureRecognizerStateChanged)) {
+        CGPoint currLocation = [recognizer locationInView:self.view];
+        currLocation.x *= self.view.contentScaleFactor;
+        currLocation.y *= self.view.contentScaleFactor;
+
+        self.glfmDisplay->touchFunc(self.glfmDisplay, 0, GLFMTouchPhaseHover,
+                                    (double)currLocation.x, (double)currLocation.y);
+    }
+}
+
+#endif
 
 - (BOOL)handlePress:(UIPress *)press withAction:(GLFMKeyAction)action {
 #if TARGET_OS_IOS
