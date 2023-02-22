@@ -1089,13 +1089,14 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #if TARGET_OS_IOS
 
-@interface GLFMViewController () <UIKeyInput, UITextInputTraits>
+@interface GLFMViewController () <UIKeyInput, UITextInputTraits, UIPointerInteractionDelegate>
 
 @property(nonatomic, assign) BOOL keyboardRequested;
 @property(nonatomic, strong) UIView *noSoftKeyboardView;
 @property(nonatomic, strong) CMMotionManager *motionManager;
 @property(nonatomic, assign) UIInterfaceOrientation orientation;
 @property(nonatomic, assign) BOOL multipleTouchEnabled;
+@property(nonatomic, assign) GLFMMouseCursor mouseCursor;
 
 @end
 
@@ -1128,7 +1129,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @synthesize metalDevice = _metalDevice;
 #endif
 #if TARGET_OS_IOS
-@synthesize keyboardRequested, noSoftKeyboardView, motionManager = _motionManager, orientation, multipleTouchEnabled;
+@synthesize keyboardRequested, noSoftKeyboardView, motionManager = _motionManager, orientation;
+@synthesize multipleTouchEnabled, mouseCursor;
 #endif
 #if TARGET_OS_OSX
 @synthesize insets;
@@ -1146,6 +1148,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #if TARGET_OS_IOS
         self.noSoftKeyboardView = GLFM_AUTORELEASE([UIView new]);
+        self.mouseCursor = GLFMMouseCursorDefault;
 #endif
         
 #if TARGET_OS_OSX
@@ -1288,6 +1291,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     if (@available(iOS 13.4, *)) {
         UIHoverGestureRecognizer *hover = [[UIHoverGestureRecognizer alloc] initWithTarget:self action:@selector(hover:)];
         [self.view addGestureRecognizer:hover];
+        GLFM_RELEASE(hover);
+
+        UIPointerInteraction *pointerInteraction = [[UIPointerInteraction alloc] initWithDelegate:self];
+        [self.view addInteraction:pointerInteraction];
+        GLFM_RELEASE(pointerInteraction);
     }
 #endif
 }
@@ -1575,6 +1583,23 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
         self.glfmDisplay->touchFunc(self.glfmDisplay, 0, GLFMTouchPhaseHover,
                                     (double)currLocation.x, (double)currLocation.y);
+    }
+}
+
+- (UIPointerStyle *)pointerInteraction:(UIPointerInteraction *)interaction
+                        styleForRegion:(UIPointerRegion *)region API_AVAILABLE(ios(13.4)) {
+    switch (self.mouseCursor) {
+        case GLFMMouseCursorText:
+            return [UIPointerStyle styleWithShape:[UIPointerShape beamWithPreferredLength:20 axis:UIAxisVertical]
+                                  constrainedAxes:UIAxisNeither];
+        case GLFMMouseCursorNone:
+            return [UIPointerStyle hiddenPointerStyle];
+        case GLFMMouseCursorCrosshair:
+        case GLFMMouseCursorDefault:
+        case GLFMMouseCursorAuto:
+        case GLFMMouseCursorPointer:
+        default:
+            return nil;
     }
 }
 
@@ -3104,6 +3129,24 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
         [NSCursor setHiddenUntilMouseMoves:NO];
         vc.hideMouseCursorWhileTyping = (mouseCursor == GLFMMouseCursorAuto ||
                                          mouseCursor == GLFMMouseCursorText);
+    }
+#elif TARGET_OS_IOS
+    if (@available(iOS 13.4, *)) {
+        if (display && display->platformData) {
+            GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+            if (vc.mouseCursor != mouseCursor) {
+                vc.mouseCursor = mouseCursor;
+                NSArray<id<UIInteraction>> *interactions = vc.viewIfLoaded.interactions;
+                if (interactions) {
+                    for (id<UIInteraction> interaction in interactions) {
+                        if ([interaction isKindOfClass:[UIPointerInteraction class]]) {
+                            UIPointerInteraction *pointerInteraction = (UIPointerInteraction *)interaction;
+                            [pointerInteraction invalidate];
+                        }
+                    }
+                }
+            }
+        }
     }
 #else
     (void)display;

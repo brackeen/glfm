@@ -21,10 +21,10 @@ Additionally, GLFM provides Metal support on iOS and tvOS.
 | Metal                              | ✔️    | ✔️    | N/A    | N/A  |
 | Retina / high-DPI                  | ✔️    | ✔️    | ✔️     | ✔️   |
 | Device orientation                 | ✔️    | N/A   | ✔️     |      |
-| Touch                              | ✔️    | ✔️    | ✔️     | ✔️   |
-| Mouse hover                        | ✔️[^1]|       |        | ✔️   |
-| Mouse wheel                        |       |       |        | ✔️   |
-| Mouse cursor                       |       |       |        | ✔️   |
+| Touch events                       | ✔️    | ✔️    | ✔️     | ✔️   |
+| Mouse hover events                 | ✔️[^1]|       |        | ✔️   |
+| Mouse wheel events                 |       |       |        | ✔️   |
+| Mouse cursor style                 | ✔️[^1]|       |        | ✔️   |
 | Key code events                    | ✔️[^2]| ✔️    | ✔️     | ✔️   |
 | Key repeat events                  |       |       | ✔️     | ✔️   |
 | Character input events             | ✔️    | ✔️[^3]| ✔️     | ✔️   |
