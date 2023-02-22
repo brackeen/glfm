@@ -221,7 +221,7 @@ bool glfmHasTouch(const GLFMDisplay *display) {
 
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
     (void)display;
-    // Make sure the javascript array emCursors is refernced properly
+    // Make sure the javascript array emCursors is referenced properly
     int emCursor = 0;
     switch (mouseCursor) {
         case GLFMMouseCursorAuto:
@@ -242,12 +242,14 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
         case GLFMMouseCursorText:
             emCursor = 5;
             break;
+        case GLFMMouseCursorVerticalText:
+            emCursor = 6;
+            break;
     }
     EM_ASM_({
-        var emCursors = new Array('auto', 'none', 'default', 'pointer', 'crosshair', 'text');
+        var emCursors = new Array('auto', 'none', 'default', 'pointer', 'crosshair', 'text', 'vertical-text');
         Module['canvas'].style.cursor = emCursors[$0];
-    },
-            emCursor);
+    }, emCursor);
 }
 
 void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {

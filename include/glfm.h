@@ -176,7 +176,8 @@ typedef enum {
     GLFMMouseCursorDefault,
     GLFMMouseCursorPointer,
     GLFMMouseCursorCrosshair,
-    GLFMMouseCursorText
+    GLFMMouseCursorText,
+    GLFMMouseCursorVerticalText,
 } GLFMMouseCursor;
 
 typedef enum {

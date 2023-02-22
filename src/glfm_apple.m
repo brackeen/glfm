@@ -1592,6 +1592,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         case GLFMMouseCursorText:
             return [UIPointerStyle styleWithShape:[UIPointerShape beamWithPreferredLength:20 axis:UIAxisVertical]
                                   constrainedAxes:UIAxisNeither];
+        case GLFMMouseCursorVerticalText:
+            return [UIPointerStyle styleWithShape:[UIPointerShape beamWithPreferredLength:20 axis:UIAxisHorizontal]
+                                  constrainedAxes:UIAxisNeither];
         case GLFMMouseCursorNone:
             return [UIPointerStyle hiddenPointerStyle];
         case GLFMMouseCursorCrosshair:
@@ -2032,23 +2035,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #if TARGET_OS_OSX
 
 // MARK: NSResponder (Mouse)
-
-- (NSCursor *)getCursor:(GLFMMouseCursor)cursor {
-    switch (cursor) {
-        case GLFMMouseCursorAuto:
-        case GLFMMouseCursorDefault:
-        default:
-            return NSCursor.arrowCursor;
-        case GLFMMouseCursorPointer:
-            return NSCursor.pointingHandCursor;
-        case GLFMMouseCursorCrosshair:
-            return NSCursor.crosshairCursor;
-        case GLFMMouseCursorText:
-            return NSCursor.IBeamCursor;
-        case GLFMMouseCursorNone:
-            return self.transparentCursor;
-    }
-}
 
 // Returns NO if location could not be determined
 - (BOOL)getLocationForEvent:(NSEvent *)event outX:(double *)outX outY:(double *)outY {
@@ -3115,6 +3101,9 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
             case GLFMMouseCursorText:
                 cursor = NSCursor.IBeamCursor;
                 break;
+            case GLFMMouseCursorVerticalText:
+                cursor = NSCursor.IBeamCursorForVerticalLayout;
+                break;
             case GLFMMouseCursorNone:
                 cursor = vc.transparentCursor;
                 break;
@@ -3128,7 +3117,8 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
         }
         [NSCursor setHiddenUntilMouseMoves:NO];
         vc.hideMouseCursorWhileTyping = (mouseCursor == GLFMMouseCursorAuto ||
-                                         mouseCursor == GLFMMouseCursorText);
+                                         mouseCursor == GLFMMouseCursorText ||
+                                         mouseCursor == GLFMMouseCursorVerticalText);
     }
 #elif TARGET_OS_IOS
     if (@available(iOS 13.4, *)) {
