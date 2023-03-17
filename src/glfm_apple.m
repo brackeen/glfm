@@ -1112,6 +1112,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @property(nonatomic, assign) BOOL hideMouseCursorWhileTyping;
 @property(nonatomic, assign) BOOL mouseInside;
 @property(nonatomic, assign) BOOL fnModifier;
+@property(nonatomic, assign) UInt32 deadKeyState;
+@property(nonatomic, assign) TISInputSourceRef currentKeyboard;
+@property(nonatomic, assign) const UCKeyboardLayout *keyboardLayout;
 
 @end
 
@@ -1134,8 +1137,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #endif
 #if TARGET_OS_OSX
 @synthesize insets;
-@synthesize transparentCursor, currentCursor, hideMouseCursorWhileTyping;
-@synthesize mouseInside, fnModifier;
+@synthesize transparentCursor, currentCursor, hideMouseCursorWhileTyping, mouseInside;
+@synthesize fnModifier, deadKeyState = _deadKeyState, currentKeyboard, keyboardLayout;
 #endif
 
 - (id)initWithDefaultFrame:(CGRect)frame contentScale:(CGFloat)contentScale {
@@ -1162,6 +1165,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                                                                           hotSpot:NSZeroPoint]);
         self.currentCursor = NSCursor.arrowCursor;
         self.hideMouseCursorWhileTyping = YES;
+
+        // Keyboard
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardChanged:) name:NSTextInputContextKeyboardSelectionDidChangeNotification object:nil];
+        [self setCurrentKeyboard];
 #else
         [self clearTouches];
 #endif
@@ -1180,8 +1187,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     self.noSoftKeyboardView = nil;
 #endif
 #if TARGET_OS_OSX
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
     self.currentCursor = nil;
     self.transparentCursor = nil;
+    if (self.currentKeyboard) {
+        CFRelease(self.currentKeyboard);
+    }
 #endif
 #if GLFM_INCLUDE_METAL
     self.metalDevice = nil;
@@ -2158,6 +2169,23 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 // MARK: NSResponder (Keyboard)
 
+- (void)setCurrentKeyboard {
+    if (self.currentKeyboard) {
+        CFRelease(self.currentKeyboard);
+    }
+    self.currentKeyboard = TISCopyCurrentKeyboardInputSource();
+    CFDataRef layoutData = TISGetInputSourceProperty(self.currentKeyboard, kTISPropertyUnicodeKeyLayoutData);
+    if (layoutData) {
+        self.keyboardLayout = (const UCKeyboardLayout *)(const void *)CFDataGetBytePtr(layoutData);
+    } else {
+        self.keyboardLayout = NULL;
+    }
+}
+
+- (void)keyboardChanged:(NSObject *)object {
+    [self setCurrentKeyboard];
+}
+
 - (BOOL)sendKeyEvent:(NSEvent *)event withAction:(GLFMKeyAction)action {
     BOOL handled = NO;
 
@@ -2314,22 +2342,34 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         (event.modifierFlags & NSEventModifierFlagFunction) == 0 &&
         (event.modifierFlags & NSEventModifierFlagCommand) == 0 &&
         (event.modifierFlags & NSEventModifierFlagControl) == 0) {
-        BOOL isControlCode = NO;
-        NSString *characters = event.characters;
 
-        // Don't send control codes (Return, Tab, Esc, Delete, etc)
-        if (characters.length == 1) {
-            unichar ch = [characters characterAtIndex:0];
-            isControlCode = (ch < 0x20 ||
-                             ch == NSDeleteCharacter ||
-                             ch == NSLineSeparatorCharacter ||
-                             ch == NSParagraphSeparatorCharacter);
+        UniChar utf16[4];
+        char utf8[4 * 2 + 1] = { 0 };
+
+        // This is like `event.characters`, but considers dead key state and ignores control codes.
+        // Sets `utf8` on success.
+        if (self.keyboardLayout) {
+            UInt32 modifierKeyState = (event.modifierFlags >> 16) & 0xFF;
+            UniCharCount utf16Length = 0;
+            OSStatus status = UCKeyTranslate(self.keyboardLayout, event.keyCode, kUCKeyActionDown, modifierKeyState,
+                                             LMGetKbdType(), 0, &_deadKeyState, sizeof(utf16) / sizeof(*utf16), &utf16Length, utf16);
+            if (status == noErr && utf16Length > 0) {
+                UniChar ch = utf16[0];
+                BOOL isControlCode = (ch < 0x20 || ch == NSDeleteCharacter || ch == NSLineSeparatorCharacter || ch == NSParagraphSeparatorCharacter);
+                if (!isControlCode) {
+                    // Convert to UTF8
+                    CFStringRef string = CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault, utf16, utf16Length, kCFAllocatorNull);
+                    CFStringGetCString(string, utf8, sizeof(utf8), kCFStringEncodingUTF8);
+                    CFRelease(string);
+                }
+            }
         }
-        if (characters.length >= 1 && !isControlCode) {
+
+        if (utf8[0] != '\0') {
             if (self.hideMouseCursorWhileTyping) {
                 [NSCursor setHiddenUntilMouseMoves:YES];
             }
-            self.glfmDisplay->charFunc(self.glfmDisplay, characters.UTF8String, 0);
+            self.glfmDisplay->charFunc(self.glfmDisplay, utf8, 0);
         }
     }
     return handled;
@@ -2382,6 +2422,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 - (void)clearActiveKeys {
     self.fnModifier = NO;
+    self.deadKeyState = 0;
 }
 
 #endif // TARGET_OS_OSX
