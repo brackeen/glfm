@@ -1115,6 +1115,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @property(nonatomic, assign) UInt32 deadKeyState;
 @property(nonatomic, assign) TISInputSourceRef currentKeyboard;
 @property(nonatomic, assign) const UCKeyboardLayout *keyboardLayout;
+@property(nonatomic, unsafe_unretained) id keyEventMonitor;
 
 @end
 
@@ -1138,7 +1139,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #if TARGET_OS_OSX
 @synthesize insets;
 @synthesize transparentCursor, currentCursor, hideMouseCursorWhileTyping, mouseInside;
-@synthesize fnModifier, deadKeyState = _deadKeyState, currentKeyboard, keyboardLayout;
+@synthesize fnModifier, deadKeyState = _deadKeyState, currentKeyboard, keyboardLayout, keyEventMonitor;
 #endif
 
 - (id)initWithDefaultFrame:(CGRect)frame contentScale:(CGFloat)contentScale {
@@ -1169,6 +1170,15 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         // Keyboard
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardChanged:) name:NSTextInputContextKeyboardSelectionDidChangeNotification object:nil];
         [self setCurrentKeyboard];
+
+        // Send key release events when the command key is down
+        GLFM_WEAK __typeof(self) weakSelf = self;
+        self.keyEventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyUp handler:^NSEvent *(NSEvent *event) {
+            if (event.modifierFlags & NSEventModifierFlagCommand) {
+                [weakSelf.glfmViewIfLoaded.window sendEvent:event];
+            }
+            return event;
+        }];
 #else
         [self clearTouches];
 #endif
@@ -1192,7 +1202,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     self.transparentCursor = nil;
     if (self.currentKeyboard) {
         CFRelease(self.currentKeyboard);
+        self.currentKeyboard = NULL;
     }
+    [NSEvent removeMonitor:self.keyEventMonitor];
+    self.keyEventMonitor = nil;
 #endif
 #if GLFM_INCLUDE_METAL
     self.metalDevice = nil;
@@ -2310,7 +2323,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             keyCode = VK_MAP[event.keyCode];
         }
 
-        BOOL sendReleaseEvent = NO;
         int modifiers = 0;
         if ((event.modifierFlags & NSEventModifierFlagShift) != 0) {
             modifiers |= GLFMKeyModifierShift;
@@ -2323,17 +2335,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         }
         if ((event.modifierFlags & NSEventModifierFlagCommand) != 0) {
             modifiers |= GLFMKeyModifierMeta;
-            // The keyUp: method is not called when the "command" key is held.
-            sendReleaseEvent = event.type == NSEventTypeKeyDown;
         }
         if (self.fnModifier) {
             modifiers |= GLFMKeyModifierFunction;
         }
 
         handled = self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, modifiers);
-        if (sendReleaseEvent && self.glfmDisplay->keyFunc) {
-            handled = self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, GLFMKeyActionReleased, modifiers) || handled;
-        }
     }
 
     // Send char event
