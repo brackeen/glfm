@@ -160,6 +160,14 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @end
 
+#if TARGET_OS_OSX
+
+@interface GLFMMetalView() <NSTextInputClient>
+
+@end
+
+#endif
+
 @implementation GLFMMetalView
 
 @synthesize drawableWidth, drawableHeight, surfaceCreatedNotified, refreshRequested, isDrawing;
@@ -354,6 +362,69 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     [super dealloc];
 #endif
 }
+
+#if TARGET_OS_OSX
+
+// MARK: NSTextInputClient
+
+- (void)insertText:(id)text replacementRange:(NSRange)replacementRange {
+    // Input from the Character Palette
+    // NOTE: Copied in both GLFMOpenGLView and GLFMMetalView.
+    if (self.glfmDisplay->charFunc) {
+        NSString *string;
+        if ([(NSObject *)text isKindOfClass:[NSAttributedString class]]) {
+            string = ((NSAttributedString *)text).string;
+        } else {
+            string = text;
+        }
+        self.glfmDisplay->charFunc(self.glfmDisplay, string.UTF8String, 0);
+    }
+}
+
+- (void)doCommandBySelector:(SEL)selector {
+
+}
+
+- (void)setMarkedText:(id)string selectedRange:(NSRange)selectedRange replacementRange:(NSRange)replacementRange {
+    
+}
+
+- (void)unmarkText {
+    
+}
+
+- (NSRange)selectedRange {
+    return NSMakeRange(0, 0);
+}
+
+- (NSRange)markedRange {
+    return NSMakeRange(NSNotFound, 0);
+}
+
+- (BOOL)hasMarkedText {
+    return NO;
+}
+
+- (NSAttributedString *)attributedSubstringForProposedRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
+    return nil;
+}
+
+- (NSArray<NSAttributedStringKey> *)validAttributesForMarkedText {
+    return @[];
+}
+
+- (NSRect)firstRectForCharacterRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
+    // This is called for positioning the Character Palette, but seems to be ignored.
+    // NOTE: Copied in both GLFMOpenGLView and GLFMMetalView.
+    NSRect frame = self.window.frame;
+    return CGRectMake(NSMidX(frame), NSMidY(frame), 0, 0);
+}
+
+- (NSUInteger)characterIndexForPoint:(NSPoint)point {
+    return 0;
+}
+
+#endif
 
 @end
 
@@ -787,7 +858,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
-@interface GLFMOpenGLView : NSOpenGLView <GLFMView>
+@interface GLFMOpenGLView : NSOpenGLView <GLFMView, NSTextInputClient>
 
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
 @property(nonatomic, assign) int drawableWidth;
@@ -1059,6 +1130,65 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     dispatch_release(_displaySource);
     [super dealloc];
 #endif
+}
+
+// MARK: NSTextInputClient
+
+- (void)insertText:(id)text replacementRange:(NSRange)replacementRange {
+    // Input from the Character Palette
+    // NOTE: Copied in both GLFMOpenGLView and GLFMMetalView.
+    if (self.glfmDisplay->charFunc) {
+        NSString *string;
+        if ([(NSObject *)text isKindOfClass:[NSAttributedString class]]) {
+            string = ((NSAttributedString *)text).string;
+        } else {
+            string = text;
+        }
+        self.glfmDisplay->charFunc(self.glfmDisplay, string.UTF8String, 0);
+    }
+}
+
+- (void)doCommandBySelector:(SEL)selector {
+
+}
+
+- (void)setMarkedText:(id)string selectedRange:(NSRange)selectedRange replacementRange:(NSRange)replacementRange {
+    
+}
+
+- (void)unmarkText {
+    
+}
+
+- (NSRange)selectedRange {
+    return NSMakeRange(0, 0);
+}
+
+- (NSRange)markedRange {
+    return NSMakeRange(NSNotFound, 0);
+}
+
+- (BOOL)hasMarkedText {
+    return NO;
+}
+
+- (NSAttributedString *)attributedSubstringForProposedRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
+    return nil;
+}
+
+- (NSArray<NSAttributedStringKey> *)validAttributesForMarkedText {
+    return @[];
+}
+
+- (NSRect)firstRectForCharacterRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
+    // This is called for positioning the Character Palette, but seems to be ignored.
+    // NOTE: Copied in both GLFMOpenGLView and GLFMMetalView.
+    NSRect frame = self.window.frame;
+    return CGRectMake(NSMidX(frame), NSMidY(frame), 0, 0);
+}
+
+- (NSUInteger)characterIndexForPoint:(NSPoint)point {
+    return 0;
 }
 
 @end
