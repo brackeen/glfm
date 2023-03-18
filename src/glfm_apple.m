@@ -160,14 +160,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 @end
 
-#if TARGET_OS_OSX
-
-@interface GLFMMetalView() <NSTextInputClient>
-
-@end
-
-#endif
-
 @implementation GLFMMetalView
 
 @synthesize drawableWidth, drawableHeight, surfaceCreatedNotified, refreshRequested, isDrawing;
@@ -362,69 +354,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     [super dealloc];
 #endif
 }
-
-#if TARGET_OS_OSX
-
-// MARK: NSTextInputClient
-
-- (void)insertText:(id)text replacementRange:(NSRange)replacementRange {
-    // Input from the Character Palette
-    // NOTE: Copied in both GLFMOpenGLView and GLFMMetalView.
-    if (self.glfmDisplay->charFunc) {
-        NSString *string;
-        if ([(NSObject *)text isKindOfClass:[NSAttributedString class]]) {
-            string = ((NSAttributedString *)text).string;
-        } else {
-            string = text;
-        }
-        self.glfmDisplay->charFunc(self.glfmDisplay, string.UTF8String, 0);
-    }
-}
-
-- (void)doCommandBySelector:(SEL)selector {
-
-}
-
-- (void)setMarkedText:(id)string selectedRange:(NSRange)selectedRange replacementRange:(NSRange)replacementRange {
-    
-}
-
-- (void)unmarkText {
-    
-}
-
-- (NSRange)selectedRange {
-    return NSMakeRange(0, 0);
-}
-
-- (NSRange)markedRange {
-    return NSMakeRange(NSNotFound, 0);
-}
-
-- (BOOL)hasMarkedText {
-    return NO;
-}
-
-- (NSAttributedString *)attributedSubstringForProposedRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
-    return nil;
-}
-
-- (NSArray<NSAttributedStringKey> *)validAttributesForMarkedText {
-    return @[];
-}
-
-- (NSRect)firstRectForCharacterRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
-    // This is called for positioning the Character Palette, but seems to be ignored.
-    // NOTE: Copied in both GLFMOpenGLView and GLFMMetalView.
-    NSRect frame = self.window.frame;
-    return CGRectMake(NSMidX(frame), NSMidY(frame), 0, 0);
-}
-
-- (NSUInteger)characterIndexForPoint:(NSPoint)point {
-    return 0;
-}
-
-#endif
 
 @end
 
@@ -858,7 +787,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
-@interface GLFMOpenGLView : NSOpenGLView <GLFMView, NSTextInputClient>
+@interface GLFMOpenGLView : NSOpenGLView <GLFMView>
 
 @property(nonatomic, assign) GLFMDisplay *glfmDisplay;
 @property(nonatomic, assign) int drawableWidth;
@@ -1132,65 +1061,6 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #endif
 }
 
-// MARK: NSTextInputClient
-
-- (void)insertText:(id)text replacementRange:(NSRange)replacementRange {
-    // Input from the Character Palette
-    // NOTE: Copied in both GLFMOpenGLView and GLFMMetalView.
-    if (self.glfmDisplay->charFunc) {
-        NSString *string;
-        if ([(NSObject *)text isKindOfClass:[NSAttributedString class]]) {
-            string = ((NSAttributedString *)text).string;
-        } else {
-            string = text;
-        }
-        self.glfmDisplay->charFunc(self.glfmDisplay, string.UTF8String, 0);
-    }
-}
-
-- (void)doCommandBySelector:(SEL)selector {
-
-}
-
-- (void)setMarkedText:(id)string selectedRange:(NSRange)selectedRange replacementRange:(NSRange)replacementRange {
-    
-}
-
-- (void)unmarkText {
-    
-}
-
-- (NSRange)selectedRange {
-    return NSMakeRange(0, 0);
-}
-
-- (NSRange)markedRange {
-    return NSMakeRange(NSNotFound, 0);
-}
-
-- (BOOL)hasMarkedText {
-    return NO;
-}
-
-- (NSAttributedString *)attributedSubstringForProposedRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
-    return nil;
-}
-
-- (NSArray<NSAttributedStringKey> *)validAttributesForMarkedText {
-    return @[];
-}
-
-- (NSRect)firstRectForCharacterRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
-    // This is called for positioning the Character Palette, but seems to be ignored.
-    // NOTE: Copied in both GLFMOpenGLView and GLFMMetalView.
-    NSRect frame = self.window.frame;
-    return CGRectMake(NSMidX(frame), NSMidY(frame), 0, 0);
-}
-
-- (NSUInteger)characterIndexForPoint:(NSPoint)point {
-    return 0;
-}
-
 @end
 
 #pragma clang diagnostic pop // "-Wdeprecated-declarations"
@@ -1234,7 +1104,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 #if TARGET_OS_OSX
 
-@interface GLFMViewController ()
+@interface GLFMViewController () <NSTextInputClient>
 
 @property(nonatomic, assign) NSEdgeInsets insets;
 @property(nonatomic, strong) NSCursor *transparentCursor;
@@ -1246,6 +1116,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @property(nonatomic, assign) TISInputSourceRef currentKeyboard;
 @property(nonatomic, assign) const UCKeyboardLayout *keyboardLayout;
 @property(nonatomic, unsafe_unretained) id keyEventMonitor;
+@property(nonatomic, strong) NSTextInputContext *textInputContext;
 
 @end
 
@@ -1269,7 +1140,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 #if TARGET_OS_OSX
 @synthesize insets;
 @synthesize transparentCursor, currentCursor, hideMouseCursorWhileTyping, mouseInside;
-@synthesize fnModifier, deadKeyState = _deadKeyState, currentKeyboard, keyboardLayout, keyEventMonitor;
+@synthesize fnModifier, deadKeyState = _deadKeyState, currentKeyboard, keyboardLayout, keyEventMonitor, textInputContext;
 #endif
 
 - (id)initWithDefaultFrame:(CGRect)frame contentScale:(CGFloat)contentScale {
@@ -1309,6 +1180,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             }
             return event;
         }];
+        
+        // Capture events from the Character Palette
+        self.textInputContext = GLFM_AUTORELEASE([[NSTextInputContext alloc] initWithClient:self]);
+        [self.textInputContext activate];
 #else
         [self clearTouches];
 #endif
@@ -1336,6 +1211,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
     [NSEvent removeMonitor:self.keyEventMonitor];
     self.keyEventMonitor = nil;
+    self.textInputContext = nil;
 #endif
 #if GLFM_INCLUDE_METAL
     self.metalDevice = nil;
@@ -2308,6 +2184,63 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (void)mouseExited:(NSEvent *)event {
     self.mouseInside = NO;
     [NSCursor.arrowCursor set];
+}
+
+// MARK: NSTextInputClient
+
+- (void)insertText:(id)text replacementRange:(NSRange)replacementRange {
+    // Input from the Character Palette
+    if (self.glfmDisplay->charFunc) {
+        NSString *string;
+        if ([(NSObject *)text isKindOfClass:[NSAttributedString class]]) {
+            string = ((NSAttributedString *)text).string;
+        } else {
+            string = text;
+        }
+        self.glfmDisplay->charFunc(self.glfmDisplay, string.UTF8String, 0);
+    }
+}
+
+- (void)doCommandBySelector:(SEL)selector {
+
+}
+
+- (void)setMarkedText:(id)string selectedRange:(NSRange)selectedRange replacementRange:(NSRange)replacementRange {
+    
+}
+
+- (void)unmarkText {
+    
+}
+
+- (NSRange)selectedRange {
+    return NSMakeRange(0, 0);
+}
+
+- (NSRange)markedRange {
+    return NSMakeRange(NSNotFound, 0);
+}
+
+- (BOOL)hasMarkedText {
+    return NO;
+}
+
+- (NSAttributedString *)attributedSubstringForProposedRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
+    return nil;
+}
+
+- (NSArray<NSAttributedStringKey> *)validAttributesForMarkedText {
+    return @[];
+}
+
+- (NSRect)firstRectForCharacterRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
+    // This is called for positioning the Character Palette, but seems to be ignored.
+    NSRect frame = self.glfmViewIfLoaded.window.frame;
+    return CGRectMake(NSMidX(frame), NSMidY(frame), 0, 0);
+}
+
+- (NSUInteger)characterIndexForPoint:(NSPoint)point {
+    return 0;
 }
 
 // MARK: NSResponder (Keyboard)
