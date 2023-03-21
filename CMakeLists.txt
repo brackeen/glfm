@@ -37,14 +37,13 @@ elseif (CMAKE_C_COMPILER_ID MATCHES "GNU")
 elseif (CMAKE_C_COMPILER_ID MATCHES "MSVC")
     set_target_properties(glfm PROPERTIES COMPILE_OPTIONS "/Wall;${GLFM_COMPILE_OPTIONS}")
 endif()
-    
+
 if (CMAKE_SYSTEM_NAME MATCHES "Android")
     find_library(log-lib log)
     find_library(android-lib android)
     find_library(EGL-lib EGL)
     find_library(GLESv2-lib GLESv2)
     target_link_libraries(glfm ${log-lib} ${android-lib} ${EGL-lib} ${GLESv2-lib})
-    target_include_directories(glfm PRIVATE ${ANDROID_NDK}/sources/android/native_app_glue/)
 elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
     target_compile_definitions(glfm PRIVATE GLES_SILENCE_DEPRECATION)
     set_target_properties(glfm PROPERTIES
