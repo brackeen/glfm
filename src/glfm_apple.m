@@ -1211,6 +1211,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
     [NSEvent removeMonitor:self.keyEventMonitor];
     self.keyEventMonitor = nil;
+    [self.textInputContext deactivate];
     self.textInputContext = nil;
 #endif
 #if GLFM_INCLUDE_METAL
