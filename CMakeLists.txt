@@ -31,7 +31,8 @@ source_group(src FILES ${GLFM_SRC})
 
 set_target_properties(glfm PROPERTIES C_STANDARD 11)
 if (CMAKE_C_COMPILER_ID MATCHES "Clang")
-    set_target_properties(glfm PROPERTIES COMPILE_OPTIONS "-Weverything;-Wwrite-strings;-Wno-padded;-Wno-covered-switch-default;-Wno-auto-import;${GLFM_COMPILE_OPTIONS}")
+    # Disable the -Wunsafe-buffer-usage warning because it reports false positives when bounds checking arrays, and there appears to be no solution for C pointers.
+    set_target_properties(glfm PROPERTIES COMPILE_OPTIONS "-Weverything;-Wwrite-strings;-Wno-padded;-Wno-covered-switch-default;-Wno-auto-import;-Wno-unknown-warning-option;-Wno-unsafe-buffer-usage;${GLFM_COMPILE_OPTIONS}")
 elseif (CMAKE_C_COMPILER_ID MATCHES "GNU")
     set_target_properties(glfm PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wwrite-strings;${GLFM_COMPILE_OPTIONS}")
 elseif (CMAKE_C_COMPILER_ID MATCHES "MSVC")
