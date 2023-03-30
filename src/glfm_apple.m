@@ -2429,7 +2429,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                 BOOL isControlCode = (ch < 0x20 || ch == NSDeleteCharacter || ch == NSLineSeparatorCharacter || ch == NSParagraphSeparatorCharacter);
                 if (!isControlCode) {
                     // Convert to UTF8
-                    CFStringRef string = CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault, utf16, utf16Length, kCFAllocatorNull);
+                    CFStringRef string = CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault, utf16, (CFIndex)utf16Length, kCFAllocatorNull);
                     CFStringGetCString(string, utf8, sizeof(utf8), kCFStringEncodingUTF8);
                     CFRelease(string);
                 }
