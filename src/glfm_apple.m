@@ -3025,7 +3025,7 @@ static void glfm__sensorFuncUpdated(GLFMDisplay *display) {
 
 // MARK: - GLFM public functions
 
-double glfmGetTime() {
+double glfmGetTime(void) {
     return CACurrentMediaTime();
 }
 
