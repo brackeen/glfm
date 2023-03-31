@@ -22,7 +22,7 @@ include(GLFMAppTarget)
 # Test pattern example
 set(GLFM_APP_TARGET_NAME glfm_test_pattern)
 set(GLFM_APP_SRC src/test_pattern.c src/test_pattern_renderer.h src/test_pattern_renderer_gles2.c src/file_compat.h)
-if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GLFM_APP_SRC ${GLFM_APP_SRC} src/test_pattern_renderer_metal.m src/test_pattern_renderer.metal)
     set_source_files_properties(src/test_pattern_renderer.metal PROPERTIES LANGUAGE METAL)
 endif()

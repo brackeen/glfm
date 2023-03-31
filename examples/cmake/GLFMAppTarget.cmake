@@ -14,7 +14,7 @@ endif()
 
 source_group("src" FILES ${GLFM_APP_SRC})
 
-if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     # HACK: Make modifications to shell_minimal.html to take up the entire browser window
     file(READ ${EMSCRIPTEN_ROOT_PATH}/src/shell_minimal.html EMSCRIPTEN_SHELL_HTML)
     string(FIND "${EMSCRIPTEN_SHELL_HTML}" "<style>" HAS_STYLE)
@@ -53,10 +53,10 @@ if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
         set(GLFM_PRELOAD_FLAG "")
     endif()
     set_target_properties(${GLFM_APP_TARGET_NAME} PROPERTIES LINK_FLAGS "--shell-file ${CMAKE_CURRENT_BINARY_DIR}/shell.html.in ${GLFM_PRELOAD_FLAG}")
-elseif (CMAKE_SYSTEM_NAME MATCHES "Android")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Android")
     add_library(${GLFM_APP_TARGET_NAME} SHARED ${GLFM_APP_SRC})
     target_link_libraries(${GLFM_APP_TARGET_NAME} glfm)
-elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # If you change this section, test archiving too.
     set(CMAKE_MACOSX_BUNDLE YES)
 
