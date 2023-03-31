@@ -560,7 +560,7 @@ void *glfmGetUserData(const GLFMDisplay *display);
 ///
 /// This function should be called at the end of the ``GLFMRenderFunc`` if any content was rendered.
 ///
-/// - Emscripten: Rhis function does nothing. Buffer swapping happens automatically if any
+/// - Emscripten: This function does nothing. Buffer swapping happens automatically if any
 /// OpenGL calls were made.
 ///
 /// - Apple platforms: When using the Metal rendering API, this function does nothing.
