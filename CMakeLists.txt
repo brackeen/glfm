@@ -53,7 +53,6 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET  11.0  # Minimum supported by Xcode 14
         XCODE_ATTRIBUTE_TVOS_DEPLOYMENT_TARGET      11.0  # Minimum supported by Xcode 14
         XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET   10.13  # Minimum supported by Xcode 14
-        XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC        YES  # GLFM supports non-ARC too, but ARC is more common.
         XCODE_ATTRIBUTE_CLANG_ENABLE_MODULES         YES  # Automatically import frameworks
 
         # Override default warnings in Xcode because using "-Weverything" does not.
