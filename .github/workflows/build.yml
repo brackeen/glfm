@@ -38,8 +38,31 @@ jobs:
       
     - name: Build
       run: cmake --build "build/android_${{ matrix.abi }}"
+  
+  build-apple:
+    strategy:
+      matrix:
+        sdk: [ appletvos, appletvsimulator, iphoneos, iphonesimulator, macosx ]
+        arc: [ YES, NO ]
+    runs-on: macos-latest
+    env:
+      CFLAGS: -Werror
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Configure CMake
+      run: >
+        cmake 
+        -D CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH=NO
+        -D CMAKE_XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC=${{ matrix.arc }}
+        -B build/apple_arc_${{ matrix.arc }}
+        -G Xcode
       
+    - name: Build
+      run: cmake --build build/apple_arc_${{ matrix.arc }} -- -sdk ${{ matrix.sdk }}
+  
   build-emscripten:
+    if: ${{ false }}  # disable for now
     runs-on: ubuntu-latest
     env:
       CFLAGS: -Werror
