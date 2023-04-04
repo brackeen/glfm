@@ -10,11 +10,11 @@ on:
 
 jobs:
   build-android:
+    if: ${{ false }}  # disable for now
     strategy:
       matrix:
         abi: [ armeabi-v7a, armeabi-v7a with NEON, arm64-v8a, x86, x86_64 ]
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
 
@@ -38,3 +38,23 @@ jobs:
       
     - name: Build
       run: cmake --build "build/android_${{ matrix.abi }}"
+      
+  build-emscripten:
+    runs-on: ubuntu-latest
+    env:
+      CFLAGS: -Werror
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Emscripten SDK
+      uses: mymindstorm/setup-emsdk@v12
+      with:
+        version: 3.1.34
+        actions-cache-folder: 'emsdk-cache'
+    
+    - name: Configure CMake
+      run: emcmake cmake -D CMAKE_VERBOSE_MAKEFILE=ON -B build/emscripten
+
+    - name: Build
+      run: cmake --build build/emscripten
+      
