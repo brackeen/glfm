@@ -4,7 +4,7 @@ These scripts build GLFM for all target platforms and architectures. Builds fail
 
 The scripts to build the GLFM examples allow compilation warnings, but fail if deprecated functions are used.
 
-The scripts work on macOS and Linux.
+The scripts work on Linux, macOS, and Windows (tested with git-bash/MINGW64). CMake is required.
 
 When running `build_all.sh`, GLFM is conditionally built for each target platform based on the tools installed:
 

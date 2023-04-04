@@ -10,6 +10,11 @@ if [[ "$NDK_MAJOR_VERSION" < 17 ]]; then
     exit -1
 fi
 
+WIN64_MAKE=$ANDROID_NDK_HOME/prebuilt/windows-x86_64/bin/make.exe
+if [ -f $WIN64_MAKE ]; then
+    WIN64_FLAGS=(-G "Unix Makefiles" -D CMAKE_MAKE_PROGRAM=$WIN64_MAKE)
+fi
+
 declare -a abis=("armeabi-v7a" "armeabi-v7a with NEON" "arm64-v8a" "x86" "x86_64")
 
 for abi in "${abis[@]}"; do
@@ -24,6 +29,7 @@ for abi in "${abis[@]}"; do
         -D CMAKE_C_FLAGS=-Werror \
         -D CMAKE_VERBOSE_MAKEFILE=ON \
         -D ANDROID_ABI="$abi" \
+        "${WIN64_FLAGS[@]}" \
         -S .. -B "build/android_$abi" || exit $?
     cmake --build "build/android_$abi" || exit $?
 done
