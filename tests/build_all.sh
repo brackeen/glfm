@@ -24,6 +24,7 @@ run_test() {
     if [ -n "$VERBOSE" ]; then
         echo ">>> $@"
         "$@"
+        local result=$?
         printf ">>> $@: "
     else
         # Execute in background, showing spinner
@@ -38,8 +39,10 @@ run_test() {
             sleep .1
         done
         printf "\b"
+        wait $pid
+        local result=$?
     fi
-    if [ $? -eq 0 ]; then
+    if [ $result -eq 0 ]; then
         echo "Success"
     else
         echo "Failure"
