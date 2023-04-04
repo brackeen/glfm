@@ -1,0 +1,40 @@
+name: Build
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore: [ '**.md', 'examples/**' ]
+  pull_request:
+    branches: [ "main" ]
+    paths-ignore: [ '**.md', 'examples/**' ]
+
+jobs:
+  build-android:
+    strategy:
+      matrix:
+        abi: [ armeabi-v7a, armeabi-v7a with NEON, arm64-v8a, x86, x86_64 ]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Android NDK
+      id: setup-ndk
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r25c
+        add-to-path: false
+    
+    - name: Configure CMake
+      env:
+        ANDROID_NDK_HOME: ${{steps.setup-ndk.outputs.ndk-path}}
+      run: >
+        cmake 
+        -D CMAKE_TOOLCHAIN_FILE=${{env.ANDROID_NDK_HOME}}/build/cmake/android.toolchain.cmake
+        -D CMAKE_C_FLAGS=-Werror
+        -D CMAKE_VERBOSE_MAKEFILE=ON
+        -D ANDROID_ABI="${{ matrix.abi }}"
+        -B "build/android_${{ matrix.abi }}"
+      
+    - name: Build
+      run: cmake --build "build/android_${{ matrix.abi }}"
