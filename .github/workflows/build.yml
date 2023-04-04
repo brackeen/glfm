@@ -10,7 +10,6 @@ on:
 
 jobs:
   build-android:
-    if: ${{ false }}  # disable for now
     strategy:
       matrix:
         abi: [ armeabi-v7a, armeabi-v7a with NEON, arm64-v8a, x86, x86_64 ]
@@ -62,7 +61,6 @@ jobs:
       run: cmake --build build/apple_arc_${{ matrix.arc }} -- -sdk ${{ matrix.sdk }}
   
   build-emscripten:
-    if: ${{ false }}  # disable for now
     runs-on: ubuntu-latest
     env:
       CFLAGS: -Werror
