@@ -1,10 +1,14 @@
 # GLFM build tests
 
-These scripts build GLFM for all target platforms and architectures. Builds fail on any compilation warnings.
+## Automated tests
 
-The scripts to build the GLFM examples allow compilation warnings, but fail if deprecated functions are used.
+The [build.yml](../.github/workflows/build.yml) GitHub Action builds GLFM automatically for all target platforms and architectures. Builds fail on compilation warnings.
 
-The scripts work on Linux, macOS, and Windows (tested with git-bash/MINGW64). CMake is required.
+The [build_examples.yml](../.github/workflows/build_examples.yml) GitHub Action builds GLFM examples automatically. Builds fail if deprecated functions are used.
+
+## Manual tests
+
+The scripts in this directory are similar to the GitHub Actions. The scripts work on Linux, macOS, and Windows (tested with git-bash/MINGW64). CMake is required.
 
 When running `build_all.sh`, GLFM is conditionally built for each target platform based on the tools installed:
 
