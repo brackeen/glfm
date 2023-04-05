@@ -1,4 +1,7 @@
 # GLFM
+[![Build](https://github.com/brackeen/glfm/actions/workflows/build.yml/badge.svg)](https://github.com/brackeen/glfm/actions/workflows/build.yml)
+[![Build Examples](https://github.com/brackeen/glfm/actions/workflows/build_examples.yml/badge.svg)](https://github.com/brackeen/glfm/actions/workflows/build_examples.yml)
+
 Write OpenGL ES code in C/C++ without writing platform-specific code.
 
 GLFM is an OpenGL ES layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](https://github.com/glfw/glfw).
