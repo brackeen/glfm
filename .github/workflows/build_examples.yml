@@ -36,6 +36,9 @@ jobs:
       run: cmake --build build/android_examples
   
   build-apple:
+    strategy:
+      matrix:
+        sdk: [ appletvos, iphoneos, macosx ]
     runs-on: macos-latest
     env:
       CFLAGS: -Werror=deprecated-declarations
@@ -52,7 +55,7 @@ jobs:
         -G Xcode
 
     - name: Build
-      run: cmake --build build/apple_examples
+      run: cmake --build build/apple_examples -- -sdk ${{ matrix.sdk }}
 
   build-emscripten:
     runs-on: ubuntu-latest
