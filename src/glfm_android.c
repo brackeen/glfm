@@ -217,6 +217,10 @@ static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
     static const int EGL_CONTEXT_MAJOR_VERSION_KHR = 0x3098;
     static const int EGL_CONTEXT_MINOR_VERSION_KHR = 0x30FB;
 
+    if (!platformData || !platformData->display) {
+        return false;
+    }
+
     EGLint majorVersion = 0;
     EGLint minorVersion = 0;
     bool created = false;
@@ -604,6 +608,9 @@ typedef enum {
 
 static void glfm__sendCommand(ANativeActivity *activity, GLFMActivityCommand command) {
     GLFMPlatformData *platformData = activity->instance;
+    if (!platformData) {
+        return;
+    }
     uint8_t data = (uint8_t)command;
     if (write(platformData->commandPipeWrite, &data, sizeof(data)) != sizeof(data)) {
         GLFM_LOG("Couldn't write to pipe");
@@ -2099,6 +2106,9 @@ static void glfm__getDisplayChromeInsets(const GLFMDisplay *display, int *top, i
 }
 
 static void glfm__reportInsetsChangedIfNeeded(GLFMDisplay *display) {
+    if (!display) {
+        return;
+    }
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     int top, right, bottom, left;
     glfm__getDisplayChromeInsets(display, &top, &right, &bottom, &left);
@@ -2117,6 +2127,9 @@ static void glfm__reportInsetsChangedIfNeeded(GLFMDisplay *display) {
 }
 
 static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display) {
+    if (!display) {
+        return;
+    }
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     GLFMInterfaceOrientation orientation = glfmGetInterfaceOrientation(display);
     if (platformData->orientation != orientation) {
@@ -2670,6 +2683,7 @@ void glfmRequestClipboardText(GLFMDisplay *display, GLFMClipboardTextFunc clipbo
     // other than text in the clipboard
     if (!display || !display->platformData || !glfmHasClipboardText(display)) {
         clipboardTextFunc(display, NULL);
+        return;
     }
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     JNIEnv *jni = platformData->jniEnv;
