@@ -146,43 +146,39 @@ static void glfm__updateUserInterfaceChrome(GLFMPlatformData *platformData);
     } while (0)
 
 static jmethodID glfm__getJavaMethodID(JNIEnv *jni, jobject object, const char *name, const char *sig) {
-    if (object) {
-        jclass class = (*jni)->GetObjectClass(jni, object);
-        jmethodID methodID = (*jni)->GetMethodID(jni, class, name, sig);
-        (*jni)->DeleteLocalRef(jni, class);
-        return glfm__wasJavaExceptionThrown(jni) ? NULL : methodID;
-    } else {
+    if (!object) {
         return NULL;
     }
+    jclass class = (*jni)->GetObjectClass(jni, object);
+    jmethodID methodID = (*jni)->GetMethodID(jni, class, name, sig);
+    (*jni)->DeleteLocalRef(jni, class);
+    return glfm__wasJavaExceptionThrown(jni) ? NULL : methodID;
 }
 
 static jfieldID glfm__getJavaFieldID(JNIEnv *jni, jobject object, const char *name, const char *sig) {
-    if (object) {
-        jclass class = (*jni)->GetObjectClass(jni, object);
-        jfieldID fieldID = (*jni)->GetFieldID(jni, class, name, sig);
-        (*jni)->DeleteLocalRef(jni, class);
-        return glfm__wasJavaExceptionThrown(jni) ? NULL : fieldID;
-    } else {
+    if (!object) {
         return NULL;
     }
+    jclass class = (*jni)->GetObjectClass(jni, object);
+    jfieldID fieldID = (*jni)->GetFieldID(jni, class, name, sig);
+    (*jni)->DeleteLocalRef(jni, class);
+    return glfm__wasJavaExceptionThrown(jni) ? NULL : fieldID;
 }
 
 static jmethodID glfm__getJavaStaticMethodID(JNIEnv *jni, jclass class, const char *name, const char *sig) {
-    if (class) {
-        jmethodID methodID = (*jni)->GetStaticMethodID(jni, class, name, sig);
-        return glfm__wasJavaExceptionThrown(jni) ? NULL : methodID;
-    } else {
+    if (!class) {
         return NULL;
     }
+    jmethodID methodID = (*jni)->GetStaticMethodID(jni, class, name, sig);
+    return glfm__wasJavaExceptionThrown(jni) ? NULL : methodID;
 }
 
 static jfieldID glfm__getJavaStaticFieldID(JNIEnv *jni, jclass class, const char *name, const char *sig) {
-    if (class) {
-        jfieldID fieldID = (*jni)->GetStaticFieldID(jni, class, name, sig);
-        return glfm__wasJavaExceptionThrown(jni) ? NULL : fieldID;
-    } else {
+    if (!class) {
         return NULL;
     }
+    jfieldID fieldID = (*jni)->GetStaticFieldID(jni, class, name, sig);
+    return glfm__wasJavaExceptionThrown(jni) ? NULL : fieldID;
 }
 
 #define glfm__callJavaMethod(jni, object, methodName, methodSig, returnType) \
@@ -302,19 +298,19 @@ static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
         GLFM_LOG_LIFECYCLE("eglMakeCurrent() failed");
         platformData->eglContextCurrent = false;
         return false;
-    } else {
-        platformData->eglContextCurrent = true;
-        GLFM_LOG_LIFECYCLE("GL Context made current");
-        if (created && !platformData->surfaceCreatedNotified) {
-            platformData->surfaceCreatedNotified = true;
-            if (platformData->display && platformData->display->surfaceCreatedFunc) {
-                platformData->display->surfaceCreatedFunc(platformData->display,
-                                                          platformData->width,
-                                                          platformData->height);
-            }
-        }
-        return true;
     }
+
+    GLFM_LOG_LIFECYCLE("GL Context made current");
+    platformData->eglContextCurrent = true;
+    if (created && !platformData->surfaceCreatedNotified) {
+        platformData->surfaceCreatedNotified = true;
+        if (platformData->display && platformData->display->surfaceCreatedFunc) {
+            platformData->display->surfaceCreatedFunc(platformData->display,
+                                                      platformData->width,
+                                                      platformData->height);
+        }
+    }
+    return true;
 }
 
 static void glfm__eglContextDisable(GLFMPlatformData *platformData) {
@@ -453,7 +449,8 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
             // Found!
             //glfm__eglLogConfig(platformData, platformData->eglConfig);
             break;
-        } else if (samples > 0) {
+        }
+        if (samples > 0) {
             // Try 2x multisampling or no multisampling
             samples -= 2;
         } else if (depthBits > 8) {
@@ -1046,9 +1043,8 @@ static uint32_t glfm__getUnicodeChar(GLFMPlatformData *platformData, jint keyCod
 
     if (glfm__wasJavaExceptionThrown(jni)) {
         return 0;
-    } else {
-        return (uint32_t)unicodeKey;
     }
+    return (uint32_t)unicodeKey;
 }
 
 /*
@@ -2029,9 +2025,8 @@ static jobject glfm__getWindowDisplay(GLFMPlatformData *platformData) {
     (*jni)->DeleteLocalRef(jni, windowManager);
     if (glfm__wasJavaExceptionThrown(jni)) {
         return NULL;
-    } else {
-        return windowDisplay;
     }
+    return windowDisplay;
 }
 
 static float glfm__getRefreshRate(const GLFMDisplay *display) {
@@ -2069,10 +2064,9 @@ static bool glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
             glfm__reportInsetsChangedIfNeeded(platformData->display);
             glfm__updateKeyboardVisibility(platformData);
             return true;
-        } else {
-            // Prefer to wait until after content rect changed, if possible
-            platformData->resizeEventWaitFrames--;
         }
+        // Prefer to wait until after content rect changed, if possible
+        platformData->resizeEventWaitFrames--;
     }
     return false;
 }
@@ -2272,9 +2266,8 @@ static jobject glfm__getSystemService(GLFMPlatformData *platformData, const char
     (*jni)->DeleteLocalRef(jni, serviceNameString);
     if (glfm__wasJavaExceptionThrown(jni)) {
         return NULL;
-    } else {
-        return service;
     }
+    return service;
 }
 
 static bool glfm__setKeyboardVisible(GLFMPlatformData *platformData, bool visible) {
@@ -2441,10 +2434,12 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
 }
 
 GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display) {
-    static const int Surface_ROTATION_0 = 0;
-    static const int Surface_ROTATION_90 = 1;
-    static const int Surface_ROTATION_180 = 2;
-    static const int Surface_ROTATION_270 = 3;
+    enum {
+        Surface_ROTATION_0 = 0,
+        Surface_ROTATION_90 = 1,
+        Surface_ROTATION_180 = 2,
+        Surface_ROTATION_270 = 3,
+    };
 
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     JNIEnv *jni = platformData->jniEnv;
@@ -2458,16 +2453,17 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display)
         return GLFMInterfaceOrientationUnknown;
     }
 
-    if (rotation == Surface_ROTATION_0) {
-        return GLFMInterfaceOrientationPortrait;
-    } else if (rotation == Surface_ROTATION_90) {
-        return GLFMInterfaceOrientationLandscapeRight;
-    } else if (rotation == Surface_ROTATION_180) {
-        return GLFMInterfaceOrientationPortraitUpsideDown;
-    } else if (rotation == Surface_ROTATION_270) {
-        return GLFMInterfaceOrientationLandscapeLeft;
-    } else {
-        return GLFMInterfaceOrientationUnknown;
+    switch (rotation) {
+        case Surface_ROTATION_0:
+            return GLFMInterfaceOrientationPortrait;
+        case Surface_ROTATION_90:
+            return GLFMInterfaceOrientationLandscapeRight;
+        case Surface_ROTATION_180:
+            return GLFMInterfaceOrientationPortraitUpsideDown;
+        case Surface_ROTATION_270:
+            return GLFMInterfaceOrientationLandscapeLeft;
+        default:
+            return GLFMInterfaceOrientationUnknown;
     }
 }
 
@@ -2574,9 +2570,8 @@ bool glfmIsHapticFeedbackSupported(const GLFMDisplay *display) {
     (*jni)->DeleteLocalRef(jni, vibratorService);
     if (glfm__wasJavaExceptionThrown(jni)) {
         return false;
-    } else {
-        return result;
     }
+    return result;
 }
 
 void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle style) {
@@ -2668,9 +2663,8 @@ bool glfmHasClipboardText(const GLFMDisplay *display) {
     (*jni)->DeleteLocalRef(jni, primaryClipDescription);
     if (glfm__wasJavaExceptionThrown(jni)) {
         return false;
-    } else {
-        return hasText;
     }
+    return hasText;
 }
 
 void glfmRequestClipboardText(GLFMDisplay *display, GLFMClipboardTextFunc clipboardTextFunc) {
@@ -2800,20 +2794,18 @@ bool glfmIsMetalSupported(const GLFMDisplay *display) {
 }
 
 ANativeActivity *glfmAndroidGetActivity() {
-    if (platformDataGlobal) {
-        return platformDataGlobal->activity;
-    } else {
+    if (!platformDataGlobal) {
         return NULL;
     }
+    return platformDataGlobal->activity;
 }
 
 ANativeActivity *glfmGetAndroidActivity(const GLFMDisplay *display) {
-    if (display && display->platformData) {
-        GLFMPlatformData *platformData = display->platformData;
-        return platformData->activity;
-    } else {
+    if (!display || !display->platformData) {
         return NULL;
     }
+    GLFMPlatformData *platformData = display->platformData;
+    return platformData->activity;
 }
 
 #endif // __ANDROID__
