@@ -114,7 +114,7 @@ static GLFMPlatformData *platformDataGlobal = NULL;
 // MARK: - Private function declarations
 
 static void *glfm__mainLoop(void *param);
-static int glfm__looperCallback(int fd, int events, void *userData);
+static int glfm__looperCallback(int pipe, int events, void *userData);
 static void glfm__setAllRequestedSensorsEnabled(GLFMDisplay *display, bool enable);
 static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display);
 static void glfm__reportInsetsChangedIfNeeded(GLFMDisplay *display);
@@ -817,12 +817,12 @@ typedef struct {
 } GLFMLooperMessage;
 
 // Called from the UI thread
-static int glfm__looperCallback(int fd, int events, void *userData) {
+static int glfm__looperCallback(int pipe, int events, void *userData) {
     GLFMPlatformData *platformData = userData;
     GLFMLooperMessage message;
     assert(ALooper_forThread() == platformData->uiLooper);
     if ((events & ALOOPER_EVENT_INPUT) != 0) {
-        if (read(fd, &message, sizeof(message)) == sizeof(message)) {
+        if (read(pipe, &message, sizeof(message)) == sizeof(message)) {
             message.function(platformData, message.userData);
         }
     }
@@ -1372,14 +1372,13 @@ static void glfm__onSensorEvent(GLFMPlatformData *platformData) {
     bool sensorEventReceived[GLFM_NUM_SENSORS] = { 0 };
     while (ASensorEventQueue_getEvents(platformData->sensorEventQueue, &event, 1) > 0) {
         if (event.type == ASENSOR_TYPE_ACCELEROMETER) {
-            const double G = (double)ASENSOR_STANDARD_GRAVITY;
             // Convert to iOS format
             GLFMSensorEvent *sensorEvent = &platformData->sensorEvent[GLFMSensorAccelerometer];
             sensorEvent->sensor = GLFMSensorAccelerometer;
             sensorEvent->timestamp = (double)event.timestamp / 1000000000.0;
-            sensorEvent->vector.x = (double)event.acceleration.x / -G;
-            sensorEvent->vector.y = (double)event.acceleration.y / -G;
-            sensorEvent->vector.z = (double)event.acceleration.z / -G;
+            sensorEvent->vector.x = (double)event.acceleration.x / -(double)ASENSOR_STANDARD_GRAVITY;
+            sensorEvent->vector.y = (double)event.acceleration.y / -(double)ASENSOR_STANDARD_GRAVITY;
+            sensorEvent->vector.z = (double)event.acceleration.z / -(double)ASENSOR_STANDARD_GRAVITY;
             sensorEventReceived[GLFMSensorAccelerometer] = true;
             platformData->sensorEventValid[GLFMSensorAccelerometer] = true;
         } else if (event.type == ASENSOR_TYPE_MAGNETIC_FIELD) {
@@ -1532,8 +1531,8 @@ static void *glfm__mainLoop(void *param) {
                   GLFMLooperIDCommand, ALOOPER_EVENT_INPUT, NULL, NULL);
 
     // Init java env
-    JavaVM *vm = platformData->activity->vm;
-    (*vm)->AttachCurrentThread(vm, &platformData->jniEnv, NULL);
+    JavaVM *jvm = platformData->activity->vm;
+    (*jvm)->AttachCurrentThread(jvm, &platformData->jniEnv, NULL);
 
     // Get display scale
     const int ACONFIGURATION_DENSITY_ANY = 0xfffe; // Added in API 21
@@ -1674,7 +1673,7 @@ static void *glfm__mainLoop(void *param) {
     }
     glfm__eglDestroy(platformData);
     glfm__setAnimating(platformData, false);
-    (*vm)->DetachCurrentThread(vm);
+    (*jvm)->DetachCurrentThread(jvm);
     platformData->window = NULL;
     platformData->looper = NULL;
 
@@ -1769,9 +1768,9 @@ static void glfm__updateUserInterfaceChrome(GLFMPlatformData *platformData) {
         return;
     }
 
-    JavaVM *vm = platformData->activity->vm;
+    JavaVM *jvm = platformData->activity->vm;
     JNIEnv *jni = NULL;
-    (*vm)->GetEnv(vm, (void **) &jni, JNI_VERSION_1_2);
+    (*jvm)->GetEnv(jvm, (void **) &jni, JNI_VERSION_1_2);
     if (!jni || (*jni)->ExceptionCheck(jni)) {
         return;
     }
@@ -1872,9 +1871,9 @@ static void glfm__resetContentRect(GLFMPlatformData *platformData) {
     // OnGlobalLayoutListener. This is needed to detect changes to getWindowVisibleDisplayFrame()
     // HACK: This uses undocumented fields.
 
-    JavaVM *vm = platformData->activity->vm;
+    JavaVM *jvm = platformData->activity->vm;
     JNIEnv *jni = NULL;
-    (*vm)->GetEnv(vm, (void **) &jni, JNI_VERSION_1_2);
+    (*jvm)->GetEnv(jvm, (void **) &jni, JNI_VERSION_1_2);
     if (!jni || (*jni)->ExceptionCheck(jni)) {
         return;
     }
@@ -2357,17 +2356,17 @@ static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
         int largestIndex = 0;
         int largestArea = -1;
         for (int i = 0; i < 4; i++) {
-            int w = nonVisibleRect[i].right - nonVisibleRect[i].left;
-            int h = nonVisibleRect[i].bottom - nonVisibleRect[i].top;
-            int area = w * h;
-            if (w >= minimumKeyboardSize && h >= minimumKeyboardSize && area > largestArea) {
+            int width = nonVisibleRect[i].right - nonVisibleRect[i].left;
+            int height = nonVisibleRect[i].bottom - nonVisibleRect[i].top;
+            int area = width * height;
+            if (width >= minimumKeyboardSize && height >= minimumKeyboardSize && area > largestArea) {
                 largestIndex = i;
                 largestArea = area;
             }
         }
 
         bool keyboardVisible = largestArea > 0;
-        ARect keyboardFrame = keyboardVisible ? nonVisibleRect[largestIndex] : (ARect){0, 0, 0, 0};
+        ARect keyboardFrame = keyboardVisible ? nonVisibleRect[largestIndex] : (ARect){ 0 };
 
         // Send update notification
         if (platformData->keyboardVisible != keyboardVisible ||
@@ -2384,11 +2383,11 @@ static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
             if (platformData->display->keyboardVisibilityChangedFunc) {
                 double x = keyboardFrame.left;
                 double y = keyboardFrame.top;
-                double w = keyboardFrame.right - keyboardFrame.left;
-                double h = keyboardFrame.bottom - keyboardFrame.top;
+                double width = keyboardFrame.right - keyboardFrame.left;
+                double height = keyboardFrame.bottom - keyboardFrame.top;
                 platformData->display->keyboardVisibilityChangedFunc(platformData->display,
                                                                      keyboardVisible,
-                                                                     x, y, w, h);
+                                                                     x, y, width, height);
             }
         }
     }
