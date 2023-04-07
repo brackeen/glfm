@@ -343,7 +343,7 @@ static void glfm__eglSurfaceInit(GLFMPlatformData *platformData) {
 
 static void glfm__eglLogConfig(GLFMPlatformData *platformData, EGLConfig config) {
     GLFM_LOG("Config: %p", config);
-    EGLint value;
+    EGLint value = 0;
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_RENDERABLE_TYPE, &value);
     GLFM_LOG("  EGL_RENDERABLE_TYPE %i", value);
     eglGetConfigAttrib(platformData->eglDisplay, config, EGL_SURFACE_TYPE, &value);
@@ -373,8 +373,8 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
         glfm__eglSurfaceInit(platformData);
         return glfm__eglContextInit(platformData);
     }
-    int rBits, gBits, bBits, aBits;
-    int depthBits, stencilBits, samples;
+    int rBits = 0, gBits = 0, bBits = 0, aBits = 0;
+    int depthBits = 0, stencilBits = 0, samples = 0;
 
     switch (platformData->display->colorFormat) {
         case GLFMColorFormatRGB565:
@@ -421,10 +421,10 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
 
     samples = platformData->display->multisample == GLFMMultisample4X ? 4 : 0;
 
-    EGLint majorVersion;
-    EGLint minorVersion;
-    EGLint format;
-    EGLint numConfigs;
+    EGLint majorVersion = 0;
+    EGLint minorVersion = 0;
+    EGLint format = 0;
+    EGLint numConfigs = 0;
 
     platformData->eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     eglInitialize(platformData->eglDisplay, &majorVersion, &minorVersion);
@@ -464,11 +464,10 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
                 printedConfigs = true;
                 GLFM_LOG("eglChooseConfig() failed");
                 EGLConfig configs[256];
-                EGLint numTotalConfigs;
+                EGLint numTotalConfigs = 0;
                 if (eglGetConfigs(platformData->eglDisplay, configs, 256, &numTotalConfigs)) {
                     GLFM_LOG("Num available configs: %i", numTotalConfigs);
-                    int i;
-                    for (i = 0; i < numTotalConfigs; i++) {
+                    for (int i = 0; i < numTotalConfigs; i++) {
                         glfm__eglLogConfig(platformData, configs[i]);
                     }
                 } else {
@@ -1240,16 +1239,13 @@ static bool glfm__onKeyEvent(GLFMPlatformData *platformData, AInputEvent *event)
         if (aAction == AKEY_EVENT_ACTION_UP) {
             handled = display->keyFunc(display, keyCode, GLFMKeyActionReleased, modifiers);
         } else if (aAction == AKEY_EVENT_ACTION_DOWN) {
-            GLFMKeyAction keyAction;
+            GLFMKeyAction keyAction = GLFMKeyActionPressed;
             if (AKeyEvent_getRepeatCount(event) > 0) {
                 keyAction = GLFMKeyActionRepeated;
-            } else {
-                keyAction = GLFMKeyActionPressed;
             }
             handled = display->keyFunc(display, keyCode, keyAction, modifiers);
         } else if (aAction == AKEY_EVENT_ACTION_MULTIPLE) {
-            int32_t i;
-            for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
+            for (int i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
                 if (display->keyFunc) {
                     handled |= display->keyFunc(display, keyCode, GLFMKeyActionPressed, modifiers);
                 }
@@ -1274,8 +1270,7 @@ static bool glfm__onKeyEvent(GLFMPlatformData *platformData, AInputEvent *event)
             if (aAction == AKEY_EVENT_ACTION_DOWN) {
                 display->charFunc(display, utf8, 0);
             } else {
-                int32_t i;
-                for (i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
+                for (int i = AKeyEvent_getRepeatCount(event); i > 0; i--) {
                     if (display->charFunc) {
                         display->charFunc(display, utf8, 0);
                     }
@@ -1295,7 +1290,7 @@ static bool glfm__onTouchEvent(GLFMPlatformData *platformData, AInputEvent *even
     const int32_t action = AMotionEvent_getAction(event);
     const uint32_t maskedAction = (uint32_t)action & (uint32_t)AMOTION_EVENT_ACTION_MASK;
 
-    GLFMTouchPhase phase;
+    GLFMTouchPhase phase = GLFMTouchPhaseCancelled;
     bool validAction = true;
 
     switch (maskedAction) {
@@ -1322,8 +1317,7 @@ static bool glfm__onTouchEvent(GLFMPlatformData *platformData, AInputEvent *even
     if (validAction) {
         if (phase == GLFMTouchPhaseMoved) {
             const size_t count = AMotionEvent_getPointerCount(event);
-            size_t i;
-            for (i = 0; i < count; i++) {
+            for (size_t i = 0; i < count; i++) {
                 const int touchNumber = AMotionEvent_getPointerId(event, i);
                 if (touchNumber >= 0 && touchNumber < maxTouches && display->touchFunc) {
                     double x = (double)AMotionEvent_getX(event, i);
@@ -1406,7 +1400,7 @@ static void glfm__onSensorEvent(GLFMPlatformData *platformData) {
             double qx = (double)event.vector.x;
             double qy = (double)event.vector.y;
             double qz = (double)event.vector.z;
-            double qw;
+            double qw = 0.0;
             if (SDK_INT >= 18) {
                 qw = (double)event.data[3];
             } else {
@@ -1552,14 +1546,9 @@ static void *glfm__mainLoop(void *param) {
     }
 
     // Setup window params
-    int32_t windowFormat;
-    switch (platformData->display->colorFormat) {
-        case GLFMColorFormatRGB565:
-            windowFormat = WINDOW_FORMAT_RGB_565;
-            break;
-        case GLFMColorFormatRGBA8888: default:
-            windowFormat = WINDOW_FORMAT_RGBA_8888;
-            break;
+    int32_t windowFormat = WINDOW_FORMAT_RGBA_8888;
+    if (platformData->display->colorFormat == GLFMColorFormatRGB565) {
+        windowFormat = WINDOW_FORMAT_RGB_565;
     }
     bool fullscreen = platformData->display->uiChrome == GLFMUserInterfaceChromeNone;
     ANativeActivity_setWindowFormat(platformData->activity, windowFormat);
@@ -1601,12 +1590,12 @@ static void *glfm__mainLoop(void *param) {
 
     // Run the main loop
     while (!platformData->destroyRequested) {
-        int eventIdentifier;
+        int eventIdentifier = 0;
 
         while ((eventIdentifier = ALooper_pollAll(platformData->animating ? 0 : -1,
                                                   NULL, NULL, NULL)) >= 0) {
             if (eventIdentifier == GLFMLooperIDCommand) {
-                uint8_t cmd;
+                uint8_t cmd = 0;
                 if (read(platformData->commandPipeRead, &cmd, sizeof(cmd)) == sizeof(cmd)) {
                     GLFMActivityCommand command = (GLFMActivityCommand)cmd;
                     glfm__onAppCmd(platformData, command);
@@ -1777,12 +1766,10 @@ static void glfm__updateUserInterfaceChrome(GLFMPlatformData *platformData) {
     }
 
     GLFMUserInterfaceChrome uiChrome = platformData->display->uiChrome;
-    bool setNow;
+    bool setNow = true;
     bool isUiThread = ALooper_forThread() == platformData->uiLooper;
-    if (isUiThread) {
-        setNow = true;
-    } else {
-        jboolean isDecorViewAttached;
+    if (!isUiThread) {
+        jboolean isDecorViewAttached = false;
         if (SDK_INT >= 19) {
             isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "isAttachedToWindow", "()Z", Boolean);
         } else {
@@ -2046,11 +2033,12 @@ static float glfm__getRefreshRate(const GLFMDisplay *display) {
 
 static bool glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    int32_t width;
-    int32_t height;
-    eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_WIDTH, &width);
-    eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_HEIGHT, &height);
-    if (width != platformData->width || height != platformData->height) {
+    int32_t width = 0;
+    int32_t height = 0;
+    EGLBoolean success = true;
+    success &= eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_WIDTH, &width);
+    success &= eglQuerySurface(platformData->eglDisplay, platformData->eglSurface, EGL_HEIGHT, &height);
+    if (success && (width != platformData->width || height != platformData->height)) {
         if (force || platformData->resizeEventWaitFrames <= 0) {
             GLFM_LOG_LIFECYCLE("Resize: %i x %i", width, height);
             platformData->resizeEventWaitFrames = GLFM_RESIZE_EVENT_MAX_WAIT_FRAMES;
@@ -2074,7 +2062,7 @@ static bool glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
 static void glfm__getDisplayChromeInsets(const GLFMDisplay *display, int *top, int *right,
                                          int *bottom, int *left) {
 
-    bool success;
+    bool success = false;
     if (glfmGetDisplayChrome(display) == GLFMUserInterfaceChromeNone) {
         success = glfm__getSafeInsets(display, top, right, bottom, left);
     } else {
@@ -2103,7 +2091,7 @@ static void glfm__reportInsetsChangedIfNeeded(GLFMDisplay *display) {
         return;
     }
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    int top, right, bottom, left;
+    int top = 0, right = 0, bottom = 0, left = 0;
     glfm__getDisplayChromeInsets(display, &top, &right, &bottom, &left);
     if (platformData->insets.top != top || platformData->insets.right != right ||
         platformData->insets.bottom != bottom || platformData->insets.left != left) {
@@ -2147,7 +2135,7 @@ static void glfm__setOrientation(GLFMPlatformData *platformData) {
             ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationPortrait) ||
             ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationPortraitUpsideDown));
     bool landscapeRequested = ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationLandscape);
-    int orientation;
+    int orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
     if (portraitRequested && landscapeRequested) {
         orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
     } else if (landscapeRequested) {
@@ -2480,7 +2468,7 @@ double glfmGetDisplayScale(const GLFMDisplay *display) {
 
 void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
                                 double *bottom, double *left) {
-    int intTop, intRight, intBottom, intLeft;
+    int intTop = 0, intRight = 0, intBottom = 0, intLeft = 0;
     glfm__getDisplayChromeInsets(display, &intTop, &intRight, &intBottom, &intLeft);
     if (top) *top = (double)intTop;
     if (right) *right = (double)intRight;
@@ -2591,10 +2579,14 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
     if ((*jni)->ExceptionCheck(jni)) {
         return;
     }
+    jobject decorView = glfm__getDecorView(jni, platformData);
+    if (!decorView) {
+        return;
+    }
 
     const int SDK_INT = platformData->activity->sdkVersion;
     jint defaultFeedbackConstant = HapticFeedbackConstants_LONG_PRESS;
-    jint feedbackConstant;
+    jint feedbackConstant = HapticFeedbackConstants_LONG_PRESS;
     jint feedbackFlags = HapticFeedbackConstants_FLAG_IGNORE_VIEW_SETTING | HapticFeedbackConstants_FLAG_IGNORE_GLOBAL_SETTING;
     switch (style) {
         case GLFMHapticFeedbackLight: default:
@@ -2616,10 +2608,6 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
             break;
     }
 
-    jobject decorView = glfm__getDecorView(jni, platformData);
-    if (!decorView) {
-        return;
-    }
     bool performed = glfm__callJavaMethodWithArgs(jni, decorView, "performHapticFeedback", "(II)Z", Boolean, feedbackConstant, feedbackFlags);
     if (!performed) {
         // Some devices (Samsung S8) don't support all constants
