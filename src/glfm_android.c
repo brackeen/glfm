@@ -934,6 +934,7 @@ static void glfm__onAppCmd(GLFMPlatformData *platformData, GLFMActivityCommand c
             }
             break;
         }
+#if GLFM_LOG_LIFECYCLE_ENABLE
         case GLFMActivityCommandOnStart: {
             GLFM_LOG_LIFECYCLE("OnStart");
             break;
@@ -950,6 +951,13 @@ static void glfm__onAppCmd(GLFMPlatformData *platformData, GLFMActivityCommand c
             GLFM_LOG_LIFECYCLE("OnStop");
             break;
         }
+#else
+        case GLFMActivityCommandOnStart:
+        case GLFMActivityCommandOnResume:
+        case GLFMActivityCommandOnPause:
+        case GLFMActivityCommandOnStop:
+            break;
+#endif
         case GLFMActivityCommandOnDestroy: {
             GLFM_LOG_LIFECYCLE("OnDestroy");
             glfm__eglDestroy(platformData);
