@@ -373,8 +373,13 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
         glfm__eglSurfaceInit(platformData);
         return glfm__eglContextInit(platformData);
     }
-    int rBits = 0, gBits = 0, bBits = 0, aBits = 0;
-    int depthBits = 0, stencilBits = 0, samples = 0;
+    int rBits = 0;
+    int gBits = 0;
+    int bBits = 0;
+    int aBits = 0;
+    int depthBits = 0;
+    int stencilBits = 0;
+    int samples = 0;
 
     switch (platformData->display->colorFormat) {
         case GLFMColorFormatRGB565:
@@ -2099,7 +2104,10 @@ static void glfm__reportInsetsChangedIfNeeded(GLFMDisplay *display) {
         return;
     }
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    int top = 0, right = 0, bottom = 0, left = 0;
+    int top = 0;
+    int right = 0;
+    int bottom = 0;
+    int left = 0;
     glfm__getDisplayChromeInsets(display, &top, &right, &bottom, &left);
     if (platformData->insets.top != top || platformData->insets.right != right ||
         platformData->insets.bottom != bottom || platformData->insets.left != left) {
@@ -2476,7 +2484,10 @@ double glfmGetDisplayScale(const GLFMDisplay *display) {
 
 void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
                                 double *bottom, double *left) {
-    int intTop = 0, intRight = 0, intBottom = 0, intLeft = 0;
+    int intTop = 0;
+    int intRight = 0;
+    int intBottom = 0;
+    int intLeft = 0;
     glfm__getDisplayChromeInsets(display, &intTop, &intRight, &intBottom, &intLeft);
     if (top) *top = (double)intTop;
     if (right) *right = (double)intRight;
