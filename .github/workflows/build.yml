@@ -39,7 +39,7 @@ jobs:
       run: cmake --build "build/android_${{ matrix.abi }}"
   
   build-apple:
-    name: ${{ matrix.sdk }}, ${{ matrix.objc_arc.name }}
+    name: build-${{ matrix.sdk }} (${{ matrix.objc_arc.name }})
     strategy:
       matrix:
         sdk: [ appletvos, appletvsimulator, iphoneos, iphonesimulator, macosx ]
