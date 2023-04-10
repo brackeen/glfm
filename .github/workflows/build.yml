@@ -39,10 +39,11 @@ jobs:
       run: cmake --build "build/android_${{ matrix.abi }}"
   
   build-apple:
+    name: ${{ matrix.sdk }}, ${{ matrix.objc_arc.name }}
     strategy:
       matrix:
         sdk: [ appletvos, appletvsimulator, iphoneos, iphonesimulator, macosx ]
-        arc: [ YES, NO ]
+        objc_arc: [ { name: objc_arc, value: YES }, { name: no_objc_arc, value: NO } ]
     runs-on: macos-latest
     env:
       CFLAGS: -Werror
@@ -53,12 +54,12 @@ jobs:
       run: >
         cmake 
         -D CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH=NO
-        -D CMAKE_XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC=${{ matrix.arc }}
-        -B build/apple_arc_${{ matrix.arc }}
+        -D CMAKE_XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC=${{ matrix.objc_arc.value }}
+        -B build/apple_${{ matrix.objc_arc.name }}
         -G Xcode
       
     - name: Build
-      run: cmake --build build/apple_arc_${{ matrix.arc }} -- -sdk ${{ matrix.sdk }}
+      run: cmake --build build/apple_${{ matrix.objc_arc.name }} -- -sdk ${{ matrix.sdk }}
   
   build-emscripten:
     runs-on: ubuntu-latest
