@@ -27,7 +27,11 @@
 #define GLFM_TEST_KEYBOARD_EVENT_ARRAYS 0
 
 #ifdef EM_JS_DEPS
-static EM_JS_DEPS(glfm_deps, "$stringToUTF8,$lengthBytesUTF8,$UTF8ToString")
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-variable-declarations"
+#pragma clang diagnostic ignored "-Wextra-semi"
+EM_JS_DEPS(glfm_deps, "$stringToUTF8,$lengthBytesUTF8,$UTF8ToString");
+#pragma clang diagnostic pop
 #endif
 
 typedef struct {
