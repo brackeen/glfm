@@ -5,23 +5,23 @@ if ! type xcodebuild &> /dev/null; then
 fi
 
 export CFLAGS=-Werror
+
 declare -a sdks=("appletvos" "appletvsimulator" "iphoneos" "iphonesimulator" "macosx")
+declare -a objc_arc_names=("objc_arc_on" "objc_arc_off")
+declare -a objc_arc_values=("YES" "NO")
 
-rm -Rf build/apple_arc_off
-rm -Rf build/apple_arc_on
+for i in "${!objc_arc_names[@]}"; do
+    builddir="build/apple_${objc_arc_names[i]}"
 
-cmake -S .. -B build/apple_arc_off -G Xcode \
-    -D CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH=NO \
-    -D CMAKE_XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC=NO
+    rm -Rf $builddir
 
-cmake -S .. -B build/apple_arc_on -G Xcode \
-    -D CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH=NO \
-    -D CMAKE_XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC=YES
+    cmake -S .. -B $builddir \
+        -G Xcode \
+        -D CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH=NO \
+        -D CMAKE_XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC=${objc_arc_values[i]}
 
-for sdk in "${sdks[@]}"; do
-    echo ">>> Building sdk $sdk (ARC off)"
-    cmake --build build/apple_arc_off -- -sdk $sdk || exit $?
-
-    echo ">>> Building sdk $sdk (ARC on)"
-    cmake --build build/apple_arc_on -- -sdk $sdk || exit $?
+    for sdk in "${sdks[@]}"; do
+        echo ">>> Building $sdk (${objc_arc_names[i]})"
+        cmake --build $builddir -- -sdk $sdk || exit $?
+    done
 done
