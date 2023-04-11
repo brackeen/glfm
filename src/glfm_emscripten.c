@@ -72,14 +72,14 @@ static int glfm__sortedListSearch(const char *list[], size_t size, const char *w
     int right = (int)size - 1;
 
     while (left <= right) {
-        int i = (left + right) / 2;
-        int result = strcmp(list[i], word);
+        int index = (left + right) / 2;
+        int result = strcmp(list[index], word);
         if (result > 0) {
-            right = i - 1;
+            right = index - 1;
         } else if (result < 0) {
-            left = i + 1;
+            left = index + 1;
         } else {
-            return i;
+            return index;
         }
     }
     return -1;
@@ -489,11 +489,11 @@ static EM_BOOL glfm__focusCallback(int eventType, const EmscriptenFocusEvent *fo
     return 1;
 }
 
-static EM_BOOL glfm__visibilityChangeCallback(int eventType, const EmscriptenVisibilityChangeEvent *e, void *userData) {
+static EM_BOOL glfm__visibilityChangeCallback(int eventType, const EmscriptenVisibilityChangeEvent *event, void *userData) {
     (void)eventType;
     GLFMDisplay *display = userData;
     GLFMPlatformData *platformData = display->platformData;
-    glfm__setVisibleAndFocused(display, !e->hidden, platformData->isFocused);
+    glfm__setVisibleAndFocused(display, !event->hidden, platformData->isFocused);
     return 1;
 }
 
@@ -523,7 +523,7 @@ static EM_BOOL glfm__orientationChangeCallback(int eventType,
     return 1;
 }
 
-static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e, void *userData) {
+static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *event, void *userData) {
     GLFMDisplay *display = userData;
     EM_BOOL handled = 0;
 
@@ -533,7 +533,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         // (Added functions keys F13-F24)
         // egrep -o '<code class="code" id="code-.*?</code>' uievents-code.html | sort | awk -F"[><]" '{print $3}' | awk 1 ORS=', '
         // This array must be sorted for binary search. See GLFM_TEST_KEYBOARD_EVENT_ARRAYS.
-        // NOTE: e->keyCode is obsolete. Only e->key or e->code should be used.
+        // NOTE: event->keyCode is obsolete. Only event->key or event->code should be used.
         static const char *KEYBOARD_EVENT_CODES[] = {
             "AltLeft", "AltRight", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp",
             "Backquote", "Backslash", "Backspace", "BracketLeft", "BracketRight", "BrowserBack",
@@ -589,7 +589,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
 
         GLFMKeyAction action;
         if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
-            if (e->repeat) {
+            if (event->repeat) {
                 action = GLFMKeyActionRepeated;
             } else {
                 action = GLFMKeyActionPressed;
@@ -603,26 +603,26 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         // (See KeyboardEvent's getModifierState() function).
         // Commands like "fn-f" ("Fullscreen" on macOS) will be treated as text input.
         int modifiers = 0;
-        if (e->shiftKey) {
+        if (event->shiftKey) {
             modifiers |= GLFMKeyModifierShift;
         }
-        if (e->ctrlKey) {
+        if (event->ctrlKey) {
             modifiers |= GLFMKeyModifierControl;
         }
-        if (e->altKey) {
+        if (event->altKey) {
             modifiers |= GLFMKeyModifierAlt;
         }
-        if (e->metaKey) {
+        if (event->metaKey) {
             modifiers |= GLFMKeyModifierMeta;
         }
 
-        int codeIndex = glfm__sortedListSearch(KEYBOARD_EVENT_CODES, KEYBOARD_EVENT_CODES_LENGTH, e->code);
+        int codeIndex = glfm__sortedListSearch(KEYBOARD_EVENT_CODES, KEYBOARD_EVENT_CODES_LENGTH, event->code);
         GLFMKeyCode keyCode = codeIndex >= 0 ? GLFM_KEY_CODES[codeIndex] : GLFMKeyCodeUnknown;
         handled = display->keyFunc(display, keyCode, action, modifiers);
     }
 
     // Character input
-    if (display->charFunc && eventType == EMSCRIPTEN_EVENT_KEYDOWN && !e->ctrlKey && !e->metaKey) {
+    if (display->charFunc && eventType == EMSCRIPTEN_EVENT_KEYDOWN && !event->ctrlKey && !event->metaKey) {
         // It appears the only way to detect printable character input is to check if the "key" value is
         // not one of the pre-defined key values.
         // This list of pre-defined key values is from https://www.w3.org/TR/uievents-key/
@@ -687,14 +687,14 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
             }
         }
 #endif
-        if (e->key[0] != '\0') {
-            bool isSingleChar = (e->key[1] == '\0');
+        if (event->key[0] != '\0') {
+            bool isSingleChar = (event->key[1] == '\0');
             bool isPredefinedKey = false;
             if (!isSingleChar) {
-                isPredefinedKey = glfm__sortedListSearch(KEYBOARD_EVENT_KEYS, KEYBOARD_EVENT_KEYS_LENGTH, e->key) >= 0;
+                isPredefinedKey = glfm__sortedListSearch(KEYBOARD_EVENT_KEYS, KEYBOARD_EVENT_KEYS_LENGTH, event->key) >= 0;
             }
             if (isSingleChar || !isPredefinedKey) {
-                display->charFunc(display, e->key, 0);
+                display->charFunc(display, event->key, 0);
                 handled = 1;
             }
         }
@@ -703,7 +703,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
     return handled;
 }
 
-static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *e, void *userData) {
+static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *event, void *userData) {
     GLFMDisplay *display = userData;
     GLFMPlatformData *platformData = display->platformData;
     if (!display->touchFunc) {
@@ -721,8 +721,8 @@ static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *e,
         setValue($2, rect.width, "float");
         setValue($3, rect.height, "float");
     }, &canvasX, &canvasY, &canvasW, &canvasH);
-    const float mouseX = (float)e->targetX - canvasX;
-    const float mouseY = (float)e->targetY - canvasY;
+    const float mouseX = (float)event->targetX - canvasX;
+    const float mouseY = (float)event->targetY - canvasY;
     const bool mouseInside = mouseX >= 0 && mouseY >= 0 && mouseX < canvasW && mouseY < canvasH;
     if (!mouseInside && eventType == EMSCRIPTEN_EVENT_MOUSEDOWN) {
         // Mouse click outside canvas
@@ -758,7 +758,7 @@ static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *e,
             platformData->mouseDown = false;
             break;
     }
-    bool handled = display->touchFunc(display, e->button, touchPhase,
+    bool handled = display->touchFunc(display, event->button, touchPhase,
                                       platformData->scale * (double)mouseX,
                                       platformData->scale * (double)mouseY);
     // Always return `false` when the event is `mouseDown` for iframe support.
@@ -793,11 +793,11 @@ static EM_BOOL glfm__mouseWheelCallback(int eventType, const EmscriptenWheelEven
     }
 }
 
-static int glfm__getTouchIdentifier(GLFMPlatformData *platformData, const EmscriptenTouchPoint *t) {
+static int glfm__getTouchIdentifier(GLFMPlatformData *platformData, const EmscriptenTouchPoint *touch) {
     int firstNullIndex = -1;
     int index = -1;
     for (int i = 0; i < GLFM_MAX_ACTIVE_TOUCHES; i++) {
-        if (platformData->activeTouches[i].identifier == t->identifier &&
+        if (platformData->activeTouches[i].identifier == touch->identifier &&
             platformData->activeTouches[i].active) {
             index = i;
             break;
@@ -811,13 +811,13 @@ static int glfm__getTouchIdentifier(GLFMPlatformData *platformData, const Emscri
             return -1;
         }
         index = firstNullIndex;
-        platformData->activeTouches[index].identifier = t->identifier;
+        platformData->activeTouches[index].identifier = touch->identifier;
         platformData->activeTouches[index].active = true;
     }
     return index;
 }
 
-static EM_BOOL glfm__touchCallback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
+static EM_BOOL glfm__touchCallback(int eventType, const EmscriptenTouchEvent *event, void *userData) {
     GLFMDisplay *display = userData;
     if (display->touchFunc) {
         GLFMPlatformData *platformData = display->platformData;
@@ -842,15 +842,15 @@ static EM_BOOL glfm__touchCallback(int eventType, const EmscriptenTouchEvent *e,
         }
 
         int handled = 0;
-        for (int i = 0; i < e->numTouches; i++) {
-            const EmscriptenTouchPoint *t = &e->touches[i];
-            if (t->isChanged) {
-                int identifier = glfm__getTouchIdentifier(platformData, t);
+        for (int i = 0; i < event->numTouches; i++) {
+            const EmscriptenTouchPoint *touch = &event->touches[i];
+            if (touch->isChanged) {
+                int identifier = glfm__getTouchIdentifier(platformData, touch);
                 if (identifier >= 0) {
                     if ((platformData->multitouchEnabled || identifier == 0)) {
                         handled |= display->touchFunc(display, identifier, touchPhase,
-                                                      platformData->scale * (double)t->targetX,
-                                                      platformData->scale * (double)t->targetY);
+                                                      platformData->scale * (double)touch->targetX,
+                                                      platformData->scale * (double)touch->targetY);
                     }
 
                     if (touchPhase == GLFMTouchPhaseEnded || touchPhase == GLFMTouchPhaseCancelled) {
