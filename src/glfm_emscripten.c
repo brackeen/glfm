@@ -176,8 +176,6 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display)
     }
 }
 
-extern EMSCRIPTEN_RESULT emscripten_get_orientation_status(EmscriptenOrientationChangeEvent *orientationStatus);
-
 void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height) {
     GLFMPlatformData *platformData = display->platformData;
     if (width) *width = platformData->width;
