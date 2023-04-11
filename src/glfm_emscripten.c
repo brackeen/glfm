@@ -26,6 +26,10 @@
 // If 1, test if keyboard event arrays are sorted.
 #define GLFM_TEST_KEYBOARD_EVENT_ARRAYS 0
 
+#ifdef EM_JS_DEPS
+static EM_JS_DEPS(glfm_deps, "$stringToUTF8,$lengthBytesUTF8,$UTF8ToString")
+#endif
+
 typedef struct {
     long identifier;
     bool active;
