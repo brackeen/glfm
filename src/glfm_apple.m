@@ -880,13 +880,18 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     
     // Initialize view
     self = [super initWithFrame:frame pixelFormat:pixelFormat];
-    if (!self) {
+    NSOpenGLContext *openGLContext = self.openGLContext;
+    CGLContextObj cglContext = openGLContext.CGLContextObj;
+    CGLPixelFormatObj cglPixelFormat = self.pixelFormat.CGLPixelFormatObj;
+    if (!openGLContext || !cglContext || !cglPixelFormat) {
         GLFM_LOG("Failed to create GL context");
         glfm__reportSurfaceError(glfmDisplay, "Failed to create GL context");
+        GLFM_RELEASE(self);
         return nil;
     }
+    
     GLint swapInterval = 1;
-    [self.openGLContext setValues:&swapInterval forParameter:NSOpenGLContextParameterSwapInterval];
+    [openGLContext setValues:&swapInterval forParameter:NSOpenGLContextParameterSwapInterval];
     self.wantsBestResolutionOpenGLSurface = YES;
     self.layerContentsPlacement = NSViewLayerContentsPlacementTopLeft;
     self.glfmDisplay = glfmDisplay;
@@ -936,8 +941,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         }
         return kCVReturnSuccess;
     });
-    CGLContextObj cglContext = self.openGLContext.CGLContextObj;
-    CGLPixelFormatObj cglPixelFormat = self.pixelFormat.CGLPixelFormatObj;
+    
     CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
     return self;
 }
