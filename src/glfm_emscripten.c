@@ -190,27 +190,34 @@ double glfmGetDisplayScale(const GLFMDisplay *display) {
 void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
                                 double *bottom, double *left) {
     GLFMPlatformData *platformData = display->platformData;
-
-    if (top) *top = platformData->scale * EM_ASM_DOUBLE_V( {
-        var htmlStyles = window.getComputedStyle(document.querySelector("html"));
-        return (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-top-old")) || 0) +
-               (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-top")) || 0);
-    } );
-    if (right) *right = platformData->scale * EM_ASM_DOUBLE_V( {
-        var htmlStyles = window.getComputedStyle(document.querySelector("html"));
-        return (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-right-old")) || 0) +
-               (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-right")) || 0);
-    } );
-    if (bottom) *bottom = platformData->scale * EM_ASM_DOUBLE_V( {
-        var htmlStyles = window.getComputedStyle(document.querySelector("html"));
-        return (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-bottom-old")) || 0) +
-               (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-bottom")) || 0);
-    } );
-    if (left) *left = platformData->scale * EM_ASM_DOUBLE_V( {
-        var htmlStyles = window.getComputedStyle(document.querySelector("html"));
-        return (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-left-old")) || 0) +
-               (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-left")) || 0);
-    } );
+    if (top) {
+        *top = platformData->scale * EM_ASM_DOUBLE_V( {
+            var htmlStyles = window.getComputedStyle(document.querySelector("html"));
+            return ((parseInt(htmlStyles.getPropertyValue("--glfm-chrome-top-old")) || 0) +
+                    (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-top")) || 0));
+        } );
+    }
+    if (right) {
+        *right = platformData->scale * EM_ASM_DOUBLE_V( {
+            var htmlStyles = window.getComputedStyle(document.querySelector("html"));
+            return ((parseInt(htmlStyles.getPropertyValue("--glfm-chrome-right-old")) || 0) +
+                    (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-right")) || 0));
+        } );
+    }
+    if (bottom) {
+        *bottom = platformData->scale * EM_ASM_DOUBLE_V( {
+            var htmlStyles = window.getComputedStyle(document.querySelector("html"));
+            return ((parseInt(htmlStyles.getPropertyValue("--glfm-chrome-bottom-old")) || 0) +
+                    (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-bottom")) || 0));
+        } );
+    }
+    if (left) {
+        *left = platformData->scale * EM_ASM_DOUBLE_V( {
+            var htmlStyles = window.getComputedStyle(document.querySelector("html"));
+            return ((parseInt(htmlStyles.getPropertyValue("--glfm-chrome-left-old")) || 0) +
+                    (parseInt(htmlStyles.getPropertyValue("--glfm-chrome-left")) || 0));
+        } );
+    }
 }
 
 GLFMRenderingAPI glfmGetRenderingAPI(const GLFMDisplay *display) {
