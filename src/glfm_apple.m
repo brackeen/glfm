@@ -2477,7 +2477,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         case kVK_RightOption: modifier = NX_DEVICERALTKEYMASK; break;
         case kVK_RightControl: modifier = NX_DEVICERCTLKEYMASK; break;
         case kVK_Function: modifier = NSEventModifierFlagFunction; break;
-    };
+    }
     if (modifier != 0) {
         BOOL pressed = ((event.modifierFlags & modifier) != 0);
         if (event.keyCode == kVK_Function) {
