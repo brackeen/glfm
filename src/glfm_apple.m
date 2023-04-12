@@ -58,11 +58,11 @@
 #  endif
 #endif
 
-static bool glfm__isCGFloatEqual(CGFloat a, CGFloat b) {
+static bool glfm__isCGFloatEqual(CGFloat value1, CGFloat value2) {
 #if CGFLOAT_IS_DOUBLE
-    return fabs(a - b) <= DBL_EPSILON;
+    return fabs(value1 - value2) <= DBL_EPSILON;
 #else
-    return fabsf(a - b) <= FLT_EPSILON;
+    return fabsf(value1 - value2) <= FLT_EPSILON;
 #endif
 }
 
@@ -831,44 +831,44 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     
     // Set up attributes and create pixel format
     NSOpenGLPixelFormatAttribute attributes[32];
-    size_t i = 0;
-    attributes[i++] = kCGLPFASupportsAutomaticGraphicsSwitching;
-    attributes[i++] = NSOpenGLPFAAccelerated;
-    attributes[i++] = NSOpenGLPFAAllowOfflineRenderers;
-    attributes[i++] = NSOpenGLPFAClosestPolicy;
-    attributes[i++] = NSOpenGLPFADoubleBuffer;
+    size_t index = 0;
+    attributes[index++] = kCGLPFASupportsAutomaticGraphicsSwitching;
+    attributes[index++] = NSOpenGLPFAAccelerated;
+    attributes[index++] = NSOpenGLPFAAllowOfflineRenderers;
+    attributes[index++] = NSOpenGLPFAClosestPolicy;
+    attributes[index++] = NSOpenGLPFADoubleBuffer;
     
     if (glfmDisplay->swapBehavior == GLFMSwapBehaviorBufferPreserved) {
-        attributes[i++] = NSOpenGLPFABackingStore;
+        attributes[index++] = NSOpenGLPFABackingStore;
     } else if (glfmDisplay->swapBehavior == GLFMSwapBehaviorBufferDestroyed) {
-        attributes[i++] = kCGLPFABackingVolatile;
+        attributes[index++] = kCGLPFABackingVolatile;
     }
     
-    attributes[i++] = NSOpenGLPFAOpenGLProfile;
-    attributes[i++] = NSOpenGLProfileVersion3_2Core;
+    attributes[index++] = NSOpenGLPFAOpenGLProfile;
+    attributes[index++] = NSOpenGLProfileVersion3_2Core;
     
-    attributes[i++] = NSOpenGLPFAColorSize;
-    attributes[i++] = colorBits;
+    attributes[index++] = NSOpenGLPFAColorSize;
+    attributes[index++] = colorBits;
     if (alphaBits > 0) {
-        attributes[i++] = NSOpenGLPFAAlphaSize;
-        attributes[i++] = alphaBits;
+        attributes[index++] = NSOpenGLPFAAlphaSize;
+        attributes[index++] = alphaBits;
     }
     if (depthBits > 0) {
-        attributes[i++] = NSOpenGLPFADepthSize;
-        attributes[i++] = depthBits;
+        attributes[index++] = NSOpenGLPFADepthSize;
+        attributes[index++] = depthBits;
     }
     if (stencilBits > 0) {
-        attributes[i++] = NSOpenGLPFAStencilSize;
-        attributes[i++] = stencilBits;
+        attributes[index++] = NSOpenGLPFAStencilSize;
+        attributes[index++] = stencilBits;
     }
     if (sampleCount > 1) {
-        attributes[i++] = NSOpenGLPFASampleBuffers;
-        attributes[i++] = 1;
-        attributes[i++] = NSOpenGLPFASamples;
-        attributes[i++] = sampleCount;
+        attributes[index++] = NSOpenGLPFASampleBuffers;
+        attributes[index++] = 1;
+        attributes[index++] = NSOpenGLPFASamples;
+        attributes[index++] = sampleCount;
     }
-    attributes[i] = 0;
-    assert(i < sizeof(attributes) / sizeof(attributes[0]));
+    attributes[index] = 0;
+    assert(index < sizeof(attributes) / sizeof(attributes[0]));
     
     NSOpenGLPixelFormat *pixelFormat = GLFM_AUTORELEASE([[NSOpenGLPixelFormat alloc]
                                                          initWithAttributes:attributes]);
@@ -2445,8 +2445,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             OSStatus status = UCKeyTranslate(self.keyboardLayout, event.keyCode, kUCKeyActionDown, modifierKeyState,
                                              LMGetKbdType(), 0, &_deadKeyState, sizeof(utf16) / sizeof(*utf16), &utf16Length, utf16);
             if (status == noErr && utf16Length > 0) {
-                UniChar ch = utf16[0];
-                BOOL isControlCode = (ch < 0x20 || ch == NSDeleteCharacter || ch == NSLineSeparatorCharacter || ch == NSParagraphSeparatorCharacter);
+                UniChar firstChar = utf16[0];
+                BOOL isControlCode = (firstChar < 0x20 ||
+                                      firstChar == NSDeleteCharacter ||
+                                      firstChar == NSLineSeparatorCharacter ||
+                                      firstChar == NSParagraphSeparatorCharacter);
                 if (!isControlCode) {
                     // Convert to UTF8
                     CFStringRef string = CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault, utf16, (CFIndex)utf16Length, kCFAllocatorNull);
@@ -2531,31 +2534,31 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         _active = active;
 
 #if TARGET_OS_OSX
-        GLFMViewController *vc = (GLFMViewController *)self.contentViewController;
+        GLFMViewController *viewController = (GLFMViewController *)self.contentViewController;
 #else
-        GLFMViewController *vc = (GLFMViewController *)self.rootViewController;
+        GLFMViewController *viewController = (GLFMViewController *)self.rootViewController;
 #endif
-        if (vc.glfmDisplay && vc.glfmDisplay->focusFunc) {
-            vc.glfmDisplay->focusFunc(vc.glfmDisplay, _active);
+        if (viewController.glfmDisplay && viewController.glfmDisplay->focusFunc) {
+            viewController.glfmDisplay->focusFunc(viewController.glfmDisplay, _active);
         }
-        if (vc.isViewLoaded) {
+        if (viewController.isViewLoaded) {
             if (!active) {
                 // Draw once when entering the background so that a game can show "paused" state.
-                [vc.glfmView requestRefresh];
-                [vc.glfmView draw];
+                [viewController.glfmView requestRefresh];
+                [viewController.glfmView draw];
             }
-            vc.glfmView.animating = active;
+            viewController.glfmView.animating = active;
         }
 #if TARGET_OS_IOS
-        if (vc.isMotionManagerLoaded) {
-            [vc updateMotionManagerActiveState];
+        if (viewController.isMotionManagerLoaded) {
+            [viewController updateMotionManagerActiveState];
         }
 #endif
 #if TARGET_OS_IOS || TARGET_OS_TV
-        [vc clearTouches];
+        [viewController clearTouches];
 #endif
 #if TARGET_OS_OSX
-        [vc clearActiveKeys];
+        [viewController clearActiveKeys];
 #endif
     }
 }
@@ -2977,15 +2980,15 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 static void glfm__displayChromeUpdated(GLFMDisplay *display) {
     if (display && display->platformData) {
 #if TARGET_OS_IOS
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        [vc.glfmViewIfLoaded requestRefresh];
-        [vc setNeedsStatusBarAppearanceUpdate];
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        [viewController.glfmViewIfLoaded requestRefresh];
+        [viewController setNeedsStatusBarAppearanceUpdate];
         if (@available(iOS 11, *)) {
-            [vc setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
+            [viewController setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
         }
 #elif TARGET_OS_OSX
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        NSWindow *window = vc.glfmViewIfLoaded.window;
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        NSWindow *window = viewController.glfmViewIfLoaded.window;
         if (window) {
             // This might not make sense and will probably change.
             // * GLFMUserInterfaceChromeNavigation: Full content view (title bar overlays content).
@@ -3038,8 +3041,8 @@ static void glfm__displayChromeUpdated(GLFMDisplay *display) {
 static void glfm__sensorFuncUpdated(GLFMDisplay *display) {
 #if TARGET_OS_IOS
     if (display) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        [vc updateMotionManagerActiveState];
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        [viewController updateMotionManagerActiveState];
     }
 #else
     (void)display;
@@ -3062,8 +3065,8 @@ GLFMProc glfmGetProcAddress(const char *functionName) {
 
 void glfmSwapBuffers(GLFMDisplay *display) {
     if (display && display->platformData) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        [vc.glfmViewIfLoaded swapBuffers];
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        [viewController.glfmViewIfLoaded swapBuffers];
     }
 }
 
@@ -3072,16 +3075,16 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOri
         if (display->supportedOrientations != supportedOrientations) {
             display->supportedOrientations = supportedOrientations;
 #if TARGET_OS_IOS
-            GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+            GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
             if (@available(iOS 16, *)) {
-                [vc setNeedsUpdateOfSupportedInterfaceOrientations];
-            } else if (vc.isViewLoaded && vc.view.window) {
+                [viewController setNeedsUpdateOfSupportedInterfaceOrientations];
+            } else if (viewController.isViewLoaded && viewController.view.window) {
                 // HACK: Notify that the value of supportedInterfaceOrientations has changed
-                [vc.glfmView requestRefresh];
-                UIViewController *dummyVC = GLFM_AUTORELEASE([[UIViewController alloc] init]);
-                dummyVC.view = GLFM_AUTORELEASE([[UIView alloc] init]);
-                [vc presentViewController:dummyVC animated:NO completion:^{
-                    [vc dismissViewControllerAnimated:NO completion:NULL];
+                [viewController.glfmView requestRefresh];
+                UIViewController *tempViewController = GLFM_AUTORELEASE([[UIViewController alloc] init]);
+                tempViewController.view = GLFM_AUTORELEASE([[UIView alloc] init]);
+                [viewController presentViewController:tempViewController animated:NO completion:^{
+                    [viewController dismissViewControllerAnimated:NO completion:NULL];
                 }];
             }
 #endif
@@ -3112,10 +3115,10 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display)
 
 void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height) {
     if (display && display->platformData) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        if (vc.isViewLoaded) {
-            if (width) *width = vc.glfmView.drawableWidth;
-            if (height) *height = vc.glfmView.drawableHeight;
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        if (viewController.isViewLoaded) {
+            if (width) *width = viewController.glfmView.drawableWidth;
+            if (height) *height = viewController.glfmView.drawableHeight;
         } else {
             double displayWidth = 0;
             double displayHeight = 0;
@@ -3133,8 +3136,8 @@ double glfmGetDisplayScale(const GLFMDisplay *display) {
 #if TARGET_OS_OSX
     NSWindow *window = nil;
     if (display && display->platformData) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        window = vc.glfmViewIfLoaded.window;
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        window = viewController.glfmViewIfLoaded.window;
     }
     return window ? window.backingScaleFactor : [NSScreen mainScreen].backingScaleFactor;
 #else
@@ -3146,36 +3149,36 @@ double glfmGetDisplayScale(const GLFMDisplay *display) {
 void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
                                 double *bottom, double *left) {
     if (display && display->platformData) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        if (!vc.isViewLoaded) {
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        if (!viewController.isViewLoaded) {
             if (top) *top = 0.0;
             if (right) *right = 0.0;
             if (bottom) *bottom = 0.0;
             if (left) *left = 0.0;
         } else if (@available(iOS 11, tvOS 11, macOS 11, *)) {
 #if TARGET_OS_IOS || TARGET_OS_TV
-            UIEdgeInsets insets = vc.view.safeAreaInsets;
-            if (top) *top = (double)(insets.top * vc.view.contentScaleFactor);
-            if (right) *right = (double)(insets.right * vc.view.contentScaleFactor);
-            if (bottom) *bottom = (double)(insets.bottom * vc.view.contentScaleFactor);
-            if (left) *left = (double)(insets.left * vc.view.contentScaleFactor);
+            UIEdgeInsets insets = viewController.view.safeAreaInsets;
+            if (top) *top = (double)(insets.top * viewController.view.contentScaleFactor);
+            if (right) *right = (double)(insets.right * viewController.view.contentScaleFactor);
+            if (bottom) *bottom = (double)(insets.bottom * viewController.view.contentScaleFactor);
+            if (left) *left = (double)(insets.left * viewController.view.contentScaleFactor);
 #else
             // NOTE: This has not been tested.
             // Run glfm_test_pattern fullscreen on a 2021-2022 MacBook Pro/Air with a notch.
-            NSEdgeInsets insets = vc.view.safeAreaInsets;
-            if (top) *top = (double)(insets.top * vc.view.layer.contentsScale);
-            if (right) *right = (double)(insets.right * vc.view.layer.contentsScale);
-            if (bottom) *bottom = (double)(insets.bottom * vc.view.layer.contentsScale);
-            if (left) *left = (double)(insets.left * vc.view.layer.contentsScale);
+            NSEdgeInsets insets = viewController.view.safeAreaInsets;
+            if (top) *top = (double)(insets.top * viewController.view.layer.contentsScale);
+            if (right) *right = (double)(insets.right * viewController.view.layer.contentsScale);
+            if (bottom) *bottom = (double)(insets.bottom * viewController.view.layer.contentsScale);
+            if (left) *left = (double)(insets.left * viewController.view.layer.contentsScale);
 #endif
         } else {
             if (top) {
 #if TARGET_OS_IOS
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-                if (![vc prefersStatusBarHidden]) {
+                if (![viewController prefersStatusBarHidden]) {
                     *top = (double)([UIApplication sharedApplication].statusBarFrame.size.height *
-                                    vc.view.contentScaleFactor);
+                                    viewController.view.contentScaleFactor);
                 } else {
                     *top = 0.0;
                 }
@@ -3198,9 +3201,9 @@ void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double 
 
 GLFMRenderingAPI glfmGetRenderingAPI(const GLFMDisplay *display) {
     if (display && display->platformData) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        if (vc.isViewLoaded) {
-            return vc.glfmView.renderingAPI;
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        if (viewController.isViewLoaded) {
+            return viewController.glfmView.renderingAPI;
         } else {
             return GLFMRenderingAPIOpenGLES2;
         }
@@ -3221,7 +3224,7 @@ bool glfmHasTouch(const GLFMDisplay *display) {
 void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
 #if TARGET_OS_OSX
     if (display && display->platformData) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
         NSCursor *cursor;
         switch (mouseCursor) {
             case GLFMMouseCursorAuto:
@@ -3242,28 +3245,28 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
                 cursor = NSCursor.IBeamCursorForVerticalLayout;
                 break;
             case GLFMMouseCursorNone:
-                cursor = vc.transparentCursor;
+                cursor = viewController.transparentCursor;
                 break;
         }
-        if (vc.currentCursor != cursor) {
-            vc.currentCursor = cursor;
-            GLFMWindow *window = (GLFMWindow *)vc.glfmViewIfLoaded.window;
-            if (vc.mouseInside && window.active) {
+        if (viewController.currentCursor != cursor) {
+            viewController.currentCursor = cursor;
+            GLFMWindow *window = (GLFMWindow *)viewController.glfmViewIfLoaded.window;
+            if (viewController.mouseInside && window.active) {
                 [cursor set];
             }
         }
         [NSCursor setHiddenUntilMouseMoves:NO];
-        vc.hideMouseCursorWhileTyping = (mouseCursor == GLFMMouseCursorAuto ||
-                                         mouseCursor == GLFMMouseCursorText ||
-                                         mouseCursor == GLFMMouseCursorVerticalText);
+        viewController.hideMouseCursorWhileTyping = (mouseCursor == GLFMMouseCursorAuto ||
+                                                     mouseCursor == GLFMMouseCursorText ||
+                                                     mouseCursor == GLFMMouseCursorVerticalText);
     }
 #elif TARGET_OS_IOS
     if (@available(iOS 13.4, *)) {
         if (display && display->platformData) {
-            GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-            if (vc.mouseCursor != mouseCursor) {
-                vc.mouseCursor = mouseCursor;
-                NSArray<id<UIInteraction>> *interactions = vc.viewIfLoaded.interactions;
+            GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+            if (viewController.mouseCursor != mouseCursor) {
+                viewController.mouseCursor = mouseCursor;
+                NSArray<id<UIInteraction>> *interactions = viewController.viewIfLoaded.interactions;
                 if (interactions) {
                     id<UIInteraction> interaction = nil;
                     for (interaction in interactions) {
@@ -3286,9 +3289,9 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
 void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
 #if TARGET_OS_IOS
     if (display) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        vc.multipleTouchEnabled = (BOOL)multitouchEnabled;
-        vc.glfmViewIfLoaded.multipleTouchEnabled = (BOOL)multitouchEnabled;
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        viewController.multipleTouchEnabled = (BOOL)multitouchEnabled;
+        viewController.glfmViewIfLoaded.multipleTouchEnabled = (BOOL)multitouchEnabled;
     }
 #else
     (void)display;
@@ -3299,8 +3302,8 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
 bool glfmGetMultitouchEnabled(const GLFMDisplay *display) {
 #if TARGET_OS_IOS
     if (display) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return vc.multipleTouchEnabled;
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        return viewController.multipleTouchEnabled;
     } else {
         return false;
     }
@@ -3322,10 +3325,10 @@ bool glfmHasVirtualKeyboard(const GLFMDisplay *display) {
 void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
 #if TARGET_OS_IOS
     if (display) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        [vc resignFirstResponder];
-        vc.keyboardRequested = visible;
-        [vc becomeFirstResponder];
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        [viewController resignFirstResponder];
+        viewController.keyboardRequested = visible;
+        [viewController becomeFirstResponder];
     }
 #else
     (void)display;
@@ -3336,8 +3339,8 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
 bool glfmIsKeyboardVisible(const GLFMDisplay *display) {
 #if TARGET_OS_IOS
     if (display) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return vc.keyboardRequested;
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        return viewController.keyboardRequested;
     } else {
         return false;
     }
@@ -3350,16 +3353,16 @@ bool glfmIsKeyboardVisible(const GLFMDisplay *display) {
 bool glfmIsSensorAvailable(const GLFMDisplay *display, GLFMSensor sensor) {
 #if TARGET_OS_IOS
     if (display) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
         switch (sensor) {
             case GLFMSensorAccelerometer:
-                return vc.motionManager.deviceMotionAvailable && vc.motionManager.accelerometerAvailable;
+                return viewController.motionManager.deviceMotionAvailable && viewController.motionManager.accelerometerAvailable;
             case GLFMSensorMagnetometer:
-                return vc.motionManager.deviceMotionAvailable && vc.motionManager.magnetometerAvailable;
+                return viewController.motionManager.deviceMotionAvailable && viewController.motionManager.magnetometerAvailable;
             case GLFMSensorGyroscope:
-                return vc.motionManager.deviceMotionAvailable && vc.motionManager.gyroAvailable;
+                return viewController.motionManager.deviceMotionAvailable && viewController.motionManager.gyroAvailable;
             case GLFMSensorRotationMatrix:
-                return (vc.motionManager.deviceMotionAvailable &&
+                return (viewController.motionManager.deviceMotionAvailable &&
                         ([CMMotionManager availableAttitudeReferenceFrames] & CMAttitudeReferenceFrameXMagneticNorthZVertical));
         }
     }
@@ -3491,8 +3494,8 @@ bool glfmSetClipboardText(GLFMDisplay *display, const char *string) {
 bool glfmIsMetalSupported(const GLFMDisplay *display) {
 #if GLFM_INCLUDE_METAL
     if (display) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return (vc.metalDevice != nil);
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        return (viewController.metalDevice != nil);
     }
 #endif
     return false;
@@ -3501,8 +3504,8 @@ bool glfmIsMetalSupported(const GLFMDisplay *display) {
 void *glfmGetMetalView(const GLFMDisplay *display) {
 #if GLFM_INCLUDE_METAL
     if (display) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        UIView<GLFMView> *view = vc.glfmViewIfLoaded;
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        UIView<GLFMView> *view = viewController.glfmViewIfLoaded;
         if ([view isKindOfClass:[MTKView class]]) {
             return (__bridge void *)view;
         }
@@ -3513,8 +3516,8 @@ void *glfmGetMetalView(const GLFMDisplay *display) {
 
 void *glfmGetViewController(const GLFMDisplay *display) {
     if (display) {
-        GLFMViewController *vc = (__bridge GLFMViewController *)display->platformData;
-        return (__bridge void *)vc;
+        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+        return (__bridge void *)viewController;
     } else {
         return NULL;
     }
