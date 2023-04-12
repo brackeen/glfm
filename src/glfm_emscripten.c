@@ -158,22 +158,20 @@ GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display)
     int orientation = orientationStatus.orientationIndex;
     int angle = orientationStatus.orientationAngle;
     
+    GLFMInterfaceOrientation result = GLFMInterfaceOrientationUnknown;
     if (orientation == EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY) {
-        return GLFMInterfaceOrientationPortrait;
+        result = GLFMInterfaceOrientationPortrait;
     } else if (orientation == EMSCRIPTEN_ORIENTATION_PORTRAIT_SECONDARY) {
-        return GLFMInterfaceOrientationPortraitUpsideDown;
+        result = GLFMInterfaceOrientationPortraitUpsideDown;
     } else if (orientation == EMSCRIPTEN_ORIENTATION_LANDSCAPE_PRIMARY ||
                orientation == EMSCRIPTEN_ORIENTATION_LANDSCAPE_SECONDARY) {
         if (angle == 0 || angle == 90) {
-            return GLFMInterfaceOrientationLandscapeRight;
+            result = GLFMInterfaceOrientationLandscapeRight;
         } else if (angle == 180 || angle == 270) {
-            return GLFMInterfaceOrientationLandscapeLeft;
-        } else {
-            return GLFMInterfaceOrientationUnknown;
+            result = GLFMInterfaceOrientationLandscapeLeft;
         }
-    } else {
-        return GLFMInterfaceOrientationUnknown;
     }
+    return result;
 }
 
 void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height) {
@@ -474,18 +472,19 @@ static EM_BOOL glfm__webGLContextCallback(int eventType, const void *reserved, v
     GLFMDisplay *display = userData;
     GLFMPlatformData *platformData = display->platformData;
     platformData->refreshRequested = true;
-    if (eventType == EMSCRIPTEN_EVENT_WEBGLCONTEXTLOST) {
-        if (display->surfaceDestroyedFunc) {
-            display->surfaceDestroyedFunc(display);
-        }
-        return 1;
-    } else if (eventType == EMSCRIPTEN_EVENT_WEBGLCONTEXTRESTORED) {
-        if (display->surfaceCreatedFunc) {
-            display->surfaceCreatedFunc(display, platformData->width, platformData->height);
-        }
-        return 1;
-    } else {
-        return 0;
+    switch (eventType) {
+        case EMSCRIPTEN_EVENT_WEBGLCONTEXTLOST:
+            if (display->surfaceDestroyedFunc) {
+                display->surfaceDestroyedFunc(display);
+            }
+            return 1;
+        case EMSCRIPTEN_EVENT_WEBGLCONTEXTRESTORED:
+            if (display->surfaceCreatedFunc) {
+                display->surfaceCreatedFunc(display, platformData->width, platformData->height);
+            }
+            return 1;
+        default:
+            return 0;
     }
 }
 
@@ -776,27 +775,26 @@ static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *ev
 static EM_BOOL glfm__mouseWheelCallback(int eventType, const EmscriptenWheelEvent *wheelEvent, void *userData) {
     (void)eventType;
     GLFMDisplay *display = userData;
-    if (display->mouseWheelFunc) {
-        GLFMPlatformData *platformData = display->platformData;
-        GLFMMouseWheelDeltaType deltaType = GLFMMouseWheelDeltaPixel;
-        switch (wheelEvent->deltaMode) {
-            case DOM_DELTA_PIXEL: default:
-                deltaType = GLFMMouseWheelDeltaPixel;
-                break;
-            case DOM_DELTA_LINE:
-                deltaType = GLFMMouseWheelDeltaLine;
-                break;
-            case DOM_DELTA_PAGE:
-                deltaType = GLFMMouseWheelDeltaPage;
-                break;
-        }
-        return display->mouseWheelFunc(display,
-                                       platformData->scale * (double)wheelEvent->mouse.targetX,
-                                       platformData->scale * (double)wheelEvent->mouse.targetY,
-                                       deltaType, wheelEvent->deltaX, wheelEvent->deltaY, wheelEvent->deltaZ);
-    } else {
+    if (!display->mouseWheelFunc) {
         return 0;
     }
+    GLFMPlatformData *platformData = display->platformData;
+    GLFMMouseWheelDeltaType deltaType = GLFMMouseWheelDeltaPixel;
+    switch (wheelEvent->deltaMode) {
+        case DOM_DELTA_PIXEL: default:
+            deltaType = GLFMMouseWheelDeltaPixel;
+            break;
+        case DOM_DELTA_LINE:
+            deltaType = GLFMMouseWheelDeltaLine;
+            break;
+        case DOM_DELTA_PAGE:
+            deltaType = GLFMMouseWheelDeltaPage;
+            break;
+    }
+    return display->mouseWheelFunc(display,
+                                   platformData->scale * (double)wheelEvent->mouse.targetX,
+                                   platformData->scale * (double)wheelEvent->mouse.targetY,
+                                   deltaType, wheelEvent->deltaX, wheelEvent->deltaY, wheelEvent->deltaZ);
 }
 
 static int glfm__getTouchIdentifier(GLFMPlatformData *platformData, const EmscriptenTouchPoint *touch) {
@@ -807,7 +805,8 @@ static int glfm__getTouchIdentifier(GLFMPlatformData *platformData, const Emscri
             platformData->activeTouches[i].active) {
             index = i;
             break;
-        } else if (firstNullIndex == -1 && !platformData->activeTouches[i].active) {
+        }
+        if (firstNullIndex == -1 && !platformData->activeTouches[i].active) {
             firstNullIndex = i;
         }
     }
@@ -825,50 +824,49 @@ static int glfm__getTouchIdentifier(GLFMPlatformData *platformData, const Emscri
 
 static EM_BOOL glfm__touchCallback(int eventType, const EmscriptenTouchEvent *event, void *userData) {
     GLFMDisplay *display = userData;
-    if (display->touchFunc) {
-        GLFMPlatformData *platformData = display->platformData;
-        GLFMTouchPhase touchPhase = GLFMTouchPhaseCancelled;
-        switch (eventType) {
-            case EMSCRIPTEN_EVENT_TOUCHSTART:
-                touchPhase = GLFMTouchPhaseBegan;
-                break;
+    if (!display->touchFunc) {
+        return 0;
+    }
+    GLFMPlatformData *platformData = display->platformData;
+    GLFMTouchPhase touchPhase = GLFMTouchPhaseCancelled;
+    switch (eventType) {
+        case EMSCRIPTEN_EVENT_TOUCHSTART:
+            touchPhase = GLFMTouchPhaseBegan;
+            break;
 
-            case EMSCRIPTEN_EVENT_TOUCHMOVE:
-                touchPhase = GLFMTouchPhaseMoved;
-                break;
+        case EMSCRIPTEN_EVENT_TOUCHMOVE:
+            touchPhase = GLFMTouchPhaseMoved;
+            break;
 
-            case EMSCRIPTEN_EVENT_TOUCHEND:
-                touchPhase = GLFMTouchPhaseEnded;
-                break;
+        case EMSCRIPTEN_EVENT_TOUCHEND:
+            touchPhase = GLFMTouchPhaseEnded;
+            break;
 
-            case EMSCRIPTEN_EVENT_TOUCHCANCEL:
-            default:
-                touchPhase = GLFMTouchPhaseCancelled;
-                break;
-        }
+        case EMSCRIPTEN_EVENT_TOUCHCANCEL:
+        default:
+            touchPhase = GLFMTouchPhaseCancelled;
+            break;
+    }
 
-        int handled = 0;
-        for (int i = 0; i < event->numTouches; i++) {
-            const EmscriptenTouchPoint *touch = &event->touches[i];
-            if (touch->isChanged) {
-                int identifier = glfm__getTouchIdentifier(platformData, touch);
-                if (identifier >= 0) {
-                    if ((platformData->multitouchEnabled || identifier == 0)) {
-                        handled |= display->touchFunc(display, identifier, touchPhase,
-                                                      platformData->scale * (double)touch->targetX,
-                                                      platformData->scale * (double)touch->targetY);
-                    }
+    int handled = 0;
+    for (int i = 0; i < event->numTouches; i++) {
+        const EmscriptenTouchPoint *touch = &event->touches[i];
+        if (touch->isChanged) {
+            int identifier = glfm__getTouchIdentifier(platformData, touch);
+            if (identifier >= 0) {
+                if ((platformData->multitouchEnabled || identifier == 0)) {
+                    handled |= display->touchFunc(display, identifier, touchPhase,
+                                                  platformData->scale * (double)touch->targetX,
+                                                  platformData->scale * (double)touch->targetY);
+                }
 
-                    if (touchPhase == GLFMTouchPhaseEnded || touchPhase == GLFMTouchPhaseCancelled) {
-                        platformData->activeTouches[identifier].active = false;
-                    }
+                if (touchPhase == GLFMTouchPhaseEnded || touchPhase == GLFMTouchPhaseCancelled) {
+                    platformData->activeTouches[identifier].active = false;
                 }
             }
         }
-        return handled;
-    } else {
-        return 0;
     }
+    return handled;
 }
 
 // MARK: - main
