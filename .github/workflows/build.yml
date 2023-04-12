@@ -71,7 +71,7 @@ jobs:
     - name: Setup Emscripten SDK
       uses: mymindstorm/setup-emsdk@v12
       with:
-        version: 3.1.34
+        version: 3.1.35
         actions-cache-folder: 'emsdk-cache'
     
     - name: Configure CMake
