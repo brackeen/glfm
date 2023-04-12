@@ -1876,7 +1876,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         }
     }
 
-    BOOL handled = self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, modifierFlags);
+    BOOL handled = NO;
+    if (self.glfmDisplay->keyFunc) {
+        handled = self.glfmDisplay->keyFunc(self.glfmDisplay, keyCode, action, modifierFlags);
+    }
     if (@available(iOS 13.4, tvOS 13.4, *)) {
         if (self.isFirstResponder && hasKey && isPrintable && self.glfmDisplay->charFunc) {
             self.glfmDisplay->charFunc(self.glfmDisplay, press.key.characters.UTF8String, 0);
