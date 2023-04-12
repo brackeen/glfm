@@ -4,6 +4,7 @@
 #if defined(__APPLE__)
 
 #include "glfm.h"
+#include "glfm_internal.h"
 
 #if !defined(GLFM_INCLUDE_METAL)
 #  define GLFM_INCLUDE_METAL 1
@@ -30,7 +31,6 @@
 #endif
 
 #include <dlfcn.h>
-#include "glfm_internal.h"
 
 #ifdef NDEBUG
 #  define GLFM_LOG(...) do { } while (0)
