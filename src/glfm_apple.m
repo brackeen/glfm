@@ -584,7 +584,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         glGenRenderbuffers(1, &_attachmentRenderbuffer);
         glBindRenderbuffer(GL_RENDERBUFFER, _attachmentRenderbuffer);
 
-        GLenum internalFormat;
+        GLenum internalFormat = GL_DEPTH24_STENCIL8_OES;
         if (self.depthBits > 0 && self.stencilBits > 0) {
             internalFormat = GL_DEPTH24_STENCIL8_OES;
         } else if (self.depthBits >= 24) {
@@ -758,8 +758,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)layoutSubviews {
-    int newDrawableWidth;
-    int newDrawableHeight;
+    int newDrawableWidth = self.drawableWidth;
+    int newDrawableHeight = self.drawableHeight;
     glfm__getDrawableSize((double)self.bounds.size.width, (double)self.bounds.size.height,
                           (double)self.contentScaleFactor, &newDrawableWidth, &newDrawableHeight);
 
@@ -815,7 +815,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     uint32_t alphaBits = (glfmDisplay->colorFormat == GLFMColorFormatRGB565) ? 0 : 8;
     uint32_t stencilBits = (glfmDisplay->stencilFormat == GLFMStencilFormat8) ? 8 : 0;
     uint32_t sampleCount = (glfmDisplay->multisample == GLFMMultisample4X) ? 4 : 1;
-    uint32_t depthBits;
+    uint32_t depthBits = 0;
     switch (glfmDisplay->depthFormat) {
         case GLFMDepthFormatNone:
         default:
@@ -1342,7 +1342,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
     // There doesn't appear to be a notification for insets changed on macOS.
     if (@available(macOS 11, *)) {
-        double top, right, bottom, left;
+        double top = 0;
+        double right = 0;
+        double bottom = 0;
+        double left = 0;
         glfmGetDisplayChromeInsets(self.glfmDisplay, &top, &right, &bottom, &left);
         NSEdgeInsets newInsets = NSEdgeInsetsMake((CGFloat)top, (CGFloat)left, (CGFloat)bottom, (CGFloat)right);
         if (!NSEdgeInsetsEqual(self.insets, newInsets)) {
@@ -1375,7 +1378,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (void)viewSafeAreaInsetsDidChange {
     [super viewSafeAreaInsetsDidChange];
     if (self.glfmDisplay->displayChromeInsetsChangedFunc) {
-        double top, right, bottom, left;
+        double top = 0;
+        double right = 0;
+        double bottom = 0;
+        double left = 0;
         glfmGetDisplayChromeInsets(self.glfmDisplay, &top, &right, &bottom, &left);
         self.glfmDisplay->displayChromeInsetsChangedFunc(self.glfmDisplay, top, right, bottom, left);
     }
@@ -1518,7 +1524,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
     
     if (enable && !self.motionManager.deviceMotionActive) {
-        CMAttitudeReferenceFrame referenceFrame;
+        CMAttitudeReferenceFrame referenceFrame = CMAttitudeReferenceFrameXArbitraryZVertical;
         CMAttitudeReferenceFrame availableReferenceFrames = [CMMotionManager availableAttitudeReferenceFrames];
         if (availableReferenceFrames & CMAttitudeReferenceFrameXMagneticNorthZVertical) {
             referenceFrame = CMAttitudeReferenceFrameXMagneticNorthZVertical;
@@ -1584,25 +1590,29 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-    for (UITouch *touch in touches) {
+    UITouch *touch = nil;
+    for (touch in touches) {
         [self addTouchEvent:touch withType:GLFMTouchPhaseBegan];
     }
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
-    for (UITouch *touch in touches) {
+    UITouch *touch = nil;
+    for (touch in touches) {
         [self addTouchEvent:touch withType:GLFMTouchPhaseMoved];
     }
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
-    for (UITouch *touch in touches) {
+    UITouch *touch = nil;
+    for (touch in touches) {
         [self addTouchEvent:touch withType:GLFMTouchPhaseEnded];
     }
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
-    for (UITouch *touch in touches) {
+    UITouch *touch = nil;
+    for (touch in touches) {
         [self addTouchEvent:touch withType:GLFMTouchPhaseCancelled];
     }
 }
@@ -1894,7 +1904,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 // Returns set of unhandled presses
 - (NSSet<UIPress *> *)handlePresses:(NSSet<UIPress *> *)presses withAction:(GLFMKeyAction)action {
     NSMutableSet<UIPress *> *unhandledPresses = nil;
-    for (UIPress *press in presses) {
+    UIPress *press = nil;
+    for (press in presses) {
         BOOL handled = [self handlePress:press withAction:action];
         if (!handled) {
             if (presses.count == 1) {
@@ -2103,7 +2114,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         return;
     }
 
-    double x, y;
+    double x = 0;
+    double y = 0;
     if (![self getLocationForEvent:event outX:&x outY:&y]) {
         return;
     }
@@ -2163,7 +2175,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         return;
     }
 
-    double x, y;
+    double x = 0;
+    double y = 0;
     if (![self getLocationForEvent:event outX:&x outY:&y]) {
         return;
     }
@@ -2741,7 +2754,9 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
                                      NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable);
 
     // Create NSWindow centered on the main screen, One-half screen size.
-    double width, height, scale;
+    double width = 0;
+    double height = 0;
+    double scale = 0;
     glfm__getDefaultDisplaySize(NULL, &width, &height, &scale);
     CGRect screenFrame = [NSScreen mainScreen].frame;
     CGRect contentFrame;
@@ -2982,7 +2997,8 @@ static void glfm__displayChromeUpdated(GLFMDisplay *display) {
             BOOL hideButtons = ((window.styleMask & NSWindowStyleMaskFullScreen) == 0 &&
                                 display->uiChrome == GLFMUserInterfaceChromeNone);
             NSView *titleBarView = [window standardWindowButton:NSWindowCloseButton].superview;
-            for (NSView *button in titleBarView.subviews) {
+            NSView *button = nil;
+            for (button in titleBarView.subviews) {
                 if ([button isKindOfClass:[NSControl class]]) {
                     [button setHidden:hideButtons];
                 }
@@ -3101,7 +3117,9 @@ void glfmGetDisplaySize(const GLFMDisplay *display, int *width, int *height) {
             if (width) *width = vc.glfmView.drawableWidth;
             if (height) *height = vc.glfmView.drawableHeight;
         } else {
-            double displayWidth, displayHeight, displayScale;
+            double displayWidth = 0;
+            double displayHeight = 0;
+            double displayScale = 0;
             glfm__getDefaultDisplaySize(display, &displayWidth, &displayHeight, &displayScale);
             glfm__getDrawableSize(displayWidth, displayHeight, displayScale, width, height);
         }
@@ -3247,7 +3265,8 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
                 vc.mouseCursor = mouseCursor;
                 NSArray<id<UIInteraction>> *interactions = vc.viewIfLoaded.interactions;
                 if (interactions) {
-                    for (id<UIInteraction> interaction in interactions) {
+                    id<UIInteraction> interaction = nil;
+                    for (interaction in interactions) {
                         if ([interaction isKindOfClass:[UIPointerInteraction class]]) {
                             UIPointerInteraction *pointerInteraction = (UIPointerInteraction *)interaction;
                             [pointerInteraction invalidate];
@@ -3369,7 +3388,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
     (void)display;
 #if TARGET_OS_IOS
     if (@available(iOS 10, *)) {
-        UIImpactFeedbackStyle uiStyle;
+        UIImpactFeedbackStyle uiStyle = UIImpactFeedbackStyleLight;
         switch (style) {
             case GLFMHapticFeedbackLight: default:
                 uiStyle = UIImpactFeedbackStyleLight;
