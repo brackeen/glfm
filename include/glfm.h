@@ -1,12 +1,10 @@
-// GLFM
+// GLFM v0.10.0
+//
+// GLFM is a C API for mobile app development with OpenGL ES. It is largely inspired by GLFW.
 // https://github.com/brackeen/glfm
 
 #ifndef GLFM_H
 #define GLFM_H
-
-#define GLFM_VERSION_MAJOR 0
-#define GLFM_VERSION_MINOR 10
-#define GLFM_VERSION_REVISION 0
 
 #if !defined(__APPLE__) && !defined(__ANDROID__) && !defined(__EMSCRIPTEN__)
 #  error Unsupported platform

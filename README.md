@@ -2,11 +2,9 @@
 [![Build](https://github.com/brackeen/glfm/actions/workflows/build.yml/badge.svg)](https://github.com/brackeen/glfm/actions/workflows/build.yml)
 [![Build Examples](https://github.com/brackeen/glfm/actions/workflows/build_examples.yml/badge.svg)](https://github.com/brackeen/glfm/actions/workflows/build_examples.yml)
 
-Write OpenGL ES code in C/C++ without writing platform-specific code.
+GLFM is a C API for mobile app development with OpenGL ES. It is largely inspired by [GLFW](https://github.com/glfw/glfw).
 
-GLFM is an OpenGL ES layer for mobile devices and the web. GLFM supplies an OpenGL ES context and input events. It is largely inspired by [GLFW](https://github.com/glfw/glfw).
-
-GLFM is written in C and runs on iOS 9, tvOS 9, Android 4.1 (API 16), and WebGL 1.0 (via [Emscripten](https://github.com/emscripten-core/emscripten)).
+GLFM runs on iOS 9, tvOS 9, Android 4.1 (API 16), and WebGL 1.0 (via [Emscripten](https://github.com/emscripten-core/emscripten)).
 
 Additionally, GLFM provides Metal support on iOS and tvOS.
 
