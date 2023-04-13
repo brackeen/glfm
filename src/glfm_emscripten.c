@@ -235,7 +235,7 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
     // Make sure the javascript array emCursors is referenced properly
     int emCursor = 0;
     switch (mouseCursor) {
-        case GLFMMouseCursorAuto:
+        case GLFMMouseCursorAuto: default:
             emCursor = 0;
             break;
         case GLFMMouseCursorNone:
