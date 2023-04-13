@@ -17,3 +17,29 @@ When running `build_all.sh`, GLFM is conditionally built for each target platfor
 * Android: Android NDK 17 or newer is installed (`ANDROID_NDK_HOME` environment variable is set).
 
 On macOS, `ANDROID_NDK_HOME` is something like "~/Library/Android/sdk/ndk/23.2.8568313".
+
+## clang-tidy
+
+Currently the `clang-tidy-analyze.yml` config file is located in this directory (instaead of named `.clang-tidy` in the parent directory)
+because some of the analyze checks are a bit slow, and some IDEs (Android Studio) automatically pick up `.clang-tidy` files and run the checks in the background.
+
+The current list of checks in `clang-tidy-analyze.yml` will likely change in the future.
+
+The build scripts (but not the automated tests) run `clang-tidy` if it is available.
+
+For Android, the Android NDK has a built in `clang-tidy`.
+
+For Emscripten targets on Ubuntu, install clang-tidy:
+
+```
+sudo apt install clang-tidy
+```
+
+For Apple platforms, both `xcpretty` and `clang-tidy` are required:
+
+```
+brew install xcpretty llvm
+```
+
+For Apple platforms, the process of extracting info from `xcodebuild` and sending it to `clang-tidy` is a bit fragile and will likely break in the future.
+As of now, it works with Xcode 14.3 and clang-tidy 16.

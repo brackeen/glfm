@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.18.0)
 project(GLFM C)
 
 option(GLFM_BUILD_EXAMPLES "Build the GLFM examples" OFF)
+option(GLFM_USE_CLANG_TIDY "Use Clang Tidy when building (Android and Emscripten only)" OFF)
 
 set(GLFM_HEADERS include/glfm.h)
 
@@ -20,6 +21,36 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GLFM_COMPILE_OPTIONS "-Wno-auto-import;-Wno-direct-ivar-access")
 else()
     message(FATAL_ERROR "CMAKE_SYSTEM_NAME ('${CMAKE_SYSTEM_NAME}') expected to be Darwin, Emscripten, or Android")
+endif()
+
+if (GLFM_USE_CLANG_TIDY)
+    # Android target: use clang-tidy from NDK.
+    # Emscripten target: use clang-tidy on the host system.
+    # On macOS host, try: $(brew --prefix llvm)/bin/clang-tidy
+    find_program(CLANG_TIDY_EXECUTABLE clang-tidy)
+    if ((NOT CLANG_TIDY_EXECUTABLE) AND (CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin"))
+        execute_process(
+            COMMAND brew --prefix llvm
+            RESULT_VARIABLE BREW_LLVM
+            OUTPUT_VARIABLE BREW_LLVM_PREFIX
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        if (BREW_LLVM EQUAL 0 AND EXISTS "${BREW_LLVM_PREFIX}")
+            set(CLANG_TIDY_EXECUTABLE "${BREW_LLVM_PREFIX}/bin/clang-tidy")
+        endif()
+    endif()
+    if (NOT CLANG_TIDY_EXECUTABLE)
+        message(WARNING "GLFM_USE_CLANG_TIDY=ON but clang-tidy not found")
+    else()
+        if (CMAKE_SYSTEM_NAME STREQUAL "Android")
+            set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE};--config-file=${PROJECT_SOURCE_DIR}/tests/clang-tidy-analyze.yml")
+        elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+            message(WARNING "GLFM_USE_CLANG_TIDY=ON but clang-tidy not functional with Xcode generator")
+        elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+            set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES 0)
+            set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE};--config-file=${PROJECT_SOURCE_DIR}/tests/clang-tidy-analyze.yml;--extra-arg=--target=wasm32;--extra-arg=-D__EMSCRIPTEN__;--extra-arg=-isystem${EMSCRIPTEN_ROOT_PATH}/cache/sysroot/include")
+        endif()
+    endif()
 endif()
 
 add_library(glfm ${GLFM_SRC} ${GLFM_HEADERS})

@@ -8,5 +8,6 @@ export CFLAGS=-Werror
 
 rm -Rf build/emscripten
 emcmake cmake -S .. -B build/emscripten \
+    -D GLFM_USE_CLANG_TIDY=ON \
     -D CMAKE_VERBOSE_MAKEFILE=ON || exit $?
 cmake --build build/emscripten
