@@ -1244,9 +1244,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (UIView<GLFMView> *)glfmViewIfLoaded {
     if (self.isViewLoaded) {
         return (UIView<GLFMView> *)self.view;
-    } else {
-        return nil;
     }
+    return nil;
 }
 
 - (void)loadView {
@@ -1394,9 +1393,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (UIView *)inputView {
     if (self.keyboardRequested) {
         return nil; // System keyboard
-    } else {
-        return self.noSoftKeyboardView;
     }
+    return self.noSoftKeyboardView;
 }
 
 - (BOOL)prefersStatusBarHidden {
@@ -1415,21 +1413,16 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     BOOL landscapeRequested = (orientations & GLFMInterfaceOrientationLandscape) != 0;
     BOOL isTablet = [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad;
     if (portraitRequested && landscapeRequested) {
-        if (isTablet) {
-            return UIInterfaceOrientationMaskAll;
-        } else {
-            return UIInterfaceOrientationMaskAllButUpsideDown;
-        }
-    } else if (landscapeRequested) {
-        return UIInterfaceOrientationMaskLandscape;
-    } else {
+        return isTablet ? UIInterfaceOrientationMaskAll : UIInterfaceOrientationMaskAllButUpsideDown;
+    }
+    if (portraitRequested) {
         if (isTablet) {
             return (UIInterfaceOrientationMask)(UIInterfaceOrientationMaskPortrait |
-                    UIInterfaceOrientationMaskPortraitUpsideDown);
-        } else {
-            return UIInterfaceOrientationMaskPortrait;
+                                                UIInterfaceOrientationMaskPortraitUpsideDown);
         }
+        return UIInterfaceOrientationMaskPortrait;
     }
+    return UIInterfaceOrientationMaskLandscape;
 }
 
 - (void)deviceOrientationChanged:(NSNotification *)notification {
@@ -1562,7 +1555,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         if (activeTouches[i] == (__bridge const void *)touch) {
             index = i;
             break;
-        } else if (firstNullIndex == -1 && activeTouches[i] == NULL) {
+        }
+        if (firstNullIndex == -1 && activeTouches[i] == NULL) {
             firstNullIndex = i;
         }
     }
@@ -2842,13 +2836,12 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
 }
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
-    if (self.window) {
-        // Terminate later in windowWillClose:
-        [self.window close];
-        return NSTerminateCancel;
-    } else {
+    if (!self.window) {
         return NSTerminateNow;
     }
+    // Terminate later in windowWillClose:
+    [self.window close];
+    return NSTerminateCancel;
 }
 
 - (void)windowWillEnterFullScreen:(NSNotification *)notification {
@@ -3200,16 +3193,14 @@ void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double 
 }
 
 GLFMRenderingAPI glfmGetRenderingAPI(const GLFMDisplay *display) {
-    if (display && display->platformData) {
-        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
-        if (viewController.isViewLoaded) {
-            return viewController.glfmView.renderingAPI;
-        } else {
-            return GLFMRenderingAPIOpenGLES2;
-        }
-    } else {
+    if (!display || !display->platformData) {
         return GLFMRenderingAPIOpenGLES2;
     }
+    GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+    if (viewController.isViewLoaded) {
+        return viewController.glfmView.renderingAPI;
+    }
+    return GLFMRenderingAPIOpenGLES2;
 }
 
 bool glfmHasTouch(const GLFMDisplay *display) {
@@ -3301,12 +3292,11 @@ void glfmSetMultitouchEnabled(GLFMDisplay *display, bool multitouchEnabled) {
 
 bool glfmGetMultitouchEnabled(const GLFMDisplay *display) {
 #if TARGET_OS_IOS
-    if (display) {
-        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
-        return viewController.multipleTouchEnabled;
-    } else {
+    if (!display) {
         return false;
     }
+    GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+    return viewController.multipleTouchEnabled;
 #else
     (void)display;
     return false;
@@ -3338,12 +3328,11 @@ void glfmSetKeyboardVisible(GLFMDisplay *display, bool visible) {
 
 bool glfmIsKeyboardVisible(const GLFMDisplay *display) {
 #if TARGET_OS_IOS
-    if (display) {
-        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
-        return viewController.keyboardRequested;
-    } else {
+    if (!display) {
         return false;
     }
+    GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+    return viewController.keyboardRequested;
 #else
     (void)display;
     return false;
@@ -3379,12 +3368,9 @@ bool glfmIsHapticFeedbackSupported(const GLFMDisplay *display) {
 #if TARGET_OS_IOS
     if (@available(iOS 13, *)) {
         return [CHHapticEngine capabilitiesForHardware].supportsHaptics;
-    } else {
-        return false;
     }
-#else
-    return false;
 #endif
+    return false;
 }
 
 void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle style) {
@@ -3515,12 +3501,11 @@ void *glfmGetMetalView(const GLFMDisplay *display) {
 }
 
 void *glfmGetViewController(const GLFMDisplay *display) {
-    if (display) {
-        GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
-        return (__bridge void *)viewController;
-    } else {
+    if (!display) {
         return NULL;
     }
+    GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
+    return (__bridge void *)viewController;
 }
 
 #endif // __APPLE__
