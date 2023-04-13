@@ -2212,7 +2212,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (void)insertText:(id)text replacementRange:(NSRange)replacementRange {
     // Input from the Character Palette
     if (self.glfmDisplay->charFunc) {
-        NSString *string;
+        NSString *string = nil;
         if ([(NSObject *)text isKindOfClass:[NSAttributedString class]]) {
             string = ((NSAttributedString *)text).string;
         } else {
@@ -3225,7 +3225,7 @@ void glfmSetMouseCursor(GLFMDisplay *display, GLFMMouseCursor mouseCursor) {
 #if TARGET_OS_OSX
     if (display && display->platformData) {
         GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
-        NSCursor *cursor;
+        NSCursor *cursor = nil;
         switch (mouseCursor) {
             case GLFMMouseCursorAuto:
             case GLFMMouseCursorDefault:
