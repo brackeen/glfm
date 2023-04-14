@@ -178,3 +178,4 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 set_target_properties(${GLFM_APP_TARGET_NAME} PROPERTIES C_STANDARD 11)
+target_include_directories(${GLFM_APP_TARGET_NAME} PUBLIC deps)

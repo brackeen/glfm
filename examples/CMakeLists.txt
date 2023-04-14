@@ -10,30 +10,30 @@ set(GLFM_APP_VERSION_ITERATION 1)
 
 # Triangle example
 set(GLFM_APP_TARGET_NAME glfm_triangle)
-set(GLFM_APP_SRC src/triangle.c)
+set(GLFM_APP_SRC triangle.c)
 include(GLFMAppTarget)
 
 # Touch example
 set(GLFM_APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 set(GLFM_APP_TARGET_NAME glfm_touch)
-set(GLFM_APP_SRC src/touch.c src/file_compat.h)
+set(GLFM_APP_SRC touch.c)
 include(GLFMAppTarget)
 
 # Test pattern example
 set(GLFM_APP_TARGET_NAME glfm_test_pattern)
-set(GLFM_APP_SRC src/test_pattern.c src/test_pattern_renderer.h src/test_pattern_renderer_gles2.c src/file_compat.h)
+set(GLFM_APP_SRC test_pattern.c test_pattern_renderer.h test_pattern_renderer_gles2.c)
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set(GLFM_APP_SRC ${GLFM_APP_SRC} src/test_pattern_renderer_metal.m src/test_pattern_renderer.metal)
-    set_source_files_properties(src/test_pattern_renderer.metal PROPERTIES LANGUAGE METAL)
+    set(GLFM_APP_SRC ${GLFM_APP_SRC} test_pattern_renderer_metal.m test_pattern_renderer.metal)
+    set_source_files_properties(test_pattern_renderer.metal PROPERTIES LANGUAGE METAL)
 endif()
 include(GLFMAppTarget)
 
 # Compass example
 set(GLFM_APP_TARGET_NAME glfm_compass)
-set(GLFM_APP_SRC src/compass.c src/file_compat.h)
+set(GLFM_APP_SRC compass.c)
 include(GLFMAppTarget)
 
 # Typing example (using iOS/Android virtual keyboard)
 set(GLFM_APP_TARGET_NAME glfm_typing)
-set(GLFM_APP_SRC src/typing.c src/file_compat.h)
+set(GLFM_APP_SRC typing.c)
 include(GLFMAppTarget)
