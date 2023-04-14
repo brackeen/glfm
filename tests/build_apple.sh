@@ -55,18 +55,10 @@ for i in "${!objc_arc_names[@]}"; do
             # Current clang-tidy version (16.0.1) doesn't understand "ivfsstatcache" flag from xcodebuild 14.3.
             sed -i.bak 's/ -ivfsstatcache [^ ]* / /g' $builddir/compile_commands.json
 
-            if [ $sdk == "macosx" ]; then
-                # On macOS, disable narrowing checks because there is a problem converting comparison operator
-                # results to BOOL (which is a signed char).
-                extra_flags="--checks=-bugprone-narrowing-conversions,-cppcoreguidelines-narrowing-conversions"
-            else
-                extra_flags=""
-            fi
-
             # Use compile_commands.json generated from xcpretty to run clang-tidy. This will also check header files.
             # Since GLFM for Apple has only one source file, it is easy to just specify glfm_apple.m.
             # For bigger projects, the filenames could be parsed from compile_commands.json.
-            $clang_tidy --config-file=clang-tidy-analyze.yml $extra_flags -p $builddir ../src/glfm_apple.m || exit $?
+            $clang_tidy --config-file=clang-tidy-analyze.yml -p $builddir ../src/glfm_apple.m || exit $?
         fi
     done
 done
