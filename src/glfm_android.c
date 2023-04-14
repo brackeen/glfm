@@ -373,13 +373,8 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
         glfm__eglSurfaceInit(platformData);
         return glfm__eglContextInit(platformData);
     }
-    int rBits = 0;
-    int gBits = 0;
-    int bBits = 0;
-    int aBits = 0;
-    int depthBits = 0;
-    int stencilBits = 0;
-    int samples = 0;
+    int rBits, gBits, bBits, aBits;
+    int depthBits, stencilBits, samples;
 
     switch (platformData->display->colorFormat) {
         case GLFMColorFormatRGB565:
@@ -1252,9 +1247,11 @@ static bool glfm__onKeyEvent(GLFMPlatformData *platformData, AInputEvent *event)
         if (aAction == AKEY_EVENT_ACTION_UP) {
             handled = display->keyFunc(display, keyCode, GLFMKeyActionReleased, modifiers);
         } else if (aAction == AKEY_EVENT_ACTION_DOWN) {
-            GLFMKeyAction keyAction = GLFMKeyActionPressed;
+            GLFMKeyAction keyAction;
             if (AKeyEvent_getRepeatCount(event) > 0) {
                 keyAction = GLFMKeyActionRepeated;
+            } else {
+                keyAction = GLFMKeyActionPressed;
             }
             handled = display->keyFunc(display, keyCode, keyAction, modifiers);
         } else if (aAction == AKEY_EVENT_ACTION_MULTIPLE) {
@@ -1303,7 +1300,7 @@ static bool glfm__onTouchEvent(GLFMPlatformData *platformData, AInputEvent *even
     const int32_t action = AMotionEvent_getAction(event);
     const uint32_t maskedAction = (uint32_t)action & (uint32_t)AMOTION_EVENT_ACTION_MASK;
 
-    GLFMTouchPhase phase = GLFMTouchPhaseCancelled;
+    GLFMTouchPhase phase;
     bool validAction = true;
 
     switch (maskedAction) {
@@ -1413,7 +1410,7 @@ static void glfm__onSensorEvent(GLFMPlatformData *platformData) {
             double qx = (double)event.vector.x;
             double qy = (double)event.vector.y;
             double qz = (double)event.vector.z;
-            double qw = 0.0;
+            double qw;
             if (SDK_INT >= 18) {
                 qw = (double)event.data[3];
             } else {
@@ -1559,9 +1556,11 @@ static void *glfm__mainLoop(void *param) {
     }
 
     // Setup window params
-    int32_t windowFormat = WINDOW_FORMAT_RGBA_8888;
+    int32_t windowFormat;
     if (platformData->display->colorFormat == GLFMColorFormatRGB565) {
         windowFormat = WINDOW_FORMAT_RGB_565;
+    } else {
+        windowFormat = WINDOW_FORMAT_RGBA_8888;
     }
     bool fullscreen = platformData->display->uiChrome == GLFMUserInterfaceChromeNone;
     ANativeActivity_setWindowFormat(platformData->activity, windowFormat);
@@ -1603,7 +1602,7 @@ static void *glfm__mainLoop(void *param) {
 
     // Run the main loop
     while (!platformData->destroyRequested) {
-        int eventIdentifier = 0;
+        int eventIdentifier;
 
         while ((eventIdentifier = ALooper_pollAll(platformData->animating ? 0 : -1,
                                                   NULL, NULL, NULL)) >= 0) {
@@ -2075,7 +2074,7 @@ static bool glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
 static void glfm__getDisplayChromeInsets(const GLFMDisplay *display, int *top, int *right,
                                          int *bottom, int *left) {
 
-    bool success = false;
+    bool success;
     if (glfmGetDisplayChrome(display) == GLFMUserInterfaceChromeNone) {
         success = glfm__getSafeInsets(display, top, right, bottom, left);
     } else {
@@ -2104,10 +2103,7 @@ static void glfm__reportInsetsChangedIfNeeded(GLFMDisplay *display) {
         return;
     }
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
-    int top = 0;
-    int right = 0;
-    int bottom = 0;
-    int left = 0;
+    int top, right, bottom, left;
     glfm__getDisplayChromeInsets(display, &top, &right, &bottom, &left);
     if (platformData->insets.top != top || platformData->insets.right != right ||
         platformData->insets.bottom != bottom || platformData->insets.left != left) {
@@ -2151,7 +2147,7 @@ static void glfm__setOrientation(GLFMPlatformData *platformData) {
             ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationPortrait) ||
             ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationPortraitUpsideDown));
     bool landscapeRequested = ((uint8_t)orientations & (uint8_t)GLFMInterfaceOrientationLandscape);
-    int orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
+    int orientation;
     if (portraitRequested && landscapeRequested) {
         orientation = ActivityInfo_SCREEN_ORIENTATION_SENSOR;
     } else if (landscapeRequested) {
@@ -2484,10 +2480,7 @@ double glfmGetDisplayScale(const GLFMDisplay *display) {
 
 void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
                                 double *bottom, double *left) {
-    int intTop = 0;
-    int intRight = 0;
-    int intBottom = 0;
-    int intLeft = 0;
+    int intTop, intRight, intBottom, intLeft;
     glfm__getDisplayChromeInsets(display, &intTop, &intRight, &intBottom, &intLeft);
     if (top) *top = (double)intTop;
     if (right) *right = (double)intRight;
@@ -2605,7 +2598,7 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
 
     const int SDK_INT = platformData->activity->sdkVersion;
     jint defaultFeedbackConstant = HapticFeedbackConstants_LONG_PRESS;
-    jint feedbackConstant = HapticFeedbackConstants_LONG_PRESS;
+    jint feedbackConstant;
     jint feedbackFlags = HapticFeedbackConstants_FLAG_IGNORE_VIEW_SETTING | HapticFeedbackConstants_FLAG_IGNORE_GLOBAL_SETTING;
     switch (style) {
         case GLFMHapticFeedbackLight: default:

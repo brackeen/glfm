@@ -7,6 +7,7 @@ Checks: >
   -clang-analyzer-optin.performance.Padding,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-init-variables,
   -google-objc-avoid-nsobject-new,
   -google-objc-function-naming,
   -google-readability-todo,
@@ -16,6 +17,7 @@ Checks: >
   -llvmlibc-restrict-system-libc-headers,
   -misc-confusable-identifiers,
   -readability-function-cognitive-complexity,
+  -readability-isolate-declaration,
   -readability-magic-numbers,
   -readability-uppercase-literal-suffix,
 CheckOptions:

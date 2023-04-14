@@ -595,9 +595,11 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         }
 #endif
 
-        GLFMKeyAction action = GLFMKeyActionReleased;
+        GLFMKeyAction action;
         if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
             action = event->repeat ? GLFMKeyActionRepeated : GLFMKeyActionPressed;
+        } else {
+            action = GLFMKeyActionReleased;
         }
 
         // Modifiers
@@ -715,10 +717,7 @@ static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *ev
     
     // The mouse event handler targets EMSCRIPTEN_EVENT_TARGET_WINDOW so that dragging the mouse outside the canvas can be detected.
     // If a mouse drag begins inside the canvas, the mouse release event is sent even if the mouse is released outside the canvas.
-    float canvasX = 0;
-    float canvasY = 0;
-    float canvasW = 0;
-    float canvasH = 0;
+    float canvasX, canvasY, canvasW, canvasH;
     EM_ASM({
         var rect = Module['canvas'].getBoundingClientRect();
         setValue($0, rect.x, "float");
@@ -738,7 +737,7 @@ static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *ev
         return 0;
     }
     
-    GLFMTouchPhase touchPhase = GLFMTouchPhaseCancelled;
+    GLFMTouchPhase touchPhase;
     switch (eventType) {
         case EMSCRIPTEN_EVENT_MOUSEDOWN:
             touchPhase = GLFMTouchPhaseBegan;
@@ -779,7 +778,7 @@ static EM_BOOL glfm__mouseWheelCallback(int eventType, const EmscriptenWheelEven
         return 0;
     }
     GLFMPlatformData *platformData = display->platformData;
-    GLFMMouseWheelDeltaType deltaType = GLFMMouseWheelDeltaPixel;
+    GLFMMouseWheelDeltaType deltaType;
     switch (wheelEvent->deltaMode) {
         case DOM_DELTA_PIXEL: default:
             deltaType = GLFMMouseWheelDeltaPixel;
@@ -828,7 +827,7 @@ static EM_BOOL glfm__touchCallback(int eventType, const EmscriptenTouchEvent *ev
         return 0;
     }
     GLFMPlatformData *platformData = display->platformData;
-    GLFMTouchPhase touchPhase = GLFMTouchPhaseCancelled;
+    GLFMTouchPhase touchPhase;
     switch (eventType) {
         case EMSCRIPTEN_EVENT_TOUCHSTART:
             touchPhase = GLFMTouchPhaseBegan;
