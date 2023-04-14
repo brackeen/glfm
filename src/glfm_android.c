@@ -8,8 +8,6 @@
 
 #include <EGL/egl.h>
 #include <android/configuration.h>
-#include <android/looper.h>
-#include <android/native_activity.h>
 #include <android/sensor.h>
 #include <android/window.h>
 #include <assert.h>
@@ -807,8 +805,10 @@ JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedSt
 
 // MARK: - UI thread callbacks
 
+typedef void (*GLFMUIThreadFunc)(GLFMPlatformData *platformData, void *userData);
+
 typedef struct {
-    void (*function)(GLFMPlatformData *platformData, void *userData);
+    GLFMUIThreadFunc function;
     void *userData;
 } GLFMLooperMessage;
 
@@ -827,11 +827,9 @@ static int glfm__looperCallback(int pipe, int events, void *userData) {
 
 /// Queues a function to execute on the UI thread.
 /// Returns true if the function was queued, false otherwise.
-static bool glfm__runOnUIThread(GLFMPlatformData *platformData,
-                                void (*function)(GLFMPlatformData *platformData, void *userData),
+static bool glfm__runOnUIThread(GLFMPlatformData *platformData, GLFMUIThreadFunc function,
                                 void *userData) {
     assert(platformData->looper == ALooper_forThread());
-    assert(function != NULL);
     if (platformData->looper != ALooper_forThread() || !function) {
         return false;
     }
@@ -1268,7 +1266,7 @@ static bool glfm__onKeyEvent(GLFMPlatformData *platformData, AInputEvent *event)
 
 #if GLFM_HANDLE_BACK_BUTTON
     if (!handled && aAction == AKEY_EVENT_ACTION_UP && aKeyCode == AKEYCODE_BACK) {
-        handled = glfm__handleBackButton(platformData) ? 1 : 0;
+        handled = glfm__handleBackButton(platformData);
     }
 #endif
 
@@ -1781,7 +1779,7 @@ static void glfm__updateUserInterfaceChrome(GLFMPlatformData *platformData) {
     bool setNow = true;
     bool isUiThread = ALooper_forThread() == platformData->uiLooper;
     if (!isUiThread) {
-        jboolean isDecorViewAttached = false;
+        bool isDecorViewAttached;
         if (SDK_INT >= 19) {
             isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "isAttachedToWindow", "()Z", Boolean);
         } else {
