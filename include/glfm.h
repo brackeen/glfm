@@ -414,7 +414,7 @@ typedef bool (*GLFMTouchFunc)(GLFMDisplay *display, int touch, GLFMTouchPhase ph
 
 /// Callback function when key events occur. See ``glfmSetKeyFunc``.
 ///
-/// For each keypress, this function is called before ``GLFMCharFunc``.
+/// For each key press, this function is called before ``GLFMCharFunc``.
 ///
 /// - Android and tvOS: When the user presses the back button (`GLFMKeyCodeNavigationBack`), this
 /// function should return `false` to allow the user to exit the app, or return `true` if the back
