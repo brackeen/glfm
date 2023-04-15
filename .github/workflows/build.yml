@@ -51,16 +51,28 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
+    - name: Install clang-tidy
+      run: brew install xcpretty llvm
+      
     - name: Configure CMake
       run: >
         cmake 
         -D CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH=NO
         -D CMAKE_XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC=${{ matrix.objc_arc.value }}
-        -B build/apple_${{ matrix.objc_arc.name }}
+        -B build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }}
         -G Xcode
       
     - name: Build
-      run: cmake --build build/apple_${{ matrix.objc_arc.name }} -- -sdk ${{ matrix.sdk }}
+      run: |
+        set -o pipefail
+        cmake --build build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }} -- -sdk ${{ matrix.sdk }} \
+          | xcpretty -r json-compilation-database --output build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }}/compile_commands.json
+      
+    - name: Analyze
+      if: ${{ !endsWith(matrix.sdk, "simulator") }}
+      run: |
+        sed -i.bak 's/ -ivfsstatcache [^ ]* / /g' build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }}/compile_commands.json
+        $(brew --prefix llvm)/bin/clang-tidy --config-file=tests/clang-tidy-analyze.yml -p build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }} src/glfm_apple.m
   
   build-emscripten:
     runs-on: ubuntu-latest
