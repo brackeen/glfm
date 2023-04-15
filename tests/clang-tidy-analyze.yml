@@ -1,35 +1,6 @@
+InheritParentConfig: true
 Checks: >
-  *,
-  -altera-*,
-  -android-cloexec-pipe,
-  -bugprone-assignment-in-if-condition,
-  -bugprone-easily-swappable-parameters,
-  -bugprone-narrowing-conversions,
-  -clang-analyzer-optin.performance.Padding,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-avoid-non-const-global-variables,
-  -cppcoreguidelines-init-variables,
-  -cppcoreguidelines-narrowing-conversions,
-  -google-objc-avoid-nsobject-new,
-  -google-objc-function-naming,
-  -google-readability-todo,
-  -hicpp-signed-bitwise,
-  -hicpp-uppercase-literal-suffix,
-  -llvm-header-guard,
-  -llvmlibc-restrict-system-libc-headers,
-  -misc-confusable-identifiers,
-  -readability-function-cognitive-complexity,
-  -readability-isolate-declaration,
-  -readability-magic-numbers,
-  -readability-uppercase-literal-suffix,
-CheckOptions:
-  - key:   hicpp-braces-around-statements.ShortStatementLines
-    value: 1
-  - key:   readability-braces-around-statements.ShortStatementLines
-    value: 1
-  - key:   readability-identifier-length.IgnoredParameterNames
-    value: 'x|y|z'
-  - key:   readability-identifier-length.IgnoredVariableNames
-    value: 'x|y|z|w'
+  clang-analyzer-*,
+  -clang-analyzer-optin.performance.Padding
 HeaderFilterRegex: '.*'
 WarningsAsErrors: '*'
