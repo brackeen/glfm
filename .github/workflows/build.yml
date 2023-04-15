@@ -69,7 +69,7 @@ jobs:
           | xcpretty -r json-compilation-database --output build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }}/compile_commands.json
       
     - name: Analyze
-      if: ${{ !endsWith(matrix.sdk, "simulator") }}
+      if: ${{ !endsWith(matrix.sdk, 'simulator') }}
       run: |
         sed -i.bak 's/ -ivfsstatcache [^ ]* / /g' build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }}/compile_commands.json
         $(brew --prefix llvm)/bin/clang-tidy --config-file=tests/clang-tidy-analyze.yml -p build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }} src/glfm_apple.m
