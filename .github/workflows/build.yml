@@ -33,6 +33,7 @@ jobs:
         -D CMAKE_C_FLAGS=-Werror
         -D CMAKE_VERBOSE_MAKEFILE=ON
         -D ANDROID_ABI="${{ matrix.abi }}"
+        -D GLFM_USE_CLANG_TIDY=ON
         -B "build/android_${{ matrix.abi }}"
       
     - name: Build
@@ -74,9 +75,17 @@ jobs:
         version: 3.1.35
         actions-cache-folder: 'emsdk-cache'
     
+    - name: Install clang-tidy
+      run: sudo apt install -y clang-tidy
+      
     - name: Configure CMake
-      run: emcmake cmake -D CMAKE_VERBOSE_MAKEFILE=ON -B build/emscripten
+      run: >
+        emcmake cmake 
+        -D CMAKE_VERBOSE_MAKEFILE=ON 
+        -D GLFM_USE_CLANG_TIDY=ON
+        -B build/emscripten
 
     - name: Build
       run: cmake --build build/emscripten
+      
       
