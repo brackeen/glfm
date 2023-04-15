@@ -2,7 +2,7 @@
 
 ## Automated tests
 
-The [build.yml](../.github/workflows/build.yml) GitHub Action builds GLFM automatically for all target platforms and architectures. Builds fail on compilation warnings.
+The [build.yml](../.github/workflows/build.yml) GitHub Action builds GLFM automatically for all target platforms and architectures. Builds fail on compilation warnings or analyzer warnings.
 
 The [build_examples.yml](../.github/workflows/build_examples.yml) GitHub Action builds GLFM examples automatically. Builds fail if deprecated functions are used.
 
@@ -20,7 +20,7 @@ On macOS, `ANDROID_NDK_HOME` is something like "~/Library/Android/sdk/ndk/23.2.8
 
 ## Analyzing with clang-tidy
 
-The build scripts (but not the automated tests) run `clang-tidy` if it is available.
+The build scripts run `clang-tidy` if it is available.
 
 The [clang-tidy-analyze.yml](clang-tidy-analyze.yml) file includes the parent [.clang-tidy](../.clang-tidy) checks and adds analyzer checks. Those extra analyzer checks take a bit longer to run.
 
