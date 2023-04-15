@@ -918,7 +918,7 @@ ANativeActivity *glfmAndroidGetActivity(void) GLFM_DEPRECATED("Use glfmGetAndroi
 /// The returned `ANativeActivity` may be invalidated when the surface is destroyed. If a reference
 /// to the `ANativeActivity` is kept, call this function again to get an updated reference in
 /// ``GLFMSurfaceCreatedFunc`` or ``GLFMAppFocusFunc``.
-ANativeActivity *glfmGetAndroidActivity(const GLFMDisplay *display);
+void *glfmGetAndroidActivity(const GLFMDisplay *display);
 
 #endif // GLFM_EXPOSE_NATIVE_ANDROID
 

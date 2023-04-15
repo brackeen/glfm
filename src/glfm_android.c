@@ -2798,7 +2798,7 @@ ANativeActivity *glfmAndroidGetActivity() {
     return platformDataGlobal->activity;
 }
 
-ANativeActivity *glfmGetAndroidActivity(const GLFMDisplay *display) {
+void *glfmGetAndroidActivity(const GLFMDisplay *display) {
     if (!display || !display->platformData) {
         return NULL;
     }
