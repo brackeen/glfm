@@ -2386,7 +2386,7 @@ static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
 
 // MARK: - GLFM public functions
 
-double glfmGetTime() {
+double glfmGetTime(void) {
     static int clockID;
     static time_t initTime;
     static bool initialized = false;
@@ -2791,7 +2791,7 @@ bool glfmIsMetalSupported(const GLFMDisplay *display) {
     return false;
 }
 
-ANativeActivity *glfmAndroidGetActivity() {
+ANativeActivity *glfmAndroidGetActivity(void) {
     if (!platformDataGlobal) {
         return NULL;
     }
