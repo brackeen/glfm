@@ -2,14 +2,10 @@
 
 Contributions are welcome. Thank you for making the effort.
 
-## Fixing a Bug
+If you've got code to contribute, feel free to use the scripts in the `tests` directory to make sure the code doesn't have any warnings and passes analyzer checks. Those same checks are applied when a pull request is created.
 
-Found a bug and have a fix? Great. 
-No need to create a different branch - just fork the repo, make the fixes, and create a Pull Request.
+## Adding a New Feature
 
-## Adding a Feature
+I'd like to keep GLFM small, and some features may not be a good fit. Feel free to create an issue or send me an email to see if your idea would work.
 
-Usually it's best to first discuss a new feature via an issue or email.
-
-To add a feature, fork the repo, create a seperate branch, and create a Pull Request.
-You do not have to add the feature to all three platforms (iOS, Android, Emscripten), but at least two platforms would be nice.
+If you are adding a new feature, you do not have to implement it on all three platforms (iOS, Android, Emscripten), but at least two platforms would be nice.
