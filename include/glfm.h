@@ -189,9 +189,9 @@ typedef enum {
 
     // The key codes below have the same values as ASCII codes (uppercase)
 
-    GLFMKeyCodeBackspace         = 0x08, // Apple: Delete
+    GLFMKeyCodeBackspace         = 0x08, ///< Backspace key ("delete" on Apple platforms).
     GLFMKeyCodeTab               = 0x09,
-    GLFMKeyCodeEnter             = 0x0D, // Apple: Return
+    GLFMKeyCodeEnter             = 0x0D, ///< Enter key ("return" on Apple platforms).
     GLFMKeyCodeEscape            = 0x1B,
     GLFMKeyCodeSpace             = 0x20,
     GLFMKeyCodeQuote             = 0x27,
@@ -240,8 +240,8 @@ typedef enum {
     GLFMKeyCodeBracketLeft       = 0x5B,
     GLFMKeyCodeBackslash         = 0x5C,
     GLFMKeyCodeBracketRight      = 0x5D,
-    GLFMKeyCodeBackquote         = 0x60, // Grave
-    GLFMKeyCodeDelete            = 0x7F, // Apple: Forward Delete
+    GLFMKeyCodeBackquote         = 0x60, ///< Backquote, AKA grave.
+    GLFMKeyCodeDelete            = 0x7F, ///< Delete key ("forward delete" on Apple platforms).
 
     // Non-ASCII keys. These values may change in the future.
 
@@ -250,11 +250,11 @@ typedef enum {
     GLFMKeyCodeShiftRight        = 0x82,
     GLFMKeyCodeControlLeft       = 0x83,
     GLFMKeyCodeControlRight      = 0x84,
-    GLFMKeyCodeAltLeft           = 0x85, // Apple: Option
-    GLFMKeyCodeAltRight          = 0x86, // Apple: Option
-    GLFMKeyCodeMetaLeft          = 0x87, // Apple: Command
-    GLFMKeyCodeMetaRight         = 0x88, // Apple: Command
-    GLFMKeyCodeMenu              = 0x89, // Context menu
+    GLFMKeyCodeAltLeft           = 0x85, ///< Left alt key (option key on Apple platforms).
+    GLFMKeyCodeAltRight          = 0x86, ///< Right alt key (option key on Apple platforms).
+    GLFMKeyCodeMetaLeft          = 0x87, ///< Left meta key (command key on Apple platforms).
+    GLFMKeyCodeMetaRight         = 0x88, ///< Right meta key (command key on Apple platforms).
+    GLFMKeyCodeMenu              = 0x89, ///< Menu key, AKA context menu.
 
     GLFMKeyCodeInsert            = 0x90,
     GLFMKeyCodePageUp            = 0x91,
@@ -267,12 +267,12 @@ typedef enum {
     GLFMKeyCodeArrowDown         = 0x98,
 
     GLFMKeyCodePower             = 0x99,
-    GLFMKeyCodeFunction          = 0x9A, // Apple: Fn
-    GLFMKeyCodePrintScreen       = 0x9B, // System Request
+    GLFMKeyCodeFunction          = 0x9A, ///< Fn key on Apple platforms.
+    GLFMKeyCodePrintScreen       = 0x9B, ///< Print Screen or System Request key.
     GLFMKeyCodeScrollLock        = 0x9C,
-    GLFMKeyCodePause             = 0x9D, // Break
+    GLFMKeyCodePause             = 0x9D, ///< Pause/Break key.
 
-    GLFMKeyCodeNumLock           = 0xA0, // Apple: Clear
+    GLFMKeyCodeNumLock           = 0xA0, ///< NumLock key ("clear" on Apple platforms).
     GLFMKeyCodeNumpadDecimal     = 0xA1,
     GLFMKeyCodeNumpadMultiply    = 0xA2,
     GLFMKeyCodeNumpadAdd         = 0xA3,
@@ -317,9 +317,9 @@ typedef enum {
     GLFMKeyCodeF23               = 0xDD,
     GLFMKeyCodeF24               = 0xDE,
 
-    GLFMKeyCodeNavigationBack    = 0xE0, // Android (soft) back button, tvOS menu/back button.
-    GLFMKeyCodeMediaSelect       = 0xE1, // tvOS
-    GLFMKeyCodeMediaPlayPause    = 0xE2, // tvOS
+    GLFMKeyCodeNavigationBack    = 0xE0, ///< Back button on Android, menu/back button on tvOS remote.
+    GLFMKeyCodeMediaSelect       = 0xE1, ///< Select button on tvOS remote.
+    GLFMKeyCodeMediaPlayPause    = 0xE2, ///< Play/pause button on tvOS remote.
 } GLFMKeyCode;
 
 typedef GLFMKeyCode GLFMKey GLFM_DEPRECATED("Replaced with GLFMKeyCode");
@@ -346,11 +346,11 @@ enum {
 };
 
 typedef enum {
-    GLFMKeyModifierShift    = (1 << 0),
-    GLFMKeyModifierControl  = (1 << 1),
-    GLFMKeyModifierAlt      = (1 << 2), // Apple: Option
-    GLFMKeyModifierMeta     = (1 << 3), // Apple: Command
-    GLFMKeyModifierFunction = (1 << 4), // Apple: Fn
+    GLFMKeyModifierShift    = (1 << 0), ///< Flag indicating a shift key is down.
+    GLFMKeyModifierControl  = (1 << 1), ///< Flag indicating a control (ctrl) key is down.
+    GLFMKeyModifierAlt      = (1 << 2), ///< Flag indicating an alt key is down (option key on Apple platforms).
+    GLFMKeyModifierMeta     = (1 << 3), ///< Flag indicating a meta key is down (command key on Apple platforms).
+    GLFMKeyModifierFunction = (1 << 4), ///< Flag indicating a function (fn) key is down on Apple platforms.
 } GLFMKeyModifier;
 
 enum {
@@ -615,7 +615,7 @@ double glfmGetDisplayScale(const GLFMDisplay *display);
 void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
                                 double *bottom, double *left);
 
-/// Gets the user interface chrome.
+/// Gets the current user interface chrome (status bar and navigation bar status).
 GLFMUserInterfaceChrome glfmGetDisplayChrome(const GLFMDisplay *display);
 
 /// Sets the user interface chrome.
