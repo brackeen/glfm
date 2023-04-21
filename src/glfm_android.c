@@ -793,6 +793,7 @@ JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedSt
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     pthread_create(&platformData->thread, &attr, glfm__mainLoop,
                    platformData);
+    pthread_attr_destroy(&attr);
 
     // Wait for thread to start
     pthread_mutex_lock(&platformData->mutex);
