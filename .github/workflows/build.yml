@@ -51,10 +51,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install clang-tidy
-      if: ${{ !endsWith(matrix.sdk, 'simulator') }}
-      run: brew install llvm
-
     - name: Configure CMake
       run: >
         cmake
@@ -73,7 +69,7 @@ jobs:
       if: ${{ !endsWith(matrix.sdk, 'simulator') }}
       run: |
         sed -i.bak 's/ -ivfsstatcache [^ ]* / /g' build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }}/compile_commands.json
-        $(brew --prefix llvm)/bin/clang-tidy --config-file=tests/clang-tidy-analyze.yml -p build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }} src/glfm_apple.m
+        $(brew --prefix llvm@15)/bin/clang-tidy --config-file=tests/clang-tidy-analyze.yml -p build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }} src/glfm_apple.m
 
   build-emscripten:
     runs-on: ubuntu-latest
