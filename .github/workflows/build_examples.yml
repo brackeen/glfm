@@ -20,7 +20,7 @@ jobs:
       with:
         ndk-version: r25c
         add-to-path: false
-    
+
     - name: Configure CMake
       env:
         ANDROID_NDK_HOME: ${{steps.setup-ndk.outputs.ndk-path}}
@@ -31,10 +31,10 @@ jobs:
         -D CMAKE_C_FLAGS=-Werror=deprecated-declarations
         -D CMAKE_VERBOSE_MAKEFILE=ON
         -B build/android_examples
-      
+
     - name: Build
       run: cmake --build build/android_examples
-  
+
   build-apple:
     strategy:
       matrix:
@@ -69,7 +69,7 @@ jobs:
       with:
         version: 3.1.35
         actions-cache-folder: 'emsdk-cache'
-    
+
     - name: Configure CMake
       run: >
         emcmake cmake 
@@ -79,4 +79,3 @@ jobs:
 
     - name: Build
       run: cmake --build build/emscripten_examples
-      
