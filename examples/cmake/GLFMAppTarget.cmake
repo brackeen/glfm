@@ -84,6 +84,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
             XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer")
     endif()
     set_source_files_properties(${GLFM_APP_ASSETS} LaunchScreen.storyboard PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    set_source_files_properties(${GLFM_APP_ASSETS} PROPERTIES XCODE_LAST_KNOWN_FILE_TYPE YES)
     target_compile_definitions(${GLFM_APP_TARGET_NAME} PRIVATE GLES_SILENCE_DEPRECATION)
 
     set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${GLFM_APP_VERSION})
