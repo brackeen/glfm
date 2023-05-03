@@ -37,3 +37,8 @@ include(GLFMAppTarget)
 set(GLFM_APP_TARGET_NAME glfm_typing)
 set(GLFM_APP_SRC typing.c)
 include(GLFMAppTarget)
+
+# Shader toy example
+set(GLFM_APP_TARGET_NAME glfm_shader_toy)
+set(GLFM_APP_SRC shader_toy.c)
+include(GLFMAppTarget)
