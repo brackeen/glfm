@@ -2487,7 +2487,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         if (event.keyCode == kVK_Function) {
             // The fn key cannot be determined from `modifierFlags` because the
             // `NSEventModifierFlagFunction` flag is also used for other keys, like the arrow keys.
-            // So, keep track of it's state.
+            // So, keep track of its state.
             self.fnModifier = pressed;
         }
         GLFMKeyAction action = pressed ? GLFMKeyActionPressed : GLFMKeyActionReleased;

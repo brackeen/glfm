@@ -860,7 +860,7 @@ GLFMMouseWheelFunc glfmSetMouseWheelFunc(GLFMDisplay *display, GLFMMouseWheelFun
 /// If the hardware sensor is not available, this function does nothing.
 /// See ``glfmIsSensorAvailable``.
 ///
-/// Each ``GLFMSensor`` type can have it's own ``GLFMSensorFunc``.
+/// Each ``GLFMSensor`` type can have its own ``GLFMSensorFunc``.
 ///
 /// The hardware sensor is enabled when the `sensorFunc` is not `NULL`.
 ///
