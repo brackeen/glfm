@@ -2795,11 +2795,13 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
     [glfmViewController.glfmViewIfLoaded draw];
     
     if (NSApp.activationPolicy == NSApplicationActivationPolicyRegular) {
-        [self.window makeKeyAndOrderFront:nil];
+        [self.window makeKeyWindow];
+        [self.window orderFrontRegardless];
     } else {
         // Executable-only (unbundled) app
         [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-        [self.window makeKeyAndOrderFront:nil];
+        [self.window makeKeyWindow];
+        [self.window orderFrontRegardless];
         [NSApp activateIgnoringOtherApps:YES];
     }
 }
