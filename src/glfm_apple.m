@@ -2749,7 +2749,7 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
 
 // MARK: - GLFMAppDelegate (macOS)
 
-@interface GLFMAppDelegate: NSObject <NSApplicationDelegate, NSWindowDelegate>
+@interface GLFMAppDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
 
 @property(nonatomic, strong) GLFMWindow *window;
 
