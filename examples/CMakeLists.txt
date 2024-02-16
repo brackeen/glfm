@@ -14,12 +14,12 @@ set(GLFM_APP_SRC triangle.c)
 include(GLFMAppTarget)
 
 # Touch example
-set(GLFM_APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 set(GLFM_APP_TARGET_NAME glfm_touch)
 set(GLFM_APP_SRC touch.c)
 include(GLFMAppTarget)
 
 # Test pattern example
+set(GLFM_APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 set(GLFM_APP_TARGET_NAME glfm_test_pattern)
 set(GLFM_APP_SRC test_pattern.c test_pattern_renderer.h test_pattern_renderer_gles2.c)
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")

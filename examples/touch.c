@@ -1,66 +1,89 @@
-// Example app that draws a triangle. The triangle can be moved via touch or keyboard arrow keys.
+// Example app that draws a cube.
+// The cube can be rotated via touch, scroll wheel, or keyboard arrow keys.
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "glfm.h"
-#include "file_compat.h"
 
-#define FILE_COMPAT_ANDROID_ACTIVITY glfmGetAndroidActivity(display)
+static const size_t CUBE_VERTEX_STRIDE = sizeof(GLfloat) * 6;
+
+static const GLfloat CUBE_VERTICES[] = {
+    // x,     y,     z,      r,    g,    b
+    // Top (red)
+   -1.0f,  1.0f,  1.0f,   1.0f, 0.0f, 0.0f,
+    1.0f,  1.0f,  1.0f,   1.0f, 0.0f, 0.0f,
+    1.0f,  1.0f, -1.0f,   1.0f, 0.0f, 0.0f,
+   -1.0f,  1.0f, -1.0f,   1.0f, 0.0f, 0.0f,
+
+    // Front (green)
+   -1.0f, -1.0f,  1.0f,   0.0f, 1.0f, 0.0f,
+    1.0f, -1.0f,  1.0f,   0.0f, 1.0f, 0.0f,
+    1.0f,  1.0f,  1.0f,   0.0f, 1.0f, 0.0f,
+   -1.0f,  1.0f,  1.0f,   0.0f, 1.0f, 0.0f,
+
+    // Left (blue)
+   -1.0f, -1.0f, -1.0f,   0.0f, 0.0f, 1.0f,
+   -1.0f, -1.0f,  1.0f,   0.0f, 0.0f, 1.0f,
+   -1.0f,  1.0f,  1.0f,   0.0f, 0.0f, 1.0f,
+   -1.0f,  1.0f, -1.0f,   0.0f, 0.0f, 1.0f,
+
+    // Bottom (cyan)
+   -1.0f, -1.0f, -1.0f,   0.0f, 1.0f, 1.0f,
+    1.0f, -1.0f, -1.0f,   0.0f, 1.0f, 1.0f,
+    1.0f, -1.0f,  1.0f,   0.0f, 1.0f, 1.0f,
+   -1.0f, -1.0f,  1.0f,   0.0f, 1.0f, 1.0f,
+
+    // Back (purple)
+    1.0f, -1.0f, -1.0f,   1.0f, 0.0f, 1.0f,
+   -1.0f, -1.0f, -1.0f,   1.0f, 0.0f, 1.0f,
+   -1.0f,  1.0f, -1.0f,   1.0f, 0.0f, 1.0f,
+    1.0f,  1.0f, -1.0f,   1.0f, 0.0f, 1.0f,
+
+    // Right (yellow)
+    1.0f, -1.0f,  1.0f,   1.0f, 1.0f, 0.0f,
+    1.0f, -1.0f, -1.0f,   1.0f, 1.0f, 0.0f,
+    1.0f,  1.0f, -1.0f,   1.0f, 1.0f, 0.0f,
+    1.0f,  1.0f,  1.0f,   1.0f, 1.0f, 0.0f,
+};
+
+static const GLushort CUBE_INDICES[] = {
+     0,  1,  2,  0,  2,  3,
+     4,  5,  6,  4,  6,  7,
+     8,  9, 10,  8, 10, 11,
+    12, 13, 14, 12, 14, 15,
+    16, 17, 18, 16, 18, 19,
+    20, 21, 22, 20, 22, 23,
+};
 
 typedef struct {
     GLuint program;
     GLuint vertexBuffer;
     GLuint vertexArray;
+    GLuint indexBuffer;
+
+    GLint modelLocation;
+    GLint viewProjLocation;
 
     double lastTouchX;
     double lastTouchY;
 
-    double offsetX;
-    double offsetY;
+    double angleX;
+    double angleY;
 
     bool needsRedraw;
-} ExampleApp;
-
-static void onDraw(GLFMDisplay *display);
-static void onSurfaceCreated(GLFMDisplay *display, int width, int height);
-static void onSurfaceRefresh(GLFMDisplay *display);
-static void onSurfaceDestroyed(GLFMDisplay *display);
-static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, double x, double y);
-static bool onKey(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAction action, int modifiers);
-static bool onScroll(GLFMDisplay *display, double x, double y, GLFMMouseWheelDeltaType deltaType,
-                     double deltaX, double deltaY, double deltaZ);
-
-// Main entry point
-void glfmMain(GLFMDisplay *display) {
-    ExampleApp *app = calloc(1, sizeof(ExampleApp));
-
-    glfmSetDisplayConfig(display,
-                         GLFMRenderingAPIOpenGLES2,
-                         GLFMColorFormatRGBA8888,
-                         GLFMDepthFormatNone,
-                         GLFMStencilFormatNone,
-                         GLFMMultisampleNone);
-    glfmSetUserData(display, app);
-    glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
-    glfmSetSurfaceRefreshFunc(display, onSurfaceRefresh);
-    glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
-    glfmSetRenderFunc(display, onDraw);
-    glfmSetTouchFunc(display, onTouch);
-    glfmSetKeyFunc(display, onKey);
-    glfmSetMouseWheelFunc(display, onScroll);
-}
+} TouchApp;
 
 static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, double x, double y) {
     if (phase == GLFMTouchPhaseHover) {
         return false;
     }
-    ExampleApp *app = glfmGetUserData(display);
+    TouchApp *app = glfmGetUserData(display);
     app->needsRedraw = true;
     if (phase != GLFMTouchPhaseBegan) {
         int width, height;
         glfmGetDisplaySize(display, &width, &height);
-        app->offsetX += 2 * (x - app->lastTouchX) / width;
-        app->offsetY -= 2 * (y - app->lastTouchY) / height;
+        app->angleX += (x - app->lastTouchX) / height;
+        app->angleY += (y - app->lastTouchY) / height;
     }
     app->lastTouchX = x;
     app->lastTouchY = y;
@@ -69,30 +92,30 @@ static bool onTouch(GLFMDisplay *display, int touch, GLFMTouchPhase phase, doubl
 
 static bool onKey(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAction action, int modifiers) {
     bool handled = false;
-    if (action == GLFMKeyActionPressed) {
-        ExampleApp *app = glfmGetUserData(display);
+    if (action == GLFMKeyActionPressed || action == GLFMKeyActionRepeated) {
+        TouchApp *app = glfmGetUserData(display);
         switch (keyCode) {
             case GLFMKeyCodeArrowLeft:
-                app->offsetX -= 0.1f;
+                app->angleX -= 0.01f;
                 handled = true;
                 break;
             case GLFMKeyCodeArrowRight:
-                app->offsetX += 0.1f;
+                app->angleX += 0.01f;
                 handled = true;
                 break;
             case GLFMKeyCodeArrowUp:
-                app->offsetY += 0.1f;
+                app->angleY -= 0.01f;
                 handled = true;
                 break;
             case GLFMKeyCodeArrowDown:
-                app->offsetY -= 0.1f;
+                app->angleY += 0.01f;
                 handled = true;
                 break;
             case GLFMKeyCodeSpace:
             case GLFMKeyCodeEnter:
             case GLFMKeyCodeBackspace:
-                app->offsetX = 0.0f;
-                app->offsetY = 0.0f;
+                app->angleX = 0.0f;
+                app->angleY = 0.0f;
                 handled = true;
             default:
                 break;
@@ -104,15 +127,15 @@ static bool onKey(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAction actio
 
 static bool onScroll(GLFMDisplay *display, double x, double y, GLFMMouseWheelDeltaType deltaType,
                      double deltaX, double deltaY, double deltaZ) {
-    ExampleApp *app = glfmGetUserData(display);
+    TouchApp *app = glfmGetUserData(display);
     int width, height;
     glfmGetDisplaySize(display, &width, &height);
     if (deltaType != GLFMMouseWheelDeltaPixel) {
         deltaX *= 20;
         deltaY *= 20;
     }
-    app->offsetX -= deltaX / width;
-    app->offsetY += deltaY / height;
+    app->angleX -= deltaX / height;
+    app->angleY -= deltaY / height;
     app->needsRedraw = true;
     return true;
 }
@@ -126,63 +149,38 @@ static void onSurfaceCreated(GLFMDisplay *display, int width, int height) {
 }
 
 static void onSurfaceRefresh(GLFMDisplay *display) {
-    ExampleApp *app = glfmGetUserData(display);
+    TouchApp *app = glfmGetUserData(display);
     app->needsRedraw = true;
 }
 
 static void onSurfaceDestroyed(GLFMDisplay *display) {
     // When the surface is destroyed, all existing GL resources are no longer valid.
-    ExampleApp *app = glfmGetUserData(display);
+    TouchApp *app = glfmGetUserData(display);
     app->program = 0;
     app->vertexBuffer = 0;
     app->vertexArray = 0;
+    app->indexBuffer = 0;
     printf("Goodbye\n");
 }
 
-static GLuint compileShader(GLFMDisplay *display, GLenum type, const char *shaderName) {
-    char fullPath[PATH_MAX];
-    fc_resdir(fullPath, sizeof(fullPath));
-    strncat(fullPath, shaderName, sizeof(fullPath) - strlen(fullPath) - 1);
-
-    // Get shader string
-    char *shaderString = NULL;
-    FILE *shaderFile = fopen(fullPath, "rb");
-    if (shaderFile) {
-        fseek(shaderFile, 0, SEEK_END);
-        long length = ftell(shaderFile);
-        fseek(shaderFile, 0, SEEK_SET);
-
-        shaderString = malloc(length + 1);
-        if (shaderString) {
-            fread(shaderString, length, 1, shaderFile);
-            shaderString[length] = 0;
-        }
-        fclose(shaderFile);
-    }
-    if (!shaderString) {
-        printf("Couldn't read file: %s\n", fullPath);
-        return 0;
-    }
-
+static GLuint compileShader(GLenum type, const GLchar *shaderSource) {
     // Compile
-    const char *constShaderString = shaderString;
     GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &constShaderString, NULL);
+    glShaderSource(shader, 1, &shaderSource, NULL);
     glCompileShader(shader);
-    free(shaderString);
 
     // Check compile status
     GLint status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (status == 0) {
-        printf("Couldn't compile shader: %s\n", shaderName);
+        printf("Shader compile error\n");
         GLint logLength;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
         if (logLength > 0) {
             GLchar *log = malloc(logLength);
             glGetShaderInfoLog(shader, logLength, &logLength, log);
             if (log[0] != 0) {
-                printf("Shader log: %s\n", log);
+                printf("%s\n", log);
             }
             free(log);
         }
@@ -192,13 +190,30 @@ static GLuint compileShader(GLFMDisplay *display, GLenum type, const char *shade
     return shader;
 }
 
-static void draw(GLFMDisplay *display, int width, int height) {
-    ExampleApp *app = glfmGetUserData(display);
-
+static void draw(TouchApp *app, int width, int height) {
     // Create shader
     if (app->program == 0) {
-        GLuint vertShader = compileShader(display, GL_VERTEX_SHADER, "simple.vert");
-        GLuint fragShader = compileShader(display, GL_FRAGMENT_SHADER, "simple.frag");
+        const GLchar vertexShader[] =
+            "#version 100\n"
+            "uniform mat4 model;\n"
+            "uniform mat4 viewProj;\n"
+            "attribute highp vec3 a_position;\n"
+            "attribute lowp vec3 a_color;\n"
+            "varying lowp vec4 v_color;\n"
+            "void main() {\n"
+            "   gl_Position = (viewProj * model) * vec4(a_position, 1.0);\n"
+            "   v_color = vec4(a_color, 1.0);\n"
+            "}";
+
+        const GLchar fragmentShader[] =
+            "#version 100\n"
+            "varying lowp vec4 v_color;\n"
+            "void main() {\n"
+            "  gl_FragColor = v_color;\n"
+            "}";
+
+        GLuint vertShader = compileShader(GL_VERTEX_SHADER, vertexShader);
+        GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, fragmentShader);
         if (vertShader == 0 || fragShader == 0) {
             return;
         }
@@ -214,51 +229,101 @@ static void draw(GLFMDisplay *display, int width, int height) {
 
         glDeleteShader(vertShader);
         glDeleteShader(fragShader);
+
+        app->modelLocation = glGetUniformLocation(app->program, "model");
+        app->viewProjLocation = glGetUniformLocation(app->program, "viewProj");
     }
-    
+
+    // Fill vertex and index buffers
+    if (app->vertexBuffer == 0) {
+        glGenBuffers(1, &app->vertexBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, app->vertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(CUBE_VERTICES), CUBE_VERTICES, GL_STATIC_DRAW);
+    }
+    if (app->indexBuffer == 0) {
+        glGenBuffers(1, &app->indexBuffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->indexBuffer);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(CUBE_INDICES), CUBE_INDICES, GL_STATIC_DRAW);
+    }
+
+    // Upload matrices
+    const float ratio = (float)height / (float)width;
+    float cx = cosf(app->angleY * -2 * M_PI - M_PI / 4);
+    float sx = sinf(app->angleY * -2 * M_PI - M_PI / 4);
+    float cy = cosf(app->angleX * -2 * M_PI - M_PI / 4);
+    float sy = sinf(app->angleX * -2 * M_PI - M_PI / 4);
+    float z = -4.0f;
+
+    const GLfloat model[16] = {
+           cy, sx*sy, cx*sy,  0.0f,
+         0.0f,    cx,   -sx,  0.0f,
+          -sy, sx*cy, cx*cy,  0.0f,
+         0.0f,  0.0f,     z,  1.0f,
+    };
+
+    const GLfloat viewProj[16] = {
+        ratio,  0.0f,  0.0f,  0.0f,
+         0.0f,  1.0f,  0.0f,  0.0f,
+         0.0f,  0.0f,  1.0f, -1.0f,
+         0.0f,  0.0f,  0.00,  0.0f,
+    };
+
+    glUseProgram(app->program);
+    glUniformMatrix4fv(app->modelLocation, 1, GL_FALSE, model);
+    glUniformMatrix4fv(app->viewProjLocation, 1, GL_FALSE, viewProj);
+
     // Draw background
     glViewport(0, 0, width, height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    
+
+    // Draw cube
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
 #if defined(GL_VERSION_3_0) && GL_VERSION_3_0
     if (app->vertexArray == 0) {
         glGenVertexArrays(1, &app->vertexArray);
     }
     glBindVertexArray(app->vertexArray);
 #endif
-    
-    // Draw triangle
-    glUseProgram(app->program);
-    if (app->vertexBuffer == 0) {
-        glGenBuffers(1, &app->vertexBuffer);
-    }
     glBindBuffer(GL_ARRAY_BUFFER, app->vertexBuffer);
-    const size_t stride = sizeof(GLfloat) * 6;
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, CUBE_VERTEX_STRIDE, (void *)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void *)(sizeof(GLfloat) * 3));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, CUBE_VERTEX_STRIDE, (void *)(sizeof(GLfloat) * 3));
 
-    const GLfloat vertices[] = {
-        // x,y,z, r,g,b
-        app->offsetX + 0.0f, app->offsetY + 0.5f, 0.0,  1.0, 0.0, 0.0,
-        app->offsetX - 0.5f, app->offsetY - 0.5f, 0.0,  0.0, 1.0, 0.0,
-        app->offsetX + 0.5f, app->offsetY - 0.5f, 0.0,  0.0, 0.0, 1.0,
-    };
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->indexBuffer);
+    glDrawElements(GL_TRIANGLES, sizeof(CUBE_INDICES) / sizeof(CUBE_INDICES[0]), GL_UNSIGNED_SHORT, (void *)0);
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    CHECK_GL_ERROR();
 }
 
 static void onDraw(GLFMDisplay *display) {
-    ExampleApp *app = glfmGetUserData(display);
+    TouchApp *app = glfmGetUserData(display);
     if (app->needsRedraw) {
         app->needsRedraw = false;
-        
+
         int width, height;
         glfmGetDisplaySize(display, &width, &height);
-        draw(display, width,  height);
+        draw(app, width,  height);
         glfmSwapBuffers(display);
     }
+}
+
+void glfmMain(GLFMDisplay *display) {
+    TouchApp *app = calloc(1, sizeof(TouchApp));
+    glfmSetDisplayConfig(display,
+                         GLFMRenderingAPIOpenGLES2,
+                         GLFMColorFormatRGBA8888,
+                         GLFMDepthFormatNone,
+                         GLFMStencilFormatNone,
+                         GLFMMultisampleNone);
+    glfmSetUserData(display, app);
+    glfmSetSurfaceCreatedFunc(display, onSurfaceCreated);
+    glfmSetSurfaceRefreshFunc(display, onSurfaceRefresh);
+    glfmSetSurfaceDestroyedFunc(display, onSurfaceDestroyed);
+    glfmSetRenderFunc(display, onDraw);
+    glfmSetTouchFunc(display, onTouch);
+    glfmSetKeyFunc(display, onKey);
+    glfmSetMouseWheelFunc(display, onScroll);
 }
