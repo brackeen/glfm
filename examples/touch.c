@@ -294,8 +294,6 @@ static void draw(TouchApp *app, int width, int height) {
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->indexBuffer);
     glDrawElements(GL_TRIANGLES, sizeof(CUBE_INDICES) / sizeof(CUBE_INDICES[0]), GL_UNSIGNED_SHORT, (void *)0);
-
-    CHECK_GL_ERROR();
 }
 
 static void onDraw(GLFMDisplay *display) {
