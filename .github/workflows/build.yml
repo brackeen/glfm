@@ -15,7 +15,7 @@ jobs:
         abi: [ armeabi-v7a, armeabi-v7a with NEON, arm64-v8a, x86, x86_64 ]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Android NDK
       id: setup-ndk
@@ -49,7 +49,7 @@ jobs:
     env:
       CFLAGS: -Werror
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Configure CMake
       run: >
@@ -76,10 +76,10 @@ jobs:
     env:
       CFLAGS: -Werror
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Emscripten SDK
-      uses: mymindstorm/setup-emsdk@v12
+      uses: mymindstorm/setup-emsdk@v14
       with:
         version: 3.1.35
         actions-cache-folder: 'emsdk-cache'
