@@ -247,12 +247,12 @@ static void draw(TouchApp *app, int width, int height) {
     }
 
     // Upload matrices
-    const float ratio = (float)height / (float)width;
+    float ratio = (float)height / (float)width;
     float cx = cosf(app->angleY * -2 * M_PI - M_PI / 4);
     float sx = sinf(app->angleY * -2 * M_PI - M_PI / 4);
     float cy = cosf(app->angleX * -2 * M_PI - M_PI / 4);
     float sy = sinf(app->angleX * -2 * M_PI - M_PI / 4);
-    float z = -4.0f;
+    float z = -3.0f;
 
     const GLfloat model[16] = {
            cy, sx*sy, cx*sy,  0.0f,
@@ -264,8 +264,8 @@ static void draw(TouchApp *app, int width, int height) {
     const GLfloat viewProj[16] = {
         ratio,  0.0f,  0.0f,  0.0f,
          0.0f,  1.0f,  0.0f,  0.0f,
-         0.0f,  0.0f,  1.0f, -1.0f,
-         0.0f,  0.0f,  0.00,  0.0f,
+         0.0f,  0.0f, -1.0f, -1.0f,
+         0.0f,  0.0f,  0.00,  1.0f,
     };
 
     glUseProgram(app->program);
