@@ -111,12 +111,11 @@ static bool onKey(GLFMDisplay *display, GLFMKeyCode keyCode, GLFMKeyAction actio
                 app->angleY += 0.01f;
                 handled = true;
                 break;
-            case GLFMKeyCodeSpace:
-            case GLFMKeyCodeEnter:
-            case GLFMKeyCodeBackspace:
+            case GLFMKeyCodeEscape:
                 app->angleX = 0.0f;
                 app->angleY = 0.0f;
                 handled = true;
+                break;
             default:
                 break;
         }
