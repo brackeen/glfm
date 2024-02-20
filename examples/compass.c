@@ -1,4 +1,4 @@
-// Draws a compass in 3D. Red is north. Requires a device with a compass/gyroscope (iOS/Android only).
+// Draws a compass in 3D. White is north. Requires a device with a compass/gyroscope (iOS/Android only).
 
 #include <stdlib.h>
 #include <math.h>
@@ -92,30 +92,31 @@ static void drawCompass(CompassApp *app, int width, int height) {
     
     // Define triangle vertices
     // (X axis points North, Z axis is vertical)
+    float off = 0.4f;
     float sideLength = 0.25f;
     float x = sqrt(pow(sideLength, 2) - pow(sideLength / 2, 2)) / 2;
     float y = sideLength / 2;
     GLfloat vertices[] = {
-        // x,y,z      r,g,b
-        // North (red)
-        0.5f + x,  0, 0,    1.0, 0.0, 0.0,
-        0.5f - x,  y, 0,    1.0, 0.0, 0.0,
-        0.5f - x, -y, 0,    1.0, 0.0, 0.0,
-        
+        // x,y,z           r,g,b
+        // North (white)
+        off + x,  0, 0,    1.0, 1.0, 1.0,
+        off - x,  y, 0,    1.0, 1.0, 1.0,
+        off - x, -y, 0,    1.0, 1.0, 1.0,
+
         // South
-        -0.5f - x,  0, 0,   1.0, 1.0, 1.0,
-        -0.5f + x, -y, 0,   1.0, 1.0, 1.0,
-        -0.5f + x,  y, 0,   1.0, 1.0, 1.0,
+        -off - x,  0, 0,   0.3, 0.3, 0.3,
+        -off + x, -y, 0,   0.3, 0.3, 0.3,
+        -off + x,  y, 0,   0.3, 0.3, 0.3,
 
         // West
-         0, 0.5f + x, 0,    1.0, 1.0, 1.0,
-        -y, 0.5f - x, 0,    1.0, 1.0, 1.0,
-         y, 0.5f - x, 0,    1.0, 1.0, 1.0,
-        
+         0, off + x, 0,    0.3, 0.3, 0.3,
+        -y, off - x, 0,    0.3, 0.3, 0.3,
+         y, off - x, 0,    0.3, 0.3, 0.3,
+
         // East
-         0, -0.5f - x, 0,   1.0, 1.0, 1.0,
-         y, -0.5f + x, 0,   1.0, 1.0, 1.0,
-        -y, -0.5f + x, 0,   1.0, 1.0, 1.0,
+         0, -off - x, 0,   0.3, 0.3, 0.3,
+         y, -off + x, 0,   0.3, 0.3, 0.3,
+        -y, -off + x, 0,   0.3, 0.3, 0.3,
     };
     
     // Transform triangle vertices

@@ -639,9 +639,9 @@ static void onSurfaceCreatedOrResized(GLFMDisplay *display, int width, int heigh
                 unsigned int row = FONT_DATA[glyphIndex][FONT_CHAR_HEIGHT - y - 1];
                 for (GLsizei x = 0; x < FONT_CHAR_WIDTH; x++) {
                     GLubyte b = ((row >> x) & 1);
-                    textureData[offset++] = b * 0xdd;
-                    textureData[offset++] = b * 0xdf;
-                    textureData[offset++] = b * 0xe4;
+                    textureData[offset++] = b * 0xff;
+                    textureData[offset++] = b * 0xff;
+                    textureData[offset++] = b * 0xff;
                     textureData[offset++] = b * 0xff;
                 }
                 memset(textureData + offset, 0, TEXTURE_SPACING * bpp);
@@ -787,7 +787,7 @@ static void onDraw(GLFMDisplay *display) {
     int width, height;
     glfmGetDisplaySize(display, &width, &height);
     glViewport(0, 0, width, height);
-    glClearColor(0.11f, 0.12f, 0.15f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw text

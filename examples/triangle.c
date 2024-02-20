@@ -45,7 +45,7 @@ static void onDraw(GLFMDisplay *display) {
         const GLchar fragmentShader[] =
             "#version 100\n"
             "void main() {\n"
-            "  gl_FragColor = vec4(0.85, 0.80, 0.75, 1.0);\n"
+            "  gl_FragColor = vec4(1.00, 1.00, 1.00, 1.0);\n"
             "}";
 
         program = glCreateProgram();
@@ -74,7 +74,7 @@ static void onDraw(GLFMDisplay *display) {
     int width, height;
     glfmGetDisplaySize(display, &width, &height);
     glViewport(0, 0, width, height);
-    glClearColor(0.08f, 0.07f, 0.07f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
 #if defined(GL_VERSION_3_0) && GL_VERSION_3_0

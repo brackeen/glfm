@@ -20,8 +20,17 @@ static Texture createTestPatternTexture(GLFMDisplay *display, uint32_t width, ui
     double top, right, bottom, left;
     glfmGetDisplayChromeInsets(display, &top, &right, &bottom, &left);
 
+    static const uint32_t maxBorderSize = 1;
     static const uint32_t borderColor = 0xff0000ff;
     static const uint32_t insetColor = 0xffff3322;
+
+    uint32_t borderSize = maxBorderSize;
+    if (borderSize * 2 > width) {
+        borderSize = width / 2;
+    }
+    if (borderSize * 2 > height) {
+        borderSize = height / 2;
+    }
 
     TestPatternApp *app = glfmGetUserData(display);
     Texture texture = 0;
@@ -29,36 +38,39 @@ static Texture createTestPatternTexture(GLFMDisplay *display, uint32_t width, ui
     if (data) {
         uint32_t *out = data;
         for (uint32_t y = 0; y < height; y++) {
-            *out++ = borderColor;
-            if (y == 0 || y == height - 1) {
-                for (uint32_t x = 1; x < width - 1; x++) {
+            for (int i = 0; i < borderSize; i++) {
+                *out++ = borderColor;
+            }
+            if (y < borderSize || y >= height - borderSize) {
+                for (uint32_t x = borderSize; x < width - borderSize; x++) {
                     *out++ = borderColor;
                 }
             } else if (y < bottom || y >= height - top) {
-                for (uint32_t x = 1; x < width - 1; x++) {
+                for (uint32_t x = borderSize; x < width - borderSize; x++) {
                     *out++ = insetColor;
                 }
             } else {
-                uint32_t x = 1;
+                uint32_t x = borderSize;
                 while (x < left) {
                     *out++ = insetColor;
                     x++;
                 }
-                while (x < width - right - 1) {
+                while (x < width - right - borderSize) {
                     *out++ = ((x & 1U) == (y & 1U)) ? 0xff000000 : 0xffffffff;
                     x++;
                 }
 
-                while (x < width - 1) {
+                while (x < width - borderSize) {
                     *out++ = insetColor;
                     x++;
                 }
             }
-            *out++ = borderColor;
+            for (int i = 0; i < borderSize; i++) {
+                *out++ = borderColor;
+            }
         }
 
         texture = app->renderer->textureUpload(app->renderer, width, height, (uint8_t *)data);
-
         free(data);
     }
     if (texture != 0) {
