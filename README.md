@@ -23,29 +23,29 @@ Additionally, GLFM provides Metal support on iOS and tvOS.
 | Retina / high-DPI                  | ✔️    | ✔️    | ✔️     | ✔️   |
 | Device orientation                 | ✔️    | N/A   | ✔️     |      |
 | Touch events                       | ✔️    | ✔️    | ✔️     | ✔️   |
-| Mouse hover events                 | ✔️[^1]|       |        | ✔️   |
+| Mouse hover events                 | ✔️<sup>1</sup>|       |        | ✔️   |
 | Mouse wheel events                 |       |       |        | ✔️   |
-| Mouse cursor style                 | ✔️[^1]|       |        | ✔️   |
-| Key code events                    | ✔️[^2]| ✔️    | ✔️     | ✔️   |
+| Mouse cursor style                 | ✔️<sup>1</sup>|       |        | ✔️   |
+| Key code events                    | ✔️<sup>2</sup>| ✔️    | ✔️     | ✔️   |
 | Key repeat events                  |       |       | ✔️     | ✔️   |
-| Character input events             | ✔️    | ✔️[^3]| ✔️     | ✔️   |
+| Character input events             | ✔️    | ✔️<sup>3</sup>| ✔️     | ✔️   |
 | Virtual keyboard                   | ✔️    |       | ✔️     |      |
 | Virtual keyboard visibility events | ✔️    |       | ✔️     |      |
 | Accelerometer, magnetometer, gyroscope, device rotation | ✔️ | N/A | ✔️ |    |
-| Haptic feedback                    | ✔️[^4]| N/A   | ✔️     |      |
+| Haptic feedback                    | ✔️<sup>4</sup>| N/A   | ✔️     |      |
 | Clipboard                          | ✔️    | N/A   | ✔️     | ✔️   |
-| Chrome insets ("safe area")        | ✔️[^5]| ✔️    | ✔️     |      |
-| Chrome insets changed events       | ✔️[^5]| ✔️    | ✔️     |      |
+| Chrome insets ("safe area")        | ✔️<sup>5</sup>| ✔️    | ✔️     |      |
+| Chrome insets changed events       | ✔️<sup>5</sup>| ✔️    | ✔️     |      |
 | Focus events                       | ✔️    | ✔️    | ✔️     | ✔️   |
 | Resize events                      | ✔️    | ✔️    | ✔️     | ✔️   |
 | Memory warning events              | ✔️    | ✔️    | ✔️     |      |
 | OpenGL context loss events (surface destroyed) | ✔️ | ✔️ | ✔️ | ✔️ |
 
-[^1]: iPad only. Requires iOS 13.4 or newer
-[^2]: Requires iOS/tvOS 13.4 or newer
-[^3]: Requires tvOS 13.4 or newer
-[^4]: Requires iOS 13 or newer
-[^5]: Requires iOS/tvOS 11 or newer
+<sub>1. iPad only. Requires iOS 13.4 or newer<br/>
+2. Requires iOS/tvOS 13.4 or newer<br/>
+3. Requires tvOS 13.4 or newer<br/>
+4. Requires iOS 13 or newer<br/>
+5. Requires iOS/tvOS 11 or newer</sub>
 
 Additionally, there is prelimnary support for macOS with OpenGL 3.2. The macOS version is useful for development purposes, but is not release quality. There is no function to set the window size, for example.
 
