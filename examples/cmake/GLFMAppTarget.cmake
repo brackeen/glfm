@@ -60,7 +60,11 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # If you change this section, test archiving too.
     set(CMAKE_MACOSX_BUNDLE YES)
 
-    add_executable(${GLFM_APP_TARGET_NAME} ${GLFM_APP_SRC} ${GLFM_APP_ASSETS})
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${GLFM_APP_TARGET_NAME}.icns
+                       COMMAND bash -c "${CMAKE_CURRENT_SOURCE_DIR}/icons/gen_icns.sh ${GLFM_APP_TARGET_NAME} ${CMAKE_CURRENT_BINARY_DIR}"
+                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/icons)
+
+    add_executable(${GLFM_APP_TARGET_NAME} ${GLFM_APP_SRC} ${GLFM_APP_ASSETS} ${CMAKE_CURRENT_BINARY_DIR}/${GLFM_APP_TARGET_NAME}.icns)
 
     set_target_properties(${GLFM_APP_TARGET_NAME} PROPERTIES
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/CMake-Info.plist.in
@@ -83,7 +87,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         set_target_properties(${GLFM_APP_TARGET_NAME} PROPERTIES
             XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer")
     endif()
-    set_source_files_properties(${GLFM_APP_ASSETS} LaunchScreen.storyboard PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    set_source_files_properties(${GLFM_APP_ASSETS} LaunchScreen.storyboard ${GLFM_APP_TARGET_NAME}.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set_source_files_properties(${GLFM_APP_ASSETS} PROPERTIES XCODE_LAST_KNOWN_FILE_TYPE YES)
     target_compile_definitions(${GLFM_APP_TARGET_NAME} PRIVATE GLES_SILENCE_DEPRECATION)
 
@@ -173,6 +177,8 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         "		<string>UIInterfaceOrientationLandscapeLeft</string>\n"
         "		<string>UIInterfaceOrientationLandscapeRight</string>\n"
         "	</array>\n"
+        "	<key>CFBundleIconFile</key>\n"
+        "	<string>$(EXECUTABLE_NAME).icns</string>\n"
         "</dict>\n"
         "</plist>\n"
     )
