@@ -12,7 +12,7 @@ else()
     set(GLFM_APP_ASSETS "")
 endif()
 
-source_group("src" FILES ${GLFM_APP_SRC})
+source_group("Source" FILES ${GLFM_APP_SRC})
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     # HACK: Make modifications to shell_minimal.html to take up the entire browser window
@@ -62,7 +62,9 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${GLFM_APP_TARGET_NAME}.icns
                        COMMAND bash -c "${CMAKE_CURRENT_SOURCE_DIR}/icons/gen_icns.sh ${GLFM_APP_TARGET_NAME} ${CMAKE_CURRENT_BINARY_DIR}"
+                       DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/icons/${GLFM_APP_TARGET_NAME}.png
                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/icons)
+    source_group("Resources" FILES ${CMAKE_CURRENT_BINARY_DIR}/${GLFM_APP_TARGET_NAME}.icns ${GLFM_APP_ASSETS})
 
     add_executable(${GLFM_APP_TARGET_NAME} ${GLFM_APP_SRC} ${GLFM_APP_ASSETS} ${CMAKE_CURRENT_BINARY_DIR}/${GLFM_APP_TARGET_NAME}.icns)
 
