@@ -7,45 +7,30 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 set(GLFM_APP_ORGANIZATION_IDENTIFIER "com.brackeen")
 set(GLFM_APP_VERSION "1.0")
 set(GLFM_APP_VERSION_ITERATION 1)
+set(GLFM_APP_LIST "")
 
-# Triangle example
-set(GLFM_APP_TARGET_NAME glfm_triangle)
-set(GLFM_APP_SRC triangle.c)
-include(GLFMAppTarget)
+macro(add_target TARGET SRC_FILES)
+    list(APPEND GLFM_APP_LIST ${TARGET})
+    set(GLFM_APP_TARGET_NAME ${TARGET})
+    set(GLFM_APP_SRC ${SRC_FILES})
+    include(GLFMAppTarget)
+endmacro()
 
-# Touch example
-set(GLFM_APP_TARGET_NAME glfm_touch)
-set(GLFM_APP_SRC touch.c)
-include(GLFMAppTarget)
+# Simple examples
+add_target(glfm_triangle triangle.c)
+add_target(glfm_touch touch.c)
+add_target(glfm_heightmap heightmap.c)
+add_target(glfm_compass compass.c)
 
-# Heightmap example
-set(GLFM_APP_TARGET_NAME glfm_heightmap)
-set(GLFM_APP_SRC heightmap.c)
-include(GLFMAppTarget)
-
-# Compass example
-set(GLFM_APP_TARGET_NAME glfm_compass)
-set(GLFM_APP_SRC compass.c)
-include(GLFMAppTarget)
-
-# The following examples require the assets dir
+# Examples that require the assets dir
 set(GLFM_APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
-
-# Typing example (using iOS/Android virtual keyboard)
-set(GLFM_APP_TARGET_NAME glfm_typing)
-set(GLFM_APP_SRC typing.c)
-include(GLFMAppTarget)
-
-# Shader toy example
-set(GLFM_APP_TARGET_NAME glfm_shader_toy)
-set(GLFM_APP_SRC shader_toy.c)
-include(GLFMAppTarget)
+add_target(glfm_typing typing.c)
+add_target(glfm_shader_toy shader_toy.c)
 
 # Test pattern example
-set(GLFM_APP_TARGET_NAME glfm_test_pattern)
-set(GLFM_APP_SRC test_pattern.c test_pattern_renderer.h test_pattern_renderer_gles2.c)
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set(GLFM_APP_SRC ${GLFM_APP_SRC} test_pattern_renderer_metal.m test_pattern_renderer.metal)
     set_source_files_properties(test_pattern_renderer.metal PROPERTIES LANGUAGE METAL)
+    add_target(glfm_test_pattern "test_pattern.c;test_pattern_renderer.h;test_pattern_renderer_gles2.c;test_pattern_renderer_metal.m;test_pattern_renderer.metal")
+else()
+    add_target(glfm_test_pattern "test_pattern.c;test_pattern_renderer.h;test_pattern_renderer_gles2.c")
 endif()
-include(GLFMAppTarget)
