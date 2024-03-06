@@ -7,17 +7,17 @@
     <title>GLFM Examples</title>
     <style type="text/css">
         body {
-            background-color: #000; color: #fff; margin: 40px auto; padding: 0 10px; max-width: 800px;
-            font-size: 14pt; line-height: 1.4; font-family: -apple-system, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+            background-color: #000; color: #fff; margin: 30px auto; padding: 0 10px; max-width: 640px;
+            font-size: 12pt; line-height: 1.4; font-family: -apple-system, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
         }
-        h1, h2, h3 { line-height: 1.2; text-align: center; }
+        h1, h2, h3 { line-height: 1.2; margin-left: 40px; }
 
         a:link { color: #fff; text-decoration: none; }
         a:hover { color: #66f; }
         a:visited { color: #fff; }
         a:visited:hover { color: #66f; }
 
-        figure { position: relative; float: left; width: 200px; margin: 20px 0 60px 0; text-align: center; }
+        figure { position: relative; float: left; width: 160px; margin: 20px 0 20px 0; text-align: center; }
         figure img { width: 128px; height: 128px; }
     </style>
 </head>
