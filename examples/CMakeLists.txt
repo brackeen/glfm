@@ -7,10 +7,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 set(GLFM_APP_ORGANIZATION_IDENTIFIER "com.brackeen")
 set(GLFM_APP_VERSION "1.0")
 set(GLFM_APP_VERSION_ITERATION 1)
-set(GLFM_APP_LIST "")
+set(GLFM_APP_TARGET_NAME_LIST "")
 
 macro(add_target TARGET SRC_FILES)
-    list(APPEND GLFM_APP_LIST ${TARGET})
+    list(APPEND GLFM_APP_TARGET_NAME_LIST ${TARGET})
     set(GLFM_APP_TARGET_NAME ${TARGET})
     set(GLFM_APP_SRC ${SRC_FILES})
     include(GLFMAppTarget)
@@ -33,4 +33,23 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     add_target(glfm_test_pattern "test_pattern.c;test_pattern_renderer.h;test_pattern_renderer_gles2.c;test_pattern_renderer_metal.m;test_pattern_renderer.metal")
 else()
     add_target(glfm_test_pattern "test_pattern.c;test_pattern_renderer.h;test_pattern_renderer_gles2.c")
+endif()
+
+# Write index.html for Emscripten examples
+if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    file(COPY icons DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    file(READ index.html.in INDEX_HTML)
+
+    foreach(GLFM_APP_TARGET_NAME ${GLFM_APP_TARGET_NAME_LIST})
+        set(GLFM_APP_HTML "
+    <figure>
+        <a href=\"${GLFM_APP_TARGET_NAME}.html\">
+            <img src=\"icons/${GLFM_APP_TARGET_NAME}.png\">
+            <figcaption>${GLFM_APP_TARGET_NAME}</figcaption>
+        </a>
+    </figure>")
+
+        string(REPLACE "<!-- #figure -->" "${GLFM_APP_HTML}\n<!-- #figure -->" INDEX_HTML "${INDEX_HTML}")
+    endforeach()
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/index.html "${INDEX_HTML}")
 endif()

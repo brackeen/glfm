@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- Template for Emscripten examples -->
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GLFM Examples</title>
+    <style type="text/css">
+        body {
+            background-color: #000; color: #fff; margin: 40px auto; padding: 0 10px; max-width: 800px;
+            font-size: 14pt; line-height: 1.4; font-family: -apple-system, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+        }
+        h1, h2, h3 { line-height: 1.2; text-align: center; }
+
+        a:link { color: #fff; text-decoration: none; }
+        a:hover { color: #66f; }
+        a:visited { color: #fff; }
+        a:visited:hover { color: #66f; }
+
+        figure { position: relative; float: left; width: 200px; margin: 0 0 80px 0; text-align: center; }
+        figure img { width: 128px; height: 128px; }
+    </style>
+</head>
+<body>
+    <h1>GLFM Examples</h1>
+
+<!-- #figure -->
+
+</body>
+</html>

@@ -176,7 +176,7 @@ See [glfm.h](include/glfm.h)
 Use `cmake` to generate an Xcode project:
 
 ```Shell
-cmake -D GLFM_BUILD_EXAMPLES=ON -B build/apple -G Xcode 
+cmake -D GLFM_BUILD_EXAMPLES=ON -B build/apple -G Xcode
 open build/apple/GLFM.xcodeproj
 ```
 
@@ -187,11 +187,15 @@ In Xcode, switch to the `glfm_touch` target and run on a simulator or a device.
 Use `emcmake` to set environmental variables for `cmake`, then build:
 
 ```Shell
-emcmake cmake -D GLFM_BUILD_EXAMPLES=ON -B build/emscripten
-cmake --build build/emscripten
+emcmake cmake -D GLFM_BUILD_EXAMPLES=ON -B build/emscripten && cmake --build build/emscripten
 ```
 
 Then run locally:
+```Shell
+emrun build/emscripten/examples
+```
+
+Or run a specific example:
 ```Shell
 emrun build/emscripten/examples/glfm_touch.html
 ```
