@@ -17,7 +17,7 @@
         a:visited { color: #fff; }
         a:visited:hover { color: #66f; }
 
-        figure { position: relative; float: left; width: 200px; margin: 0 0 80px 0; text-align: center; }
+        figure { position: relative; float: left; width: 200px; margin: 20px 0 60px 0; text-align: center; }
         figure img { width: 128px; height: 128px; }
     </style>
 </head>
