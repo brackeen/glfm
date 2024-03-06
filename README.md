@@ -16,30 +16,30 @@ Additionally, GLFM provides Metal support on iOS and tvOS.
 * Events for application state and context loss.
 
 ### Feature Matrix
-|                                    | iOS   | tvOS  | Android | Web |
-|------------------------------------|-------|-------|---------|-----|
-| OpenGL ES 2, OpenGL ES 3           | ✔️    | ✔️    | ✔️     | ✔️   |
-| Metal                              | ✔️    | ✔️    | N/A    | N/A  |
-| Retina / high-DPI                  | ✔️    | ✔️    | ✔️     | ✔️   |
-| Device orientation                 | ✔️    | N/A   | ✔️     |      |
-| Touch events                       | ✔️    | ✔️    | ✔️     | ✔️   |
-| Mouse hover events                 | ✔️<sup>1</sup>|       |        | ✔️   |
-| Mouse wheel events                 |       |       |        | ✔️   |
-| Mouse cursor style                 | ✔️<sup>1</sup>|       |        | ✔️   |
-| Key code events                    | ✔️<sup>2</sup>| ✔️    | ✔️     | ✔️   |
-| Key repeat events                  |       |       | ✔️     | ✔️   |
-| Character input events             | ✔️    | ✔️<sup>3</sup>| ✔️     | ✔️   |
-| Virtual keyboard                   | ✔️    |       | ✔️     |      |
-| Virtual keyboard visibility events | ✔️    |       | ✔️     |      |
-| Accelerometer, magnetometer, gyroscope, device rotation | ✔️ | N/A | ✔️ |    |
-| Haptic feedback                    | ✔️<sup>4</sup>| N/A   | ✔️     |      |
-| Clipboard                          | ✔️    | N/A   | ✔️     | ✔️   |
-| Chrome insets ("safe area")        | ✔️<sup>5</sup>| ✔️    | ✔️     |      |
-| Chrome insets changed events       | ✔️<sup>5</sup>| ✔️    | ✔️     |      |
-| Focus events                       | ✔️    | ✔️    | ✔️     | ✔️   |
-| Resize events                      | ✔️    | ✔️    | ✔️     | ✔️   |
-| Memory warning events              | ✔️    | ✔️    | ✔️     |      |
-| OpenGL context loss events (surface destroyed) | ✔️ | ✔️ | ✔️ | ✔️ |
+|                                                         | iOS              | tvOS            | Android | Web |
+|---------------------------------------------------------|------------------|-----------------|---------|-----|
+| OpenGL ES 2, OpenGL ES 3                                | ✔️               | ✔️              | ✔️     | ✔️   |
+| Metal                                                   | ✔️               | ✔️              | N/A    | N/A  |
+| Retina / high-DPI                                       | ✔️               | ✔️              | ✔️     | ✔️   |
+| Device orientation                                      | ✔️               | N/A             | ✔️     |      |
+| Touch events                                            | ✔️               | ✔️              | ✔️     | ✔️   |
+| Mouse hover events                                      | ✔️<sup>1</sup>   |                 |        | ✔️   |
+| Mouse wheel events                                      |                  |                 |        | ✔️   |
+| Mouse cursor style                                      | ✔️<sup>1</sup>   |                 |        | ✔️   |
+| Key code events                                         | ✔️<sup>2</sup>   | ✔️              | ✔️     | ✔️   |
+| Key repeat events                                       |                  |                 | ✔️     | ✔️   |
+| Character input events                                  | ✔️               | ✔️<sup>3</sup>  | ✔️     | ✔️   |
+| Virtual keyboard                                        | ✔️               |                 | ✔️     |      |
+| Virtual keyboard visibility events                      | ✔️               |                 | ✔️     |      |
+| Accelerometer, magnetometer, gyroscope, device rotation | ✔️               | N/A             | ✔️     |      |
+| Haptic feedback                                         | ✔️<sup>4</sup>   | N/A             | ✔️     |      |
+| Clipboard                                               | ✔️               | N/A             | ✔️     | ✔️   |
+| Chrome insets ("safe area")                             | ✔️<sup>5</sup>   | ✔️              | ✔️     |      |
+| Chrome insets changed events                            | ✔️<sup>5</sup>   | ✔️              | ✔️     |      |
+| Focus events                                            | ✔️               | ✔️              | ✔️     | ✔️   |
+| Resize events                                           | ✔️               | ✔️              | ✔️     | ✔️   |
+| Memory warning events                                   | ✔️               | ✔️              | ✔️     |      |
+| OpenGL context loss events (surface destroyed)          | ✔️               | ✔️              | ✔️     | ✔️   |
 
 <sub>1. iPad only. Requires iOS 13.4 or newer<br/>
 2. Requires iOS/tvOS 13.4 or newer<br/>
