@@ -51,6 +51,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install xcpretty
+      run: gem install xcpretty
+
     - name: Configure CMake
       run: >
         cmake
