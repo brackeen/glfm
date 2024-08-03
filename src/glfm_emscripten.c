@@ -52,7 +52,7 @@ typedef struct {
     bool isVisible;
     bool isFocused;
     bool refreshRequested;
-    
+
     GLFMInterfaceOrientation orientation;
 } GLFMPlatformData;
 
@@ -128,12 +128,12 @@ void glfmSwapBuffers(GLFMDisplay *display) {
     // Do nothing; swap is implicit
 }
 
-void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display,
-                                          GLFMInterfaceOrientation supportedOrientations) {
+void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display, GLFMInterfaceOrientation supportedOrientations) {
     if (display->supportedOrientations != supportedOrientations) {
         display->supportedOrientations = supportedOrientations;
 
-        bool portraitRequested = (supportedOrientations & (GLFMInterfaceOrientationPortrait | GLFMInterfaceOrientationPortraitUpsideDown));
+        bool portraitRequested = (supportedOrientations & (GLFMInterfaceOrientationPortrait |
+                                                           GLFMInterfaceOrientationPortraitUpsideDown));
         bool landscapeRequested = (supportedOrientations & GLFMInterfaceOrientationLandscape);
         if (portraitRequested && landscapeRequested) {
             emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY |
@@ -152,12 +152,12 @@ void glfmSetSupportedInterfaceOrientation(GLFMDisplay *display,
 
 GLFMInterfaceOrientation glfmGetInterfaceOrientation(const GLFMDisplay *display) {
     (void)display;
-    
+
     EmscriptenOrientationChangeEvent orientationStatus;
     emscripten_get_orientation_status(&orientationStatus);
     int orientation = orientationStatus.orientationIndex;
     int angle = orientationStatus.orientationAngle;
-    
+
     GLFMInterfaceOrientation result = GLFMInterfaceOrientationUnknown;
     if (orientation == EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY) {
         result = GLFMInterfaceOrientationPortrait;
@@ -185,8 +185,7 @@ double glfmGetDisplayScale(const GLFMDisplay *display) {
     return platformData->scale;
 }
 
-void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right,
-                                double *bottom, double *left) {
+void glfmGetDisplayChromeInsets(const GLFMDisplay *display, double *top, double *right, double *bottom, double *left) {
     GLFMPlatformData *platformData = display->platformData;
     if (top) {
         *top = platformData->scale * EM_ASM_DOUBLE_V( {
@@ -429,7 +428,7 @@ static void glfm__mainLoopFunc(void *userData) {
     GLFMDisplay *display = userData;
     if (display) {
         GLFMPlatformData *platformData = display->platformData;
-        
+
         // Check if canvas size has changed
         int displayChanged = EM_ASM_INT_V({
             var canvas = Module['canvas'];
@@ -497,7 +496,8 @@ static EM_BOOL glfm__focusCallback(int eventType, const EmscriptenFocusEvent *fo
     return 1;
 }
 
-static EM_BOOL glfm__visibilityChangeCallback(int eventType, const EmscriptenVisibilityChangeEvent *event, void *userData) {
+static EM_BOOL glfm__visibilityChangeCallback(int eventType, const EmscriptenVisibilityChangeEvent *event,
+                                              void *userData) {
     (void)eventType;
     GLFMDisplay *display = userData;
     GLFMPlatformData *platformData = display->platformData;
@@ -543,39 +543,43 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
         // This array must be sorted for binary search. See GLFM_TEST_KEYBOARD_EVENT_ARRAYS.
         // NOTE: event->keyCode is obsolete. Only event->key or event->code should be used.
         static const char *KEYBOARD_EVENT_CODES[] = {
-            "AltLeft", "AltRight", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp",
-            "Backquote", "Backslash", "Backspace", "BracketLeft", "BracketRight", "BrowserBack",
-            "CapsLock", "Comma", "ContextMenu", "ControlLeft", "ControlRight", "Delete", "Digit0",
-            "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8",
-            "Digit9", "End", "Enter", "Equal", "Escape", "F1", "F10", "F11", "F12", "F13", "F14",
-            "F15", "F16", "F17", "F18", "F19", "F2", "F20", "F21", "F22", "F23", "F24", "F3", "F4",
-            "F5", "F6", "F7", "F8", "F9", "Fn", "Help", "Home", "Insert", "KeyA", "KeyB", "KeyC", "KeyD",
-            "KeyE", "KeyF", "KeyG", "KeyH", "KeyI", "KeyJ", "KeyK", "KeyL", "KeyM", "KeyN", "KeyO",
-            "KeyP", "KeyQ", "KeyR", "KeyS", "KeyT", "KeyU", "KeyV", "KeyW", "KeyX", "KeyY", "KeyZ",
-            "MediaPlayPause", "MetaLeft", "MetaRight", "Minus", "NumLock", "Numpad0", "Numpad1",
-            "Numpad2", "Numpad3", "Numpad4", "Numpad5", "Numpad6", "Numpad7", "Numpad8", "Numpad9",
-            "NumpadAdd", "NumpadDecimal", "NumpadDivide", "NumpadEnter", "NumpadEqual",
-            "NumpadMultiply", "NumpadSubtract", "PageDown", "PageUp", "Pause", "Period",
-            "Power", "PrintScreen", "Quote", "ScrollLock", "Semicolon", "ShiftLeft", "ShiftRight",
-            "Slash", "Space", "Tab",
+            "AltLeft", "AltRight", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp", "Backquote", "Backslash",
+            "Backspace", "BracketLeft", "BracketRight", "BrowserBack", "CapsLock", "Comma", "ContextMenu",
+            "ControlLeft", "ControlRight", "Delete", "Digit0", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5",
+            "Digit6", "Digit7", "Digit8", "Digit9", "End", "Enter", "Equal", "Escape", "F1", "F10", "F11", "F12", "F13",
+            "F14", "F15", "F16", "F17", "F18", "F19", "F2", "F20", "F21", "F22", "F23", "F24", "F3", "F4", "F5", "F6",
+            "F7", "F8", "F9", "Fn", "Help", "Home", "Insert", "KeyA", "KeyB", "KeyC", "KeyD", "KeyE", "KeyF", "KeyG",
+            "KeyH", "KeyI", "KeyJ", "KeyK", "KeyL", "KeyM", "KeyN", "KeyO", "KeyP", "KeyQ", "KeyR", "KeyS", "KeyT",
+            "KeyU", "KeyV", "KeyW", "KeyX", "KeyY", "KeyZ", "MediaPlayPause", "MetaLeft", "MetaRight", "Minus",
+            "NumLock", "Numpad0", "Numpad1", "Numpad2", "Numpad3", "Numpad4", "Numpad5", "Numpad6", "Numpad7",
+            "Numpad8", "Numpad9", "NumpadAdd", "NumpadDecimal", "NumpadDivide", "NumpadEnter", "NumpadEqual",
+            "NumpadMultiply", "NumpadSubtract", "PageDown", "PageUp", "Pause", "Period", "Power", "PrintScreen",
+            "Quote", "ScrollLock", "Semicolon", "ShiftLeft", "ShiftRight", "Slash", "Space", "Tab",
         };
         static const size_t KEYBOARD_EVENT_CODES_LENGTH = sizeof(KEYBOARD_EVENT_CODES) / sizeof(*KEYBOARD_EVENT_CODES);
         static const GLFMKeyCode GLFM_KEY_CODES[] = {
-            GLFMKeyCodeAltLeft, GLFMKeyCodeAltRight, GLFMKeyCodeArrowDown, GLFMKeyCodeArrowLeft, GLFMKeyCodeArrowRight, GLFMKeyCodeArrowUp,
-            GLFMKeyCodeBackquote, GLFMKeyCodeBackslash, GLFMKeyCodeBackspace, GLFMKeyCodeBracketLeft, GLFMKeyCodeBracketRight, GLFMKeyCodeNavigationBack,
-            GLFMKeyCodeCapsLock, GLFMKeyCodeComma, GLFMKeyCodeMenu, GLFMKeyCodeControlLeft, GLFMKeyCodeControlRight, GLFMKeyCodeDelete, GLFMKeyCode0,
-            GLFMKeyCode1, GLFMKeyCode2, GLFMKeyCode3, GLFMKeyCode4, GLFMKeyCode5, GLFMKeyCode6, GLFMKeyCode7, GLFMKeyCode8,
-            GLFMKeyCode9, GLFMKeyCodeEnd, GLFMKeyCodeEnter, GLFMKeyCodeEqual, GLFMKeyCodeEscape, GLFMKeyCodeF1, GLFMKeyCodeF10, GLFMKeyCodeF11, GLFMKeyCodeF12, GLFMKeyCodeF13, GLFMKeyCodeF14,
-            GLFMKeyCodeF15, GLFMKeyCodeF16, GLFMKeyCodeF17, GLFMKeyCodeF18, GLFMKeyCodeF19, GLFMKeyCodeF2, GLFMKeyCodeF20, GLFMKeyCodeF21, GLFMKeyCodeF22, GLFMKeyCodeF23, GLFMKeyCodeF24, GLFMKeyCodeF3, GLFMKeyCodeF4,
-            GLFMKeyCodeF5, GLFMKeyCodeF6, GLFMKeyCodeF7, GLFMKeyCodeF8, GLFMKeyCodeF9, GLFMKeyCodeFunction, GLFMKeyCodeInsert, GLFMKeyCodeHome, GLFMKeyCodeInsert, GLFMKeyCodeA, GLFMKeyCodeB, GLFMKeyCodeC, GLFMKeyCodeD,
-            GLFMKeyCodeE, GLFMKeyCodeF, GLFMKeyCodeG, GLFMKeyCodeH, GLFMKeyCodeI, GLFMKeyCodeJ, GLFMKeyCodeK, GLFMKeyCodeL, GLFMKeyCodeM, GLFMKeyCodeN, GLFMKeyCodeO,
-            GLFMKeyCodeP, GLFMKeyCodeQ, GLFMKeyCodeR, GLFMKeyCodeS, GLFMKeyCodeT, GLFMKeyCodeU, GLFMKeyCodeV, GLFMKeyCodeW, GLFMKeyCodeX, GLFMKeyCodeY, GLFMKeyCodeZ,
-            GLFMKeyCodeMediaPlayPause, GLFMKeyCodeMetaLeft, GLFMKeyCodeMetaRight, GLFMKeyCodeMinus, GLFMKeyCodeNumLock, GLFMKeyCodeNumpad0, GLFMKeyCodeNumpad1,
-            GLFMKeyCodeNumpad2, GLFMKeyCodeNumpad3, GLFMKeyCodeNumpad4, GLFMKeyCodeNumpad5, GLFMKeyCodeNumpad6, GLFMKeyCodeNumpad7, GLFMKeyCodeNumpad8, GLFMKeyCodeNumpad9,
-            GLFMKeyCodeNumpadAdd, GLFMKeyCodeNumpadDecimal, GLFMKeyCodeNumpadDivide, GLFMKeyCodeNumpadEnter, GLFMKeyCodeNumpadEqual,
-            GLFMKeyCodeNumpadMultiply, GLFMKeyCodeNumpadSubtract, GLFMKeyCodePageDown, GLFMKeyCodePageUp, GLFMKeyCodePause ,GLFMKeyCodePeriod,
-            GLFMKeyCodePower, GLFMKeyCodePrintScreen, GLFMKeyCodeQuote, GLFMKeyCodeScrollLock, GLFMKeyCodeSemicolon, GLFMKeyCodeShiftLeft, GLFMKeyCodeShiftRight,
-            GLFMKeyCodeSlash, GLFMKeyCodeSpace, GLFMKeyCodeTab,
+            GLFMKeyCodeAltLeft, GLFMKeyCodeAltRight, GLFMKeyCodeArrowDown, GLFMKeyCodeArrowLeft,
+            GLFMKeyCodeArrowRight, GLFMKeyCodeArrowUp, GLFMKeyCodeBackquote, GLFMKeyCodeBackslash,
+            GLFMKeyCodeBackspace, GLFMKeyCodeBracketLeft, GLFMKeyCodeBracketRight, GLFMKeyCodeNavigationBack,
+            GLFMKeyCodeCapsLock, GLFMKeyCodeComma, GLFMKeyCodeMenu, GLFMKeyCodeControlLeft, GLFMKeyCodeControlRight,
+            GLFMKeyCodeDelete, GLFMKeyCode0, GLFMKeyCode1, GLFMKeyCode2, GLFMKeyCode3, GLFMKeyCode4, GLFMKeyCode5,
+            GLFMKeyCode6, GLFMKeyCode7, GLFMKeyCode8, GLFMKeyCode9, GLFMKeyCodeEnd, GLFMKeyCodeEnter, GLFMKeyCodeEqual,
+            GLFMKeyCodeEscape, GLFMKeyCodeF1, GLFMKeyCodeF10, GLFMKeyCodeF11, GLFMKeyCodeF12, GLFMKeyCodeF13,
+            GLFMKeyCodeF14, GLFMKeyCodeF15, GLFMKeyCodeF16, GLFMKeyCodeF17, GLFMKeyCodeF18, GLFMKeyCodeF19,
+            GLFMKeyCodeF2, GLFMKeyCodeF20, GLFMKeyCodeF21, GLFMKeyCodeF22, GLFMKeyCodeF23, GLFMKeyCodeF24,
+            GLFMKeyCodeF3, GLFMKeyCodeF4, GLFMKeyCodeF5, GLFMKeyCodeF6, GLFMKeyCodeF7, GLFMKeyCodeF8, GLFMKeyCodeF9,
+            GLFMKeyCodeFunction, GLFMKeyCodeInsert, GLFMKeyCodeHome, GLFMKeyCodeInsert, GLFMKeyCodeA, GLFMKeyCodeB,
+            GLFMKeyCodeC, GLFMKeyCodeD, GLFMKeyCodeE, GLFMKeyCodeF, GLFMKeyCodeG, GLFMKeyCodeH, GLFMKeyCodeI,
+            GLFMKeyCodeJ, GLFMKeyCodeK, GLFMKeyCodeL, GLFMKeyCodeM, GLFMKeyCodeN, GLFMKeyCodeO, GLFMKeyCodeP,
+            GLFMKeyCodeQ, GLFMKeyCodeR, GLFMKeyCodeS, GLFMKeyCodeT, GLFMKeyCodeU, GLFMKeyCodeV, GLFMKeyCodeW,
+            GLFMKeyCodeX, GLFMKeyCodeY, GLFMKeyCodeZ, GLFMKeyCodeMediaPlayPause, GLFMKeyCodeMetaLeft,
+            GLFMKeyCodeMetaRight, GLFMKeyCodeMinus, GLFMKeyCodeNumLock, GLFMKeyCodeNumpad0, GLFMKeyCodeNumpad1,
+            GLFMKeyCodeNumpad2, GLFMKeyCodeNumpad3, GLFMKeyCodeNumpad4, GLFMKeyCodeNumpad5, GLFMKeyCodeNumpad6,
+            GLFMKeyCodeNumpad7, GLFMKeyCodeNumpad8, GLFMKeyCodeNumpad9, GLFMKeyCodeNumpadAdd, GLFMKeyCodeNumpadDecimal,
+            GLFMKeyCodeNumpadDivide, GLFMKeyCodeNumpadEnter, GLFMKeyCodeNumpadEqual, GLFMKeyCodeNumpadMultiply,
+            GLFMKeyCodeNumpadSubtract, GLFMKeyCodePageDown, GLFMKeyCodePageUp, GLFMKeyCodePause ,GLFMKeyCodePeriod,
+            GLFMKeyCodePower, GLFMKeyCodePrintScreen, GLFMKeyCodeQuote, GLFMKeyCodeScrollLock, GLFMKeyCodeSemicolon,
+            GLFMKeyCodeShiftLeft, GLFMKeyCodeShiftRight, GLFMKeyCodeSlash, GLFMKeyCodeSpace, GLFMKeyCodeTab,
         };
 
 #if GLFM_TEST_KEYBOARD_EVENT_ARRAYS
@@ -695,7 +699,8 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
             bool isSingleChar = (event->key[1] == '\0');
             bool isPredefinedKey = false;
             if (!isSingleChar) {
-                isPredefinedKey = glfm__sortedListSearch(KEYBOARD_EVENT_KEYS, KEYBOARD_EVENT_KEYS_LENGTH, event->key) >= 0;
+                isPredefinedKey = glfm__sortedListSearch(KEYBOARD_EVENT_KEYS, KEYBOARD_EVENT_KEYS_LENGTH,
+                                                         event->key) >= 0;
             }
             if (isSingleChar || !isPredefinedKey) {
                 display->charFunc(display, event->key, 0);
@@ -703,7 +708,7 @@ static EM_BOOL glfm__keyCallback(int eventType, const EmscriptenKeyboardEvent *e
             }
         }
     }
-    
+
     return handled;
 }
 
@@ -714,9 +719,10 @@ static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *ev
         platformData->mouseDown = false;
         return 0;
     }
-    
-    // The mouse event handler targets EMSCRIPTEN_EVENT_TARGET_WINDOW so that dragging the mouse outside the canvas can be detected.
-    // If a mouse drag begins inside the canvas, the mouse release event is sent even if the mouse is released outside the canvas.
+
+    // The mouse event handler targets EMSCRIPTEN_EVENT_TARGET_WINDOW so that dragging the mouse outside the canvas can
+    // be detected. If a mouse drag begins inside the canvas, the mouse release event is sent even if the mouse is
+    // released outside the canvas.
     float canvasX, canvasY, canvasW, canvasH;
     EM_ASM({
         var rect = Module['canvas'].getBoundingClientRect();
@@ -736,14 +742,14 @@ static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *ev
         // Mouse hover or click outside canvas
         return 0;
     }
-    
+
     GLFMTouchPhase touchPhase;
     switch (eventType) {
         case EMSCRIPTEN_EVENT_MOUSEDOWN:
             touchPhase = GLFMTouchPhaseBegan;
             platformData->mouseDown = true;
             break;
-            
+
         case EMSCRIPTEN_EVENT_MOUSEMOVE:
             if (platformData->mouseDown) {
                 touchPhase = GLFMTouchPhaseMoved;
@@ -751,12 +757,12 @@ static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *ev
                 touchPhase = GLFMTouchPhaseHover;
             }
             break;
-            
+
         case EMSCRIPTEN_EVENT_MOUSEUP:
             touchPhase = GLFMTouchPhaseEnded;
             platformData->mouseDown = false;
             break;
-            
+
         default:
             touchPhase = GLFMTouchPhaseCancelled;
             platformData->mouseDown = false;
@@ -765,9 +771,9 @@ static EM_BOOL glfm__mouseCallback(int eventType, const EmscriptenMouseEvent *ev
     bool handled = display->touchFunc(display, event->button, touchPhase,
                                       platformData->scale * (double)mouseX,
                                       platformData->scale * (double)mouseY);
-    // Always return `false` when the event is `mouseDown` for iframe support.
-    // Returning `true` invokes `preventDefault`, and invoking `preventDefault` on
-    // `mouseDown` events prevents `mouseMove` events outside the iframe.
+    // Always return `false` when the event is `mouseDown` for iframe support. Returning `true` invokes
+    // `preventDefault`, and invoking `preventDefault` on `mouseDown` events prevents `mouseMove` events outside the
+    // iframe.
     return handled && eventType != EMSCRIPTEN_EVENT_MOUSEDOWN;
 }
 

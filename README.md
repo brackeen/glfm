@@ -2,9 +2,11 @@
 [![Build](https://github.com/brackeen/glfm/actions/workflows/build.yml/badge.svg)](https://github.com/brackeen/glfm/actions/workflows/build.yml)
 [![Build Examples](https://github.com/brackeen/glfm/actions/workflows/build_examples.yml/badge.svg)](https://github.com/brackeen/glfm/actions/workflows/build_examples.yml)
 
-GLFM is a C API for mobile app development with OpenGL ES. It is largely inspired by [GLFW](https://github.com/glfw/glfw).
+GLFM is a C API for mobile app development with OpenGL ES. It is largely inspired by
+[GLFW](https://github.com/glfw/glfw).
 
-GLFM runs on iOS 9, tvOS 9, Android 4.1 (API 16), and WebGL 1.0 (via [Emscripten](https://github.com/emscripten-core/emscripten)).
+GLFM runs on iOS 9, tvOS 9, Android 4.1 (API 16), and WebGL 1.0
+(via [Emscripten](https://github.com/emscripten-core/emscripten)).
 
 Additionally, GLFM provides Metal support on iOS and tvOS.
 
@@ -47,10 +49,12 @@ Additionally, GLFM provides Metal support on iOS and tvOS.
 4. Requires iOS 13 or newer<br/>
 5. Requires iOS/tvOS 11 or newer</sub>
 
-Additionally, there is prelimnary support for macOS with OpenGL 3.2. The macOS version is useful for development purposes, but is not release quality. There is no function to set the window size, for example.
+Additionally, there is preliminary support for macOS with OpenGL 3.2. The macOS version is useful for development
+purposes, but is not release quality. There is no function to set the window size, for example.
 
 ## Non-goals
-GLFM is limited in scope, and isn't designed to provide everything needed for an app. For example, GLFM doesn't provide (and will never provide) the following:
+GLFM is limited in scope, and isn't designed to provide everything needed for an app. For example, GLFM doesn't provide
+(and will never provide) the following:
 
 * No image loading.
 * No text rendering.
@@ -67,10 +71,12 @@ Without CMake:
 1. Add the GLFM source files (in `include` and `src`) to your project.
 2. Include a `void glfmMain(GLFMDisplay *display)` function in a C/C++ file.
 
-For release builds, define `NDEBUG` to remove superfluous logging statements. `NDEBUG` is automatically defined for release builds in Android Studio, but not in Xcode.
+For release builds, define `NDEBUG` to remove superfluous logging statements. `NDEBUG` is automatically defined for
+release builds in Android Studio, but not in Xcode.
 
 ## Example
-This example initializes the display in `glfmMain()` and draws a triangle in `onDraw()`. A more detailed example is available [here](examples/src/touch.c).
+This example initializes the display in `glfmMain()` and draws a triangle in `onDraw()`. A more detailed example is
+available [here](examples/src/touch.c).
 
 ```C
 #include "glfm.h"
@@ -201,7 +207,8 @@ emrun build/emscripten/examples/glfm_touch.html
 ```
 
 ## Build the GLFM examples with Android Studio
-There is no CMake generator for Android Studio projects, but you can include `CMakeLists.txt` in a new or existing project.
+There is no CMake generator for Android Studio projects, but you can include `CMakeLists.txt` in a new or existing
+project.
 
 1. Select "Start a new Android Studio project".
 2. Select "No Activity".
@@ -256,7 +263,7 @@ android {
             }
         }
     }
-    
+
     // Add sourceSets.main and externalNativeBuild (2/2)
     sourceSets.main {
         assets.srcDirs = ["../../../examples/assets"]
@@ -273,17 +280,22 @@ android {
 
 ## Caveats
 * OpenGL ES 3.1 and 3.2 support is only available in Android.
-* GLFM is not thread-safe. All GLFM functions must be called on the main thread (that is, from `glfmMain` or from the callback functions).
+* GLFM is not thread-safe. All GLFM functions must be called on the main thread (that is, from `glfmMain` or from the
+callback functions).
 
 ## Questions
 **What IDE should I use? Why is there no desktop implementation?**
 Use Xcode or Android Studio. For desktop, use [GLFW](https://github.com/glfw/glfw) with the IDE of your choice.
 
-If you prefer not using the mobile simulators for everyday development, a good solution is to use GLFW instead, and then later port your app to GLFM. Not all OpenGL calls will port to OpenGL ES perfectly, but for maximum OpenGL portability, use OpenGL 3.2 Core Profile on desktop and OpenGL ES 2.0 on mobile.
+If you prefer not using the mobile simulators for everyday development, a good solution is to use GLFW instead, and then
+later port your app to GLFM. Not all OpenGL calls will port to OpenGL ES perfectly, but for maximum OpenGL portability,
+use OpenGL 3.2 Core Profile on desktop and OpenGL ES 2.0 on mobile.
 
 **Why is the entry point `glfmMain()` and not `main()`?**
 
-Otherwise, it wouldn't work on iOS. To initialize the Objective-C environment, the `main()` function must create an autorelease pool and call the `UIApplicationMain()` function, which *never returns*. On iOS, GLFM doesn't call `glfmMain()` until after the `UIApplicationDelegate` and `UIViewController` are initialized.
+Otherwise, it wouldn't work on iOS. To initialize the Objective-C environment, the `main()` function must create an
+autorelease pool and call the `UIApplicationMain()` function, which *never returns*. On iOS, GLFM doesn't call
+`glfmMain()` until after the `UIApplicationDelegate` and `UIViewController` are initialized.
 
 **Why is GLFM event-driven? Why does GLFM take over the main loop?**
 

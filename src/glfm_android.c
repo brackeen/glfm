@@ -35,9 +35,8 @@
 #define GLFM_SENSOR_UPDATE_INTERVAL_MICROS ((int)(0.01 * 1000000))
 #define GLFM_RESIZE_EVENT_MAX_WAIT_FRAMES 5
 
-// If GLFM_HANDLE_BACK_BUTTON is 1, when the user presses the back button, the task is moved to the
-// back. Otherwise, when the user presses the back button, the activity is destroyed.
-// On newer API levels (31) this may not be needed.
+// If GLFM_HANDLE_BACK_BUTTON is 1, when the user presses the back button, the task is moved to the back. Otherwise,
+// when the user presses the back button, the activity is destroyed. On newer API levels (31) this may not be needed.
 #define GLFM_HANDLE_BACK_BUTTON 1
 
 // MARK: - Platform data (global singleton)
@@ -118,8 +117,7 @@ static void glfm__reportOrientationChangeIfNeeded(GLFMDisplay *display);
 static void glfm__reportInsetsChangedIfNeeded(GLFMDisplay *display);
 static bool glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force);
 static float glfm__getRefreshRate(const GLFMDisplay *display);
-static void glfm__getDisplayChromeInsets(const GLFMDisplay *display, int *top, int *right,
-                                         int *bottom, int *left);
+static void glfm__getDisplayChromeInsets(const GLFMDisplay *display, int *top, int *right, int *bottom, int *left);
 static void glfm__resetContentRect(GLFMPlatformData *platformData);
 static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData);
 static void glfm__updateUserInterfaceChrome(GLFMPlatformData *platformData);
@@ -226,10 +224,8 @@ static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
             const EGLint contextAttribList[] = { EGL_CONTEXT_MAJOR_VERSION_KHR, majorVersion,
                                                  EGL_CONTEXT_MINOR_VERSION_KHR, minorVersion,
                                                  EGL_NONE, EGL_NONE };
-            platformData->eglContext = eglCreateContext(platformData->eglDisplay,
-                                                        platformData->eglConfig,
-                                                        EGL_NO_CONTEXT,
-                                                        contextAttribList);
+            platformData->eglContext = eglCreateContext(platformData->eglDisplay, platformData->eglConfig,
+                                                        EGL_NO_CONTEXT, contextAttribList);
             created = platformData->eglContext != EGL_NO_CONTEXT;
         }
         // OpenGL ES 3.1
@@ -239,10 +235,8 @@ static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
             const EGLint contextAttribList[] = { EGL_CONTEXT_MAJOR_VERSION_KHR, majorVersion,
                                                  EGL_CONTEXT_MINOR_VERSION_KHR, minorVersion,
                                                  EGL_NONE, EGL_NONE };
-            platformData->eglContext = eglCreateContext(platformData->eglDisplay,
-                                                        platformData->eglConfig,
-                                                        EGL_NO_CONTEXT,
-                                                        contextAttribList);
+            platformData->eglContext = eglCreateContext(platformData->eglDisplay, platformData->eglConfig,
+                                                        EGL_NO_CONTEXT, contextAttribList);
             created = platformData->eglContext != EGL_NO_CONTEXT;
         }
         // OpenGL ES 3.0
@@ -251,10 +245,8 @@ static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
             minorVersion = 0;
             const EGLint contextAttribList[] = { EGL_CONTEXT_CLIENT_VERSION, majorVersion,
                                                  EGL_NONE, EGL_NONE };
-            platformData->eglContext = eglCreateContext(platformData->eglDisplay,
-                                                        platformData->eglConfig,
-                                                        EGL_NO_CONTEXT,
-                                                        contextAttribList);
+            platformData->eglContext = eglCreateContext(platformData->eglDisplay, platformData->eglConfig,
+                                                        EGL_NO_CONTEXT, contextAttribList);
             created = platformData->eglContext != EGL_NO_CONTEXT;
         }
         // OpenGL ES 2.0
@@ -263,17 +255,15 @@ static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
             minorVersion = 0;
             const EGLint contextAttribList[] = { EGL_CONTEXT_CLIENT_VERSION, majorVersion,
                                                  EGL_NONE, EGL_NONE };
-            platformData->eglContext = eglCreateContext(platformData->eglDisplay,
-                                                        platformData->eglConfig,
-                                                        EGL_NO_CONTEXT,
-                                                        contextAttribList);
+            platformData->eglContext = eglCreateContext(platformData->eglDisplay, platformData->eglConfig,
+                                                        EGL_NO_CONTEXT, contextAttribList);
             created = platformData->eglContext != EGL_NO_CONTEXT;
         }
 
         if (created) {
             eglQueryContext(platformData->eglDisplay, platformData->eglContext,
                             EGL_CONTEXT_MAJOR_VERSION_KHR, &majorVersion);
-            if (majorVersion >= 3) { 
+            if (majorVersion >= 3) {
                 // This call fails on many devices.
                 // When it fails, `minorVersion` is left unchanged.
                 eglQueryContext(platformData->eglDisplay, platformData->eglContext,
@@ -303,9 +293,7 @@ static bool glfm__eglContextInit(GLFMPlatformData *platformData) {
     if (created && !platformData->surfaceCreatedNotified) {
         platformData->surfaceCreatedNotified = true;
         if (platformData->display && platformData->display->surfaceCreatedFunc) {
-            platformData->display->surfaceCreatedFunc(platformData->display,
-                                                      platformData->width,
-                                                      platformData->height);
+            platformData->display->surfaceCreatedFunc(platformData->display, platformData->width, platformData->height);
         }
     }
     return true;
@@ -320,8 +308,7 @@ static void glfm__eglContextDisable(GLFMPlatformData *platformData) {
 
 static void glfm__eglSurfaceInit(GLFMPlatformData *platformData) {
     if (platformData->eglSurface == EGL_NO_SURFACE) {
-        platformData->eglSurface = eglCreateWindowSurface(platformData->eglDisplay,
-                                                          platformData->eglConfig,
+        platformData->eglSurface = eglCreateWindowSurface(platformData->eglDisplay, platformData->eglConfig,
                                                           platformData->window, NULL);
 
         switch (platformData->display->swapBehavior) {
@@ -329,10 +316,12 @@ static void glfm__eglSurfaceInit(GLFMPlatformData *platformData) {
             // Platform default, do nothing.
             break;
         case GLFMSwapBehaviorBufferPreserved:
-            eglSurfaceAttrib(platformData->eglDisplay, platformData->eglSurface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED);
+            eglSurfaceAttrib(platformData->eglDisplay, platformData->eglSurface, EGL_SWAP_BEHAVIOR,
+                             EGL_BUFFER_PRESERVED);
             break;
         case GLFMSwapBehaviorBufferDestroyed:
-            eglSurfaceAttrib(platformData->eglDisplay, platformData->eglSurface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_DESTROYED);
+            eglSurfaceAttrib(platformData->eglDisplay, platformData->eglSurface, EGL_SWAP_BEHAVIOR,
+                             EGL_BUFFER_DESTROYED);
         }
     }
 }
@@ -441,8 +430,8 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
             EGL_SAMPLES, samples > 0 ? samples : 0,
             EGL_NONE, EGL_NONE
         };
-        eglChooseConfig(platformData->eglDisplay, attribList,
-                        &platformData->eglConfig, 1, &numConfigs);
+        eglChooseConfig(platformData->eglDisplay, attribList, &platformData->eglConfig,
+                        1, &numConfigs);
         if (numConfigs) {
             // Found!
             //glfm__eglLogConfig(platformData, platformData->eglConfig);
@@ -783,16 +772,14 @@ JNIEXPORT void ANativeActivity_onCreate(ANativeActivity *activity, void *savedSt
     platformData->uiLooper = looper;
     platformData->uiCommandPipeRead = uiCommandPipe[0];
     platformData->uiCommandPipeWrite = uiCommandPipe[1];
-    ALooper_addFd(platformData->uiLooper, platformData->uiCommandPipeRead,
-                  ALOOPER_POLL_CALLBACK,ALOOPER_EVENT_INPUT,
-                  glfm__looperCallback, platformData);
+    ALooper_addFd(platformData->uiLooper, platformData->uiCommandPipeRead, ALOOPER_POLL_CALLBACK,
+                  ALOOPER_EVENT_INPUT, glfm__looperCallback, platformData);
 
     // Start thread
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_create(&platformData->thread, &attr, glfm__mainLoop,
-                   platformData);
+    pthread_create(&platformData->thread, &attr, glfm__mainLoop, platformData);
     pthread_attr_destroy(&attr);
 
     // Wait for thread to start
@@ -828,8 +815,7 @@ static int glfm__looperCallback(int pipe, int events, void *userData) {
 
 /// Queues a function to execute on the UI thread.
 /// Returns true if the function was queued, false otherwise.
-static bool glfm__runOnUIThread(GLFMPlatformData *platformData, GLFMUIThreadFunc function,
-                                void *userData) {
+static bool glfm__runOnUIThread(GLFMPlatformData *platformData, GLFMUIThreadFunc function, void *userData) {
     assert(platformData->looper == ALooper_forThread());
     if (platformData->looper != ALooper_forThread() || !function) {
         return false;
@@ -987,8 +973,7 @@ static void glfm__onAppCmd(GLFMPlatformData *platformData, GLFMActivityCommand c
         }
         case GLFMActivityCommandOnConfigurationChanged: {
             GLFM_LOG_LIFECYCLE("OnConfigurationChanged");
-            AConfiguration_fromAssetManager(platformData->config,
-                                            platformData->activity->assetManager);
+            AConfiguration_fromAssetManager(platformData->config, platformData->activity->assetManager);
             break;
         }
         default: {
@@ -1564,8 +1549,7 @@ static void *glfm__mainLoop(void *param) {
     bool fullscreen = platformData->display->uiChrome == GLFMUserInterfaceChromeNone;
     ANativeActivity_setWindowFormat(platformData->activity, windowFormat);
     ANativeActivity_setWindowFlags(platformData->activity,
-                                   fullscreen ? AWINDOW_FLAG_FULLSCREEN : 0,
-                                   AWINDOW_FLAG_FULLSCREEN);
+                                   fullscreen ? AWINDOW_FLAG_FULLSCREEN : 0, AWINDOW_FLAG_FULLSCREEN);
     glfm__updateUserInterfaceChrome(platformData);
     if (platformData->activity->sdkVersion >= 28) {
         // Allow rendering in cutout areas ("safe area") in both portrait and landscape.
@@ -1576,11 +1560,9 @@ static void *glfm__mainLoop(void *param) {
         jobject window = glfm__callJavaMethod(jni, platformData->activity->clazz, "getWindow",
                                               "()Landroid/view/Window;", Object);
         jobject attributes = glfm__callJavaMethod(jni, window, "getAttributes",
-                                                  "()Landroid/view/WindowManager$LayoutParams;",
-                                                  Object);
+                                                  "()Landroid/view/WindowManager$LayoutParams;", Object);
         jclass clazz = (*jni)->GetObjectClass(jni, attributes);
-        jfieldID layoutInDisplayCutoutMode = (*jni)->GetFieldID(jni, clazz,
-                "layoutInDisplayCutoutMode", "I");
+        jfieldID layoutInDisplayCutoutMode = (*jni)->GetFieldID(jni, clazz, "layoutInDisplayCutoutMode", "I");
 
         (*jni)->SetIntField(jni, attributes, layoutInDisplayCutoutMode,
                 LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
@@ -1690,7 +1672,8 @@ static jobject glfm__getDecorView(JNIEnv *jni, GLFMPlatformData *platformData) {
     if (!platformData || !platformData->activity || (*jni)->ExceptionCheck(jni)) {
         return NULL;
     }
-    jobject window = glfm__callJavaMethod(jni, platformData->activity->clazz, "getWindow", "()Landroid/view/Window;", Object);
+    jobject window = glfm__callJavaMethod(jni, platformData->activity->clazz, "getWindow", "()Landroid/view/Window;",
+                                          Object);
     if (glfm__wasJavaExceptionThrown(jni) || !window) {
         return NULL;
     }
@@ -1784,7 +1767,8 @@ static void glfm__updateUserInterfaceChrome(GLFMPlatformData *platformData) {
         if (SDK_INT >= 19) {
             isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "isAttachedToWindow", "()Z", Boolean);
         } else {
-            isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "getWindowToken", "()Landroid/os/IBinder;", Object) != NULL;
+            isDecorViewAttached = glfm__callJavaMethod(jni, decorView, "getWindowToken", "()Landroid/os/IBinder;",
+                                                       Object) != NULL;
         }
         if (glfm__wasJavaExceptionThrown(jni)) {
             (*jni)->DeleteLocalRef(jni, decorView);
@@ -1799,13 +1783,15 @@ static void glfm__updateUserInterfaceChrome(GLFMPlatformData *platformData) {
     } else {
         // Set now
         if (SDK_INT >= 30) {
-            jobject windowInsetsController = glfm__callJavaMethod(jni, decorView, "getWindowInsetsController", "()Landroid/view/WindowInsetsController;", Object);
+            jobject windowInsetsController = glfm__callJavaMethod(jni, decorView, "getWindowInsetsController",
+                                                                  "()Landroid/view/WindowInsetsController;", Object);
             jclass windowInsetsTypeClass = (*jni)->FindClass(jni, "android/view/WindowInsets$Type");
             if (windowInsetsController && windowInsetsTypeClass && !glfm__wasJavaExceptionThrown(jni)) {
                 static const jint WindowInsetsController_BEHAVIOR_DEFAULT = 1;
                 static const jint WindowInsetsController_BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE = 2;
 
-                const jint systemBars = glfm__callJavaStaticMethod(jni, windowInsetsTypeClass, "systemBars", "()I", Int);
+                const jint systemBars = glfm__callJavaStaticMethod(jni, windowInsetsTypeClass, "systemBars",
+                                                                   "()I", Int);
 
                 if (uiChrome == GLFMUserInterfaceChromeNone) {
                     glfm__callJavaMethodWithArgs(jni, windowInsetsController, "setSystemBarsBehavior", "(I)V", Void,
@@ -1817,9 +1803,11 @@ static void glfm__updateUserInterfaceChrome(GLFMPlatformData *platformData) {
                     if (uiChrome == GLFMUserInterfaceChromeNavigationAndStatusBar) {
                         glfm__callJavaMethodWithArgs(jni, windowInsetsController, "show", "(I)V", Void, systemBars);
                     } else if (uiChrome == GLFMUserInterfaceChromeNavigation) {
-                        const jint statusBars = glfm__callJavaStaticMethod(jni, windowInsetsTypeClass, "statusBars", "()I", Int);
+                        const jint statusBars = glfm__callJavaStaticMethod(jni, windowInsetsTypeClass, "statusBars",
+                                                                           "()I", Int);
                         glfm__callJavaMethodWithArgs(jni, windowInsetsController, "hide", "(I)V", Void, statusBars);
-                        glfm__callJavaMethodWithArgs(jni, windowInsetsController, "show", "(I)V", Void, systemBars & ~statusBars);
+                        glfm__callJavaMethodWithArgs(jni, windowInsetsController, "show", "(I)V", Void,
+                                                     systemBars & ~statusBars);
                     }
                 }
 
@@ -1861,8 +1849,8 @@ static void glfm__updateUserInterfaceChrome(GLFMPlatformData *platformData) {
 }
 
 static void glfm__resetContentRect(GLFMPlatformData *platformData) {
-    // Reset's NativeActivity's content rect so that onContentRectChanged acts as a
-    // OnGlobalLayoutListener. This is needed to detect changes to getWindowVisibleDisplayFrame()
+    // Reset's NativeActivity's content rect so that onContentRectChanged acts as a OnGlobalLayoutListener. This is
+    // needed to detect changes to getWindowVisibleDisplayFrame()
     // HACK: This uses undocumented fields.
 
     JavaVM *jvm = platformData->activity->vm;
@@ -1872,8 +1860,7 @@ static void glfm__resetContentRect(GLFMPlatformData *platformData) {
         return;
     }
 
-    jfieldID field = glfm__getJavaFieldID(jni, platformData->activity->clazz,
-                                         "mLastContentWidth", "I");
+    jfieldID field = glfm__getJavaFieldID(jni, platformData->activity->clazz, "mLastContentWidth", "I");
     if (glfm__wasJavaExceptionThrown(jni) || !field) {
         return;
     }
@@ -1923,8 +1910,7 @@ static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, 
     jintArray locationArray = (*jni)->NewIntArray(jni, 2);
     if (locationArray) {
         jint location[2] = { 0 };
-        glfm__callJavaMethodWithArgs(jni, decorView, "getLocationOnScreen", "([I)V", Void,
-                                     locationArray);
+        glfm__callJavaMethodWithArgs(jni, decorView, "getLocationOnScreen", "([I)V", Void, locationArray);
         (*jni)->GetIntArrayRegion(jni, locationArray, 0, 2, location);
         (*jni)->DeleteLocalRef(jni, locationArray);
         if (!glfm__wasJavaExceptionThrown(jni)) {
@@ -1937,8 +1923,7 @@ static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, 
     return rect;
 }
 
-static bool glfm__getSafeInsets(const GLFMDisplay *display, int *top, int *right,
-                                int *bottom, int *left) {
+static bool glfm__getSafeInsets(const GLFMDisplay *display, int *top, int *right, int *bottom, int *left) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     const int SDK_INT = platformData->activity->sdkVersion;
     if (SDK_INT < 28) {
@@ -1973,8 +1958,7 @@ static bool glfm__getSafeInsets(const GLFMDisplay *display, int *top, int *right
     return true;
 }
 
-static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, int *top, int *right,
-                                        int *bottom, int *left) {
+static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, int *top, int *right, int *bottom, int *left) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     const int SDK_INT = platformData->activity->sdkVersion;
     if (SDK_INT < 20) {
@@ -2007,8 +1991,7 @@ static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, int *top, in
 static jobject glfm__getWindowDisplay(GLFMPlatformData *platformData) {
     JNIEnv *jni = platformData->jniEnv;
     jobject activity = platformData->activity->clazz;
-    jobject window = glfm__callJavaMethod(jni, activity, "getWindow",
-                                          "()Landroid/view/Window;", Object);
+    jobject window = glfm__callJavaMethod(jni, activity, "getWindow", "()Landroid/view/Window;", Object);
     if (glfm__wasJavaExceptionThrown(jni) || !window) {
         return NULL;
     }
@@ -2070,9 +2053,7 @@ static bool glfm__updateSurfaceSizeIfNeeded(GLFMDisplay *display, bool force) {
     return false;
 }
 
-static void glfm__getDisplayChromeInsets(const GLFMDisplay *display, int *top, int *right,
-                                         int *bottom, int *left) {
-
+static void glfm__getDisplayChromeInsets(const GLFMDisplay *display, int *top, int *right, int *bottom, int *left) {
     bool success;
     if (glfmGetDisplayChrome(display) == GLFMUserInterfaceChromeNone) {
         success = glfm__getSafeInsets(display, top, right, bottom, left);
@@ -2160,7 +2141,8 @@ static void glfm__setOrientation(GLFMPlatformData *platformData) {
         return;
     }
 
-    glfm__callJavaMethodWithArgs(jni, platformData->activity->clazz, "setRequestedOrientation", "(I)V", Void, orientation);
+    glfm__callJavaMethodWithArgs(jni, platformData->activity->clazz, "setRequestedOrientation", "(I)V", Void,
+                                 orientation);
     glfm__clearJavaException(jni);
 }
 
@@ -2219,7 +2201,8 @@ static void glfm__setAllRequestedSensorsEnabled(GLFMDisplay *display, bool enabl
                     if (delay < minDelay) {
                         delay = minDelay;
                     }
-                    ASensorEventQueue_setEventRate(platformData->sensorEventQueue, deviceSensor, delay);
+                    ASensorEventQueue_setEventRate(platformData->sensorEventQueue, deviceSensor,
+                                                   delay);
                 }
                 platformData->deviceSensorEnabled[i] = true;
             }
@@ -2238,8 +2221,8 @@ static void glfm__sensorFuncUpdated(GLFMDisplay *display) {
     }
 }
 
-/// Gets an Android system service. The "serviceName" is a field from android.content.Context,
-/// like "INPUT_METHOD_SERVICE" or "VIBRATOR_SERVICE".
+/// Gets an Android system service. The "serviceName" is a field from android.content.Context, like
+/// "INPUT_METHOD_SERVICE" or "VIBRATOR_SERVICE".
 ///
 /// The C code:
 ///     glfm__getSystemService(platformData, "INPUT_METHOD_SERVICE")
@@ -2252,16 +2235,13 @@ static jobject glfm__getSystemService(GLFMPlatformData *platformData, const char
         return NULL;
     }
 
-    jstring serviceNameString = glfm__getJavaStaticField(jni, contextClass, serviceName,
-                                                         "Ljava/lang/String;", Object);
+    jstring serviceNameString = glfm__getJavaStaticField(jni, contextClass, serviceName, "Ljava/lang/String;", Object);
     (*jni)->DeleteLocalRef(jni, contextClass);
     if (glfm__wasJavaExceptionThrown(jni) || !serviceNameString) {
         return NULL;
     }
-    jobject service = glfm__callJavaMethodWithArgs(jni, platformData->activity->clazz,
-                                                   "getSystemService",
-                                                   "(Ljava/lang/String;)Ljava/lang/Object;",
-                                                   Object, serviceNameString);
+    jobject service = glfm__callJavaMethodWithArgs(jni, platformData->activity->clazz, "getSystemService",
+                                                   "(Ljava/lang/String;)Ljava/lang/Object;", Object, serviceNameString);
     (*jni)->DeleteLocalRef(jni, serviceNameString);
     if (glfm__wasJavaExceptionThrown(jni)) {
         return NULL;
@@ -2294,15 +2274,14 @@ static bool glfm__setKeyboardVisible(GLFMPlatformData *platformData, bool visibl
             // no longer required (possibly for versions prior to 23.)
             flags = InputMethodManager_SHOW_FORCED;
         }
-        glfm__callJavaMethodWithArgs(jni, ime, "showSoftInput", "(Landroid/view/View;I)Z", Boolean,
-                                     decorView, flags);
+        glfm__callJavaMethodWithArgs(jni, ime, "showSoftInput", "(Landroid/view/View;I)Z", Boolean, decorView, flags);
     } else {
         jobject windowToken = glfm__callJavaMethod(jni, decorView, "getWindowToken", "()Landroid/os/IBinder;", Object);
         if (glfm__wasJavaExceptionThrown(jni) || !windowToken) {
             return false;
         }
-        glfm__callJavaMethodWithArgs(jni, ime, "hideSoftInputFromWindow",
-                                     "(Landroid/os/IBinder;I)Z", Boolean, windowToken, 0);
+        glfm__callJavaMethodWithArgs(jni, ime, "hideSoftInputFromWindow", "(Landroid/os/IBinder;I)Z", Boolean,
+                                     windowToken, 0);
         (*jni)->DeleteLocalRef(jni, windowToken);
     }
 
@@ -2377,8 +2356,7 @@ static void glfm__updateKeyboardVisibility(GLFMPlatformData *platformData) {
                 double y = keyboardFrame.top;
                 double width = keyboardFrame.right - keyboardFrame.left;
                 double height = keyboardFrame.bottom - keyboardFrame.top;
-                platformData->display->keyboardVisibilityChangedFunc(platformData->display,
-                                                                     keyboardVisible,
+                platformData->display->keyboardVisibilityChangedFunc(platformData->display, keyboardVisible,
                                                                      x, y, width, height);
             }
         }
@@ -2598,7 +2576,8 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
     const int SDK_INT = platformData->activity->sdkVersion;
     jint defaultFeedbackConstant = HapticFeedbackConstants_LONG_PRESS;
     jint feedbackConstant;
-    jint feedbackFlags = HapticFeedbackConstants_FLAG_IGNORE_VIEW_SETTING | HapticFeedbackConstants_FLAG_IGNORE_GLOBAL_SETTING;
+    jint feedbackFlags = (HapticFeedbackConstants_FLAG_IGNORE_VIEW_SETTING |
+                          HapticFeedbackConstants_FLAG_IGNORE_GLOBAL_SETTING);
     switch (style) {
         case GLFMHapticFeedbackLight: default:
             if (SDK_INT < 23) {
@@ -2619,10 +2598,12 @@ void glfmPerformHapticFeedback(GLFMDisplay *display, GLFMHapticFeedbackStyle sty
             break;
     }
 
-    bool performed = glfm__callJavaMethodWithArgs(jni, decorView, "performHapticFeedback", "(II)Z", Boolean, feedbackConstant, feedbackFlags);
+    bool performed = glfm__callJavaMethodWithArgs(jni, decorView, "performHapticFeedback", "(II)Z", Boolean,
+                                                  feedbackConstant, feedbackFlags);
     if (!performed) {
         // Some devices (Samsung S8) don't support all constants
-        glfm__callJavaMethodWithArgs(jni, decorView, "performHapticFeedback", "(II)Z", Boolean, defaultFeedbackConstant, feedbackFlags);
+        glfm__callJavaMethodWithArgs(jni, decorView, "performHapticFeedback", "(II)Z", Boolean, defaultFeedbackConstant,
+                                     feedbackFlags);
     }
     (*jni)->DeleteLocalRef(jni, decorView);
 }
@@ -2650,14 +2631,13 @@ bool glfmHasClipboardText(const GLFMDisplay *display) {
 
     // Invoke primaryClipDescription.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)
     jclass class = (*jni)->GetObjectClass(jni, primaryClipDescription);
-    jobject mimeType = glfm__getJavaStaticField(jni, class, "MIMETYPE_TEXT_PLAIN",
-                                                "Ljava/lang/String;", Object);
+    jobject mimeType = glfm__getJavaStaticField(jni, class, "MIMETYPE_TEXT_PLAIN", "Ljava/lang/String;", Object);
     (*jni)->DeleteLocalRef(jni, class);
     if (glfm__wasJavaExceptionThrown(jni) || !mimeType) {
         return false;
     }
-    jboolean hasText = glfm__callJavaMethodWithArgs(jni, primaryClipDescription, "hasMimeType",
-                                                    "(Ljava/lang/String;)Z", Boolean, mimeType);
+    jboolean hasText = glfm__callJavaMethodWithArgs(jni, primaryClipDescription, "hasMimeType", "(Ljava/lang/String;)Z",
+                                                    Boolean, mimeType);
 
     (*jni)->DeleteLocalRef(jni, primaryClipDescription);
     if (glfm__wasJavaExceptionThrown(jni)) {
@@ -2689,30 +2669,27 @@ void glfmRequestClipboardText(GLFMDisplay *display, GLFMClipboardTextFunc clipbo
 
     // Invoke clipboardManager.getPrimaryClip()?.getItemAt(0)?.getText()?.toString()
     // Note, there appears no reason to do this asynchronously.
-    jobject clipData = glfm__callJavaMethod(jni, clipboardManager, "getPrimaryClip",
-                                            "()Landroid/content/ClipData;", Object);
+    jobject clipData = glfm__callJavaMethod(jni, clipboardManager, "getPrimaryClip", "()Landroid/content/ClipData;",
+                                            Object);
     (*jni)->DeleteLocalRef(jni, clipboardManager);
     if (glfm__wasJavaExceptionThrown(jni) || !clipData) {
         clipboardTextFunc(display, NULL);
         return;
     }
     jobject clipDataItem = glfm__callJavaMethodWithArgs(jni, clipData, "getItemAt",
-                                                        "(I)Landroid/content/ClipData$Item;",
-                                                        Object, 0);
+                                                        "(I)Landroid/content/ClipData$Item;", Object, 0);
     (*jni)->DeleteLocalRef(jni, clipData);
     if (glfm__wasJavaExceptionThrown(jni) || !clipDataItem) {
         clipboardTextFunc(display, NULL);
         return;
     }
-    jobject clipDataItemText = glfm__callJavaMethod(jni, clipDataItem, "getText",
-                                                    "()Ljava/lang/CharSequence;", Object);
+    jobject clipDataItemText = glfm__callJavaMethod(jni, clipDataItem, "getText", "()Ljava/lang/CharSequence;", Object);
     (*jni)->DeleteLocalRef(jni, clipDataItem);
     if (glfm__wasJavaExceptionThrown(jni) || !clipDataItemText) {
         clipboardTextFunc(display, NULL);
         return;
     }
-    jstring javaString = glfm__callJavaMethod(jni, clipDataItemText, "toString",
-                                              "()Ljava/lang/String;", Object);
+    jstring javaString = glfm__callJavaMethod(jni, clipDataItemText, "toString", "()Ljava/lang/String;", Object);
     (*jni)->DeleteLocalRef(jni, clipDataItemText);
     if (glfm__wasJavaExceptionThrown(jni) || !javaString) {
         clipboardTextFunc(display, NULL);

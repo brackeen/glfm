@@ -66,8 +66,7 @@ static bool glfm__isCGFloatEqual(CGFloat value1, CGFloat value2) {
 #endif
 }
 
-static void glfm__getDefaultDisplaySize(const GLFMDisplay *display,
-                                        double *width, double *height, double *scale);
+static void glfm__getDefaultDisplaySize(const GLFMDisplay *display, double *width, double *height, double *scale);
 static void glfm__getDrawableSize(double displayWidth, double displayHeight, double displayScale,
                                   int *width, int *height);
 
@@ -129,11 +128,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)swapBuffers {
-    
+
 }
 
 - (void)requestRefresh {
-    
+
 }
 
 - (void)dealloc {
@@ -201,7 +200,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                 self.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
                 break;
         }
-        
+
         if (glfmDisplay->depthFormat == GLFMDepthFormatNone &&
             glfmDisplay->stencilFormat == GLFMStencilFormatNone) {
             self.depthStencilPixelFormat = MTLPixelFormatInvalid;
@@ -217,11 +216,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             } else {
                 self.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
             }
-            
+
         } else {
             self.depthStencilPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
         }
-        
+
         self.sampleCount = (glfmDisplay->multisample == GLFMMultisampleNone) ? 1 : 4;
     }
     return self;
@@ -289,7 +288,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 }
 
 - (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size {
-    
+
 }
 
 - (void)drawInMTKView:(MTKView *)view {
@@ -305,30 +304,28 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         self.drawableWidth = newDrawableWidth;
         self.drawableHeight = newDrawableHeight;
         if (self.glfmDisplay->surfaceCreatedFunc) {
-            self.glfmDisplay->surfaceCreatedFunc(self.glfmDisplay,
-                                                 self.drawableWidth, self.drawableHeight);
+            self.glfmDisplay->surfaceCreatedFunc(self.glfmDisplay, self.drawableWidth, self.drawableHeight);
         }
     } else if (self.drawableWidth != newDrawableWidth || self.drawableHeight != newDrawableHeight) {
         [self requestRefresh];
         self.drawableWidth = newDrawableWidth;
         self.drawableHeight = newDrawableHeight;
         if (self.glfmDisplay->surfaceResizedFunc) {
-            self.glfmDisplay->surfaceResizedFunc(self.glfmDisplay,
-                                                 self.drawableWidth, self.drawableHeight);
+            self.glfmDisplay->surfaceResizedFunc(self.glfmDisplay, self.drawableWidth, self.drawableHeight);
         }
     }
-    
+
     if (_preRenderCallback) {
         _preRenderCallback();
     }
-    
+
     if (self.refreshRequested) {
         self.refreshRequested = NO;
         if (self.glfmDisplay->surfaceRefreshFunc) {
             self.glfmDisplay->surfaceRefreshFunc(self.glfmDisplay);
         }
     }
-    
+
     if (self.glfmDisplay->renderFunc) {
         self.glfmDisplay->renderFunc(self.glfmDisplay);
     }
@@ -474,11 +471,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (instancetype)initWithFrame:(CGRect)frame contentScaleFactor:(CGFloat)contentScaleFactor
                   glfmDisplay:(GLFMDisplay *)glfmDisplay {
     if ((self = [super initWithFrame:frame])) {
-        
+
         self.contentScaleFactor = contentScaleFactor;
         self.glfmDisplay = glfmDisplay;
         [self requestRefresh];
-        
+
         if (glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
             self.context = GLFM_AUTORELEASE([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3]);
             self.renderingAPI = GLFMRenderingAPIOpenGLES3;
@@ -487,14 +484,14 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             self.context = GLFM_AUTORELEASE([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2]);
             self.renderingAPI = GLFMRenderingAPIOpenGLES2;
         }
-        
+
         if (!self.context) {
             GLFM_LOG("Failed to create ES context");
             glfm__reportSurfaceError(glfmDisplay, "Failed to create ES context");
             GLFM_RELEASE(self);
             return nil;
         }
-        
+
         switch (glfmDisplay->colorFormat) {
             case GLFMColorFormatRGB565:
                 self.colorFormat = kEAGLColorFormatRGB565;
@@ -504,7 +501,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                 self.colorFormat = kEAGLColorFormatRGBA8;
                 break;
         }
-        
+
         switch (glfmDisplay->depthFormat) {
             case GLFMDepthFormatNone:
             default:
@@ -517,7 +514,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                 self.depthBits = 24;
                 break;
         }
-        
+
         switch (glfmDisplay->stencilFormat) {
             case GLFMStencilFormatNone:
             default:
@@ -527,9 +524,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                 self.stencilBits = 8;
                 break;
         }
-        
+
         self.multisampling = glfmDisplay->multisample != GLFMMultisampleNone;
-        
+
         [self createDrawable];
     }
     return self;
@@ -568,8 +565,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             [self.displayLink invalidate];
             self.displayLink = nil;
         } else {
-            self.displayLink = [CADisplayLink displayLinkWithTarget:self
-                                                           selector:@selector(render:)];
+            self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(render:)];
             [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
         }
     }
@@ -588,9 +584,10 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
     CAEAGLLayer *eaglLayer = (CAEAGLLayer *)self.layer;
     eaglLayer.opaque = YES;
-    eaglLayer.drawableProperties =
-        @{ kEAGLDrawablePropertyRetainedBacking : @(self.preserveBackbuffer),
-           kEAGLDrawablePropertyColorFormat : self.colorFormat };
+    eaglLayer.drawableProperties = @{
+        kEAGLDrawablePropertyRetainedBacking : @(self.preserveBackbuffer),
+        kEAGLDrawablePropertyColorFormat : self.colorFormat
+    };
 
     glGenFramebuffers(1, &_defaultFramebuffer);
     glGenRenderbuffers(1, &_colorRenderbuffer);
@@ -604,13 +601,11 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         if (glfm__isCGFloatEqual(eaglLayer.bounds.size.width, (CGFloat)320.0) &&
             glfm__isCGFloatEqual(eaglLayer.bounds.size.height, (CGFloat)568.0)) {
             eaglLayer.bounds = CGRectMake(eaglLayer.bounds.origin.x, eaglLayer.bounds.origin.y,
-                                          eaglLayer.bounds.size.width,
-                                          1334 / eaglLayer.contentsScale);
+                                          eaglLayer.bounds.size.width, 1334 / eaglLayer.contentsScale);
         } else if (glfm__isCGFloatEqual(eaglLayer.bounds.size.width, (CGFloat)568.0) &&
                    glfm__isCGFloatEqual(eaglLayer.bounds.size.height, (CGFloat)320.0)) {
             eaglLayer.bounds = CGRectMake(eaglLayer.bounds.origin.x, eaglLayer.bounds.origin.y,
-                                          1334 / eaglLayer.contentsScale,
-                                          eaglLayer.bounds.size.height);
+                                          1334 / eaglLayer.contentsScale, eaglLayer.bounds.size.height);
         }
     }
 
@@ -620,8 +615,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
     eaglLayer.bounds = oldBounds;
 
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER,
-                              _colorRenderbuffer);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _colorRenderbuffer);
 
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &_drawableWidth);
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &_drawableHeight);
@@ -638,11 +632,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             internalFormat = GL_RGB565;
         }
 
-        glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 4, internalFormat,
-                                              _drawableWidth, _drawableHeight);
+        glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 4, internalFormat, _drawableWidth, _drawableHeight);
 
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER,
-                                  _msaaRenderbuffer);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _msaaRenderbuffer);
 
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE) {
@@ -666,19 +658,16 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         }
 
         if (self.multisampling) {
-            glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 4, internalFormat,
-                                                  _drawableWidth, _drawableHeight);
+            glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 4, internalFormat, _drawableWidth, _drawableHeight);
         } else {
             glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, _drawableWidth, _drawableHeight);
         }
 
         if (self.depthBits > 0) {
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
-                                      _attachmentRenderbuffer);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _attachmentRenderbuffer);
         }
         if (self.stencilBits > 0) {
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
-                                      _attachmentRenderbuffer);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _attachmentRenderbuffer);
         }
     }
 
@@ -778,31 +767,29 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         return;
     }
     self.isDrawing = YES;
-    
+
     [EAGLContext setCurrentContext:self.context];
-    
+
     if (!self.surfaceCreatedNotified) {
         self.surfaceCreatedNotified = YES;
         [self requestRefresh];
         if (self.glfmDisplay->surfaceCreatedFunc) {
-            self.glfmDisplay->surfaceCreatedFunc(self.glfmDisplay,
-                                                 self.drawableWidth, self.drawableHeight);
+            self.glfmDisplay->surfaceCreatedFunc(self.glfmDisplay, self.drawableWidth, self.drawableHeight);
         }
     }
-    
+
     if (self.surfaceSizeChanged) {
         self.surfaceSizeChanged = NO;
         [self requestRefresh];
         if (self.glfmDisplay->surfaceResizedFunc) {
-            self.glfmDisplay->surfaceResizedFunc(self.glfmDisplay,
-                                                 self.drawableWidth, self.drawableHeight);
+            self.glfmDisplay->surfaceResizedFunc(self.glfmDisplay, self.drawableWidth, self.drawableHeight);
         }
     }
-    
+
     if (_preRenderCallback) {
         _preRenderCallback();
     }
-    
+
     if (self.refreshRequested) {
         self.refreshRequested = NO;
         if (self.glfmDisplay->surfaceRefreshFunc) {
@@ -838,7 +825,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         [self createDrawable];
         self.surfaceSizeChanged = self.surfaceCreatedNotified;
     }
-    
+
     // First render as soon as safeAreaInsets are set
     if (!self.surfaceCreatedNotified) {
         [self requestRefresh];
@@ -878,9 +865,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 @synthesize surfaceCreatedNotified, refreshRequested, isDrawing;
 @dynamic renderingAPI, animating;
 
-- (instancetype)initWithFrame:(CGRect)frame
-                  glfmDisplay:(GLFMDisplay *)glfmDisplay {
-    
+- (instancetype)initWithFrame:(CGRect)frame glfmDisplay:(GLFMDisplay *)glfmDisplay {
+
     uint32_t colorBits = (glfmDisplay->colorFormat == GLFMColorFormatRGB565) ? 16 : 32;
     uint32_t alphaBits = (glfmDisplay->colorFormat == GLFMColorFormatRGB565) ? 0 : 8;
     uint32_t stencilBits = (glfmDisplay->stencilFormat == GLFMStencilFormat8) ? 8 : 0;
@@ -898,7 +884,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             depthBits = 24;
             break;
     }
-    
+
     // Set up attributes and create pixel format
     NSOpenGLPixelFormatAttribute attributes[32];
     size_t index = 0;
@@ -907,16 +893,16 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     attributes[index++] = NSOpenGLPFAAllowOfflineRenderers;
     attributes[index++] = NSOpenGLPFAClosestPolicy;
     attributes[index++] = NSOpenGLPFADoubleBuffer;
-    
+
     if (glfmDisplay->swapBehavior == GLFMSwapBehaviorBufferPreserved) {
         attributes[index++] = NSOpenGLPFABackingStore;
     } else if (glfmDisplay->swapBehavior == GLFMSwapBehaviorBufferDestroyed) {
         attributes[index++] = kCGLPFABackingVolatile;
     }
-    
+
     attributes[index++] = NSOpenGLPFAOpenGLProfile;
     attributes[index++] = NSOpenGLProfileVersion3_2Core;
-    
+
     attributes[index++] = NSOpenGLPFAColorSize;
     attributes[index++] = colorBits;
     if (alphaBits > 0) {
@@ -939,15 +925,14 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
     attributes[index] = 0;
     assert(index < sizeof(attributes) / sizeof(attributes[0]));
-    
-    NSOpenGLPixelFormat *pixelFormat = GLFM_AUTORELEASE([[NSOpenGLPixelFormat alloc]
-                                                         initWithAttributes:attributes]);
+
+    NSOpenGLPixelFormat *pixelFormat = GLFM_AUTORELEASE([[NSOpenGLPixelFormat alloc] initWithAttributes:attributes]);
     if (!pixelFormat) {
         GLFM_LOG("Failed to create GL pixel format");
         glfm__reportSurfaceError(glfmDisplay, "Failed to create GL pixel format");
         return nil;
     }
-    
+
     // Initialize view
     self = [super initWithFrame:frame pixelFormat:pixelFormat];
     NSOpenGLContext *openGLContext = self.openGLContext;
@@ -959,7 +944,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         GLFM_RELEASE(self);
         return nil;
     }
-    
+
     GLint swapInterval = 1;
     [openGLContext setValues:&swapInterval forParameter:NSOpenGLContextParameterSwapInterval];
     self.wantsBestResolutionOpenGLSurface = YES;
@@ -974,7 +959,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     [pixelFormat getValues:&value forAttribute:(attr) forVirtualScreen:virtualScreen]; \
     printf("  " #attr ": %i\n", value); \
 } while (0)
-    
+
         GLint value;
         printAttribute(NSOpenGLPFAColorSize);
         printAttribute(NSOpenGLPFAAlphaSize);
@@ -988,17 +973,14 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
     // Initialize display link
     GLFM_WEAK __typeof(self) weakSelf = self;
-    _displaySource = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0,
-                                            dispatch_get_main_queue());
+    _displaySource = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0, dispatch_get_main_queue());
     dispatch_source_set_event_handler(_displaySource, ^{
         [weakSelf draw];
     });
     dispatch_resume(_displaySource);
     CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
-    CVDisplayLinkSetOutputHandler(_displayLink, ^CVReturn(CVDisplayLinkRef displayLink,
-                                                          const CVTimeStamp *now,
-                                                          const CVTimeStamp *outputTime,
-                                                          CVOptionFlags flags,
+    CVDisplayLinkSetOutputHandler(_displayLink, ^CVReturn(CVDisplayLinkRef displayLink, const CVTimeStamp *now,
+                                                          const CVTimeStamp *outputTime, CVOptionFlags flags,
                                                           CVOptionFlags *flagsOut) {
         (void)displayLink;
         (void)now;
@@ -1011,7 +993,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         }
         return kCVReturnSuccess;
     });
-    
+
     CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
     return self;
 }
@@ -1071,7 +1053,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     NSRect viewRectPixels = [self convertRectToBacking:self.bounds];
     int newDrawableWidth = (int)viewRectPixels.size.width;
     int newDrawableHeight = (int)viewRectPixels.size.height;
-    
+
     assert([NSThread isMainThread]);
 
     [self.openGLContext makeCurrentContext];
@@ -1082,30 +1064,28 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         self.drawableWidth = newDrawableWidth;
         self.drawableHeight = newDrawableHeight;
         if (self.glfmDisplay->surfaceCreatedFunc) {
-            self.glfmDisplay->surfaceCreatedFunc(self.glfmDisplay,
-                                                 self.drawableWidth, self.drawableHeight);
+            self.glfmDisplay->surfaceCreatedFunc(self.glfmDisplay, self.drawableWidth, self.drawableHeight);
         }
     } else if (self.drawableWidth != newDrawableWidth || self.drawableHeight != newDrawableHeight) {
         self.drawableWidth = newDrawableWidth;
         self.drawableHeight = newDrawableHeight;
         [self requestRefresh];
         if (self.glfmDisplay->surfaceResizedFunc) {
-            self.glfmDisplay->surfaceResizedFunc(self.glfmDisplay,
-                                                 self.drawableWidth, self.drawableHeight);
+            self.glfmDisplay->surfaceResizedFunc(self.glfmDisplay, self.drawableWidth, self.drawableHeight);
         }
     }
-    
+
     if (_preRenderCallback) {
         _preRenderCallback();
     }
-        
+
     if (self.refreshRequested) {
         self.refreshRequested = NO;
         if (self.glfmDisplay->surfaceRefreshFunc) {
             self.glfmDisplay->surfaceRefreshFunc(self.glfmDisplay);
         }
     }
-    
+
     if (self.glfmDisplay->renderFunc) {
         self.glfmDisplay->renderFunc(self.glfmDisplay);
     }
@@ -1287,7 +1267,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         self.noSoftKeyboardView = GLFM_AUTORELEASE([UIView new]);
         self.mouseCursor = GLFMMouseCursorDefault;
 #endif
-        
+
 #if TARGET_OS_OSX
         // Use a transparent image for the hidden cursor
         NSImage *transparentImage = [NSImage imageWithSize:NSMakeSize(16, 16) flipped:NO
@@ -1306,7 +1286,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
         // Send key release events when the command key is down
         GLFM_WEAK __typeof(self) weakSelf = self;
-        self.keyEventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyUp handler:^NSEvent *(NSEvent *event) {
+        self.keyEventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyUp
+                                                                     handler:^NSEvent *(NSEvent *event) {
             if (event.modifierFlags & NSEventModifierFlagCommand) {
                 [weakSelf.glfmViewIfLoaded.window sendEvent:event];
             }
@@ -1376,7 +1357,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     glfmMain(self.glfmDisplay);
 
     UIView<GLFMView> *glfmView = nil;
-    
+
 #if GLFM_INCLUDE_METAL
     if (self.glfmDisplay->preferredAPI == GLFMRenderingAPIMetal && self.metalDevice) {
         glfmView = GLFM_AUTORELEASE([[GLFMMetalView alloc] initWithFrame:self.defaultFrame
@@ -1408,7 +1389,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     };
     self.view = glfmView;
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    
+
 #if TARGET_OS_OSX
     // Get mouse-move events and cursor events
     NSTrackingAreaOptions trackingOptions = (NSTrackingMouseMoved |
@@ -1416,14 +1397,13 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                                              NSTrackingCursorUpdate |
                                              NSTrackingInVisibleRect |
                                              NSTrackingActiveInKeyWindow);
-    [self.view addTrackingArea:GLFM_AUTORELEASE([[NSTrackingArea alloc] initWithRect:NSZeroRect
-                                                                             options:trackingOptions
-                                                                               owner:self
-                                                                            userInfo:nil])];
+    [self.view addTrackingArea:GLFM_AUTORELEASE([[NSTrackingArea alloc] initWithRect:NSZeroRect options:trackingOptions
+                                                                               owner:self userInfo:nil])];
 
     // Capture events from the Character Palette
     if ([glfmView conformsToProtocol:@protocol(NSTextInputClient)]) {
-        self.textInputContext = GLFM_AUTORELEASE([[NSTextInputContext alloc] initWithClient:(id<NSTextInputClient>)glfmView]);
+        self.textInputContext = GLFM_AUTORELEASE([[NSTextInputContext alloc]
+                                                  initWithClient:(id<NSTextInputClient>)glfmView]);
         [self.textInputContext activate];
     }
 
@@ -1446,15 +1426,14 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     [self setNeedsStatusBarAppearanceUpdate];
 
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(keyboardFrameWillChange:)
-                                               name:UIKeyboardWillChangeFrameNotification
-                                             object:self.view.window];
-    
+                                               name:UIKeyboardWillChangeFrameNotification object:self.view.window];
+
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(deviceOrientationChanged:)
-                                               name:UIDeviceOrientationDidChangeNotification
-                                             object:self.view.window];
+                                               name:UIDeviceOrientationDidChangeNotification object:self.view.window];
 
     if (@available(iOS 13.4, *)) {
-        UIHoverGestureRecognizer *hover = [[UIHoverGestureRecognizer alloc] initWithTarget:self action:@selector(hover:)];
+        UIHoverGestureRecognizer *hover = [[UIHoverGestureRecognizer alloc] initWithTarget:self
+                                                                                    action:@selector(hover:)];
         [self.view addGestureRecognizer:hover];
         GLFM_RELEASE(hover);
 
@@ -1534,7 +1513,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
     GLFMInterfaceOrientation orientations = self.glfmDisplay->supportedOrientations;
-    BOOL portraitRequested = (orientations & (GLFMInterfaceOrientationPortrait | GLFMInterfaceOrientationPortraitUpsideDown)) != 0;
+    BOOL portraitRequested = (orientations & (GLFMInterfaceOrientationPortrait |
+                                              GLFMInterfaceOrientationPortraitUpsideDown)) != 0;
     BOOL landscapeRequested = (orientations & GLFMInterfaceOrientationLandscape) != 0;
     BOOL isTablet = [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad;
     if (portraitRequested && landscapeRequested) {
@@ -1556,8 +1536,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         self.orientation = newOrientation;
         [self.glfmViewIfLoaded requestRefresh];
         if (self.glfmDisplay->orientationChangedFunc) {
-            self.glfmDisplay->orientationChangedFunc(self.glfmDisplay,
-                                                     glfmGetInterfaceOrientation(self.glfmDisplay));
+            self.glfmDisplay->orientationChangedFunc(self.glfmDisplay, glfmGetInterfaceOrientation(self.glfmDisplay));
         }
     }
 }
@@ -1593,7 +1572,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         event.vector.z = deviceMotion.userAcceleration.z + deviceMotion.gravity.z;
         accelerometerFunc(self.glfmDisplay, event);
     }
-    
+
     GLFMSensorFunc magnetometerFunc = self.glfmDisplay->sensorFuncs[GLFMSensorMagnetometer];
     if (magnetometerFunc) {
         GLFMSensorEvent event = { 0 };
@@ -1604,7 +1583,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         event.vector.z = deviceMotion.magneticField.field.z;
         magnetometerFunc(self.glfmDisplay, event);
     }
-    
+
     GLFMSensorFunc gyroscopeFunc = self.glfmDisplay->sensorFuncs[GLFMSensorGyroscope];
     if (gyroscopeFunc) {
         GLFMSensorEvent event = { 0 };
@@ -1615,7 +1594,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         event.vector.z = deviceMotion.rotationRate.z;
         gyroscopeFunc(self.glfmDisplay, event);
     }
-    
+
     GLFMSensorFunc rotationFunc = self.glfmDisplay->sensorFuncs[GLFMSensorRotationMatrix];
     if (rotationFunc) {
         GLFMSensorEvent event = { 0 };
@@ -1640,7 +1619,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             }
         }
     }
-    
+
     if (enable && !self.motionManager.deviceMotionActive) {
         CMAttitudeReferenceFrame referenceFrame;
         CMAttitudeReferenceFrame availableReferenceFrames = [CMMotionManager availableAttitudeReferenceFrames];
@@ -1699,8 +1678,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         currLocation.x *= self.view.contentScaleFactor;
         currLocation.y *= self.view.contentScaleFactor;
 
-        self.glfmDisplay->touchFunc(self.glfmDisplay, index, phase,
-                                    (double)currLocation.x, (double)currLocation.y);
+        self.glfmDisplay->touchFunc(self.glfmDisplay, index, phase, (double)currLocation.x, (double)currLocation.y);
     }
 
     if (phase == GLFMTouchPhaseEnded || phase == GLFMTouchPhaseCancelled) {
@@ -2078,7 +2056,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             // User hid keyboard (iPad)
             self.keyboardRequested = NO;
         }
-        
+
         [self.glfmViewIfLoaded requestRefresh];
 
         if (self.glfmDisplay->keyboardVisibilityChangedFunc) {
@@ -2219,7 +2197,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     CGFloat contentHeight = window.contentLayoutRect.size.height;
     *outX = locationInWindow.x * scale;
     *outY = (contentHeight - locationInWindow.y) * scale; // Flip y
-    
+
     return YES;
 }
 
@@ -2292,7 +2270,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     if (![self getLocationForEvent:event outX:&x outY:&y]) {
         return;
     }
-    
+
     // Invert to match web browser behavior
     double deltaX = -event.scrollingDeltaX;
     double deltaY = -event.scrollingDeltaY;
@@ -2498,7 +2476,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             UInt32 modifierKeyState = (event.modifierFlags >> 16) & 0xFF;
             UniCharCount utf16Length = 0;
             OSStatus status = UCKeyTranslate(self.keyboardLayout, event.keyCode, kUCKeyActionDown, modifierKeyState,
-                                             LMGetKbdType(), 0, &_deadKeyState, sizeof(utf16) / sizeof(*utf16), &utf16Length, utf16);
+                                             LMGetKbdType(), 0, &_deadKeyState, sizeof(utf16) / sizeof(*utf16),
+                                             &utf16Length, utf16);
             if (status == noErr && utf16Length > 0) {
                 UniChar firstChar = utf16[0];
                 BOOL isControlCode = (firstChar < 0x20 ||
@@ -2507,7 +2486,8 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                                       firstChar == NSParagraphSeparatorCharacter);
                 if (!isControlCode) {
                     // Convert to UTF8
-                    CFStringRef string = CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault, utf16, (CFIndex)utf16Length, kCFAllocatorNull);
+                    CFStringRef string = CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault, utf16,
+                                                                            (CFIndex)utf16Length, kCFAllocatorNull);
                     CFStringGetCString(string, utf8, sizeof(utf8), kCFStringEncodingUTF8);
                     CFRelease(string);
                 }
@@ -2639,8 +2619,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     if ([scene isKindOfClass:[UIWindowScene class]]) {
         UIWindowScene *windowScene = (UIWindowScene *)scene;
         self.window = GLFM_AUTORELEASE([[GLFMWindow alloc] initWithWindowScene:windowScene]);
-        self.window.rootViewController = GLFM_AUTORELEASE([[GLFMViewController alloc] initWithDefaultFrame:self.window.bounds
-                                                                                              contentScale:windowScene.screen.nativeScale]);
+        self.window.rootViewController = GLFM_AUTORELEASE([[GLFMViewController alloc]
+                                                           initWithDefaultFrame:self.window.bounds
+                                                           contentScale:windowScene.screen.nativeScale]);
         [self.window makeKeyAndVisible];
     }
 }
@@ -2698,8 +2679,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             // Split View or Slide Over.
             self.window.frame = [[UIScreen mainScreen] bounds];
         }
-        self.window.rootViewController = GLFM_AUTORELEASE([[GLFMViewController alloc] initWithDefaultFrame:self.window.bounds
-                                                                                              contentScale:[UIScreen mainScreen].nativeScale]);
+        self.window.rootViewController = GLFM_AUTORELEASE([[GLFMViewController alloc]
+                                                           initWithDefaultFrame:self.window.bounds
+                                                           contentScale:[UIScreen mainScreen].nativeScale]);
         [self.window makeKeyAndVisible];
     }
     return YES;
@@ -2708,8 +2690,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
 - (UISceneConfiguration *)application:(UIApplication *)application
 configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
                               options:(UISceneConnectionOptions *)options API_AVAILABLE(ios(13.0), tvos(13.0)) {
-    UISceneConfiguration *sceneConfig = GLFM_AUTORELEASE([[UISceneConfiguration alloc] initWithName:@"GLFM Configuration"
-                                                                                        sessionRole:connectingSceneSession.role]);
+    UISceneConfiguration *sceneConfig = GLFM_AUTORELEASE([[UISceneConfiguration alloc]
+                                                          initWithName:@"GLFM Configuration"
+                                                          sessionRole:connectingSceneSession.role]);
     sceneConfig.delegateClass = [GLFMSceneDelegate class];
     return sceneConfig;
 }
@@ -2834,15 +2817,16 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
 
     CGRect defaultFrame = [self.window contentRectForFrameRect:self.window.frame];
     defaultFrame.origin = CGPointZero;
-    GLFMViewController *glfmViewController = GLFM_AUTORELEASE([[GLFMViewController alloc] initWithDefaultFrame:defaultFrame
-                                                                                                  contentScale:(CGFloat)scale]);
-    
+    GLFMViewController *glfmViewController = GLFM_AUTORELEASE([[GLFMViewController alloc]
+                                                               initWithDefaultFrame:defaultFrame
+                                                               contentScale:(CGFloat)scale]);
+
     // Set the contentViewController and call glfmMain() (in loadView).
     self.window.contentViewController = glfmViewController;
     if (!self.window.contentViewController.isViewLoaded) {
         [self.window.contentViewController loadView];
     }
-    
+
     // Check if window size should change (due to orientation setting)
     glfm__getDefaultDisplaySize(glfmViewController.glfmDisplay, &width, &height, &scale);
     if (!glfm__isCGFloatEqual(width, (double)contentFrame.size.width) ||
@@ -2853,7 +2837,7 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
         contentFrame.size.height = height;
         [self.window setFrame:[self.window frameRectForContentRect:contentFrame] display:NO];
     }
-    
+
     // Create default menu if one wasn't created in glfmMain()
     if (!NSApp.mainMenu) {
         [self createDefaultMenuWithAppName:appName];
@@ -2867,7 +2851,7 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
     // Draw first before showing the window
     GLFMViewController *glfmViewController = (GLFMViewController *)self.window.contentViewController;
     [glfmViewController.glfmViewIfLoaded draw];
-    
+
     if (NSApp.activationPolicy == NSApplicationActivationPolicyRegular) {
         [self.window makeKeyWindow];
         [self.window orderFrontRegardless];
@@ -2968,7 +2952,7 @@ int main(int argc, const char * argv[]) {
         } else {
             [NSApplication sharedApplication];
         }
-        
+
         // Set the delegate and run
         GLFMAppDelegate *delegate = [GLFMAppDelegate new];
         [NSApp setDelegate:delegate];
@@ -2977,7 +2961,7 @@ int main(int argc, const char * argv[]) {
     }
     return 0;
 }
- 
+
 #endif // TARGET_OS_OSX
 
 // MARK: - GLFM private functions
@@ -2993,10 +2977,11 @@ static void glfm__getDefaultDisplaySize(const GLFMDisplay *display,
 #else
     NSScreen *screen = [NSScreen mainScreen];
     *scale = screen.backingScaleFactor;
-    
+
     // Create a window half the size of the screen.
     // If portrait orientation (but not landscape) is specified, use a portrait-sized default window.
-    GLFMInterfaceOrientation supportedOrientations = !display ? GLFMInterfaceOrientationUnknown : display->supportedOrientations;
+    GLFMInterfaceOrientation supportedOrientations = (!display ? GLFMInterfaceOrientationUnknown :
+                                                      display->supportedOrientations);
     if (((supportedOrientations & GLFMInterfaceOrientationPortrait) != 0 ||
          (supportedOrientations & GLFMInterfaceOrientationPortraitUpsideDown) != 0) &&
         (supportedOrientations & GLFMInterfaceOrientationLandscapeLeft) == 0 &&
@@ -3402,14 +3387,18 @@ bool glfmIsSensorAvailable(const GLFMDisplay *display, GLFMSensor sensor) {
         GLFMViewController *viewController = (__bridge GLFMViewController *)display->platformData;
         switch (sensor) {
             case GLFMSensorAccelerometer:
-                return viewController.motionManager.deviceMotionAvailable && viewController.motionManager.accelerometerAvailable;
+                return (viewController.motionManager.deviceMotionAvailable &&
+                        viewController.motionManager.accelerometerAvailable);
             case GLFMSensorMagnetometer:
-                return viewController.motionManager.deviceMotionAvailable && viewController.motionManager.magnetometerAvailable;
+                return (viewController.motionManager.deviceMotionAvailable &&
+                        viewController.motionManager.magnetometerAvailable);
             case GLFMSensorGyroscope:
-                return viewController.motionManager.deviceMotionAvailable && viewController.motionManager.gyroAvailable;
+                return (viewController.motionManager.deviceMotionAvailable &&
+                        viewController.motionManager.gyroAvailable);
             case GLFMSensorRotationMatrix:
                 return (viewController.motionManager.deviceMotionAvailable &&
-                        ([CMMotionManager availableAttitudeReferenceFrames] & CMAttitudeReferenceFrameXMagneticNorthZVertical));
+                        ([CMMotionManager availableAttitudeReferenceFrames] &
+                         CMAttitudeReferenceFrameXMagneticNorthZVertical));
         }
     }
     return false;

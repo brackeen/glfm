@@ -71,8 +71,7 @@ static void glfm__sensorFuncUpdated(GLFMDisplay *display);
 
 // MARK: - Setters
 
-GLFMSurfaceErrorFunc glfmSetSurfaceErrorFunc(GLFMDisplay *display,
-                                             GLFMSurfaceErrorFunc surfaceErrorFunc) {
+GLFMSurfaceErrorFunc glfmSetSurfaceErrorFunc(GLFMDisplay *display, GLFMSurfaceErrorFunc surfaceErrorFunc) {
     GLFMSurfaceErrorFunc previous = NULL;
     if (display) {
         previous = display->surfaceErrorFunc;
@@ -104,8 +103,7 @@ GLFMUserInterfaceOrientation glfmGetUserInterfaceOrientation(GLFMDisplay *displa
     return (GLFMUserInterfaceOrientation)glfmGetSupportedInterfaceOrientation(display);
 }
 
-void glfmSetUserInterfaceOrientation(GLFMDisplay *display,
-                                     GLFMUserInterfaceOrientation supportedOrientations) {
+void glfmSetUserInterfaceOrientation(GLFMDisplay *display, GLFMUserInterfaceOrientation supportedOrientations) {
     glfmSetSupportedInterfaceOrientation(display, (GLFMInterfaceOrientation)supportedOrientations);
 }
 
@@ -157,8 +155,7 @@ GLFMMainLoopFunc glfmSetMainLoopFunc(GLFMDisplay *display, GLFMMainLoopFunc main
     return previous;
 }
 
-GLFMSurfaceCreatedFunc glfmSetSurfaceCreatedFunc(GLFMDisplay *display,
-                                                 GLFMSurfaceCreatedFunc surfaceCreatedFunc) {
+GLFMSurfaceCreatedFunc glfmSetSurfaceCreatedFunc(GLFMDisplay *display, GLFMSurfaceCreatedFunc surfaceCreatedFunc) {
     GLFMSurfaceCreatedFunc previous = NULL;
     if (display) {
         previous = display->surfaceCreatedFunc;
@@ -167,8 +164,7 @@ GLFMSurfaceCreatedFunc glfmSetSurfaceCreatedFunc(GLFMDisplay *display,
     return previous;
 }
 
-GLFMSurfaceResizedFunc glfmSetSurfaceResizedFunc(GLFMDisplay *display,
-                                                 GLFMSurfaceResizedFunc surfaceResizedFunc) {
+GLFMSurfaceResizedFunc glfmSetSurfaceResizedFunc(GLFMDisplay *display, GLFMSurfaceResizedFunc surfaceResizedFunc) {
     GLFMSurfaceResizedFunc previous = NULL;
     if (display) {
         previous = display->surfaceResizedFunc;
@@ -177,8 +173,7 @@ GLFMSurfaceResizedFunc glfmSetSurfaceResizedFunc(GLFMDisplay *display,
     return previous;
 }
 
-GLFMSurfaceRefreshFunc glfmSetSurfaceRefreshFunc(GLFMDisplay *display,
-                                                 GLFMSurfaceRefreshFunc surfaceRefreshFunc) {
+GLFMSurfaceRefreshFunc glfmSetSurfaceRefreshFunc(GLFMDisplay *display, GLFMSurfaceRefreshFunc surfaceRefreshFunc) {
     GLFMSurfaceRefreshFunc previous = NULL;
     if (display) {
         previous = display->surfaceRefreshFunc;
@@ -207,8 +202,7 @@ GLFMKeyboardVisibilityChangedFunc glfmSetKeyboardVisibilityChangedFunc(GLFMDispl
     return previous;
 }
 
-GLFMOrientationChangedFunc glfmSetOrientationChangedFunc(GLFMDisplay *display,
-                                                         GLFMOrientationChangedFunc func) {
+GLFMOrientationChangedFunc glfmSetOrientationChangedFunc(GLFMDisplay *display, GLFMOrientationChangedFunc func) {
     GLFMOrientationChangedFunc previous = NULL;
     if (display) {
         previous = display->orientationChangedFunc;
