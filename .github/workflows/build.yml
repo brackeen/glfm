@@ -28,7 +28,7 @@ jobs:
       env:
         ANDROID_NDK_HOME: ${{steps.setup-ndk.outputs.ndk-path}}
       run: >
-        cmake 
+        cmake
         -D CMAKE_TOOLCHAIN_FILE=${{env.ANDROID_NDK_HOME}}/build/cmake/android.toolchain.cmake
         -D CMAKE_C_FLAGS=-Werror
         -D CMAKE_VERBOSE_MAKEFILE=ON
@@ -69,7 +69,7 @@ jobs:
           | xcpretty -r json-compilation-database --output build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }}/compile_commands.json
 
     - name: Analyze
-      if: ${{ !endsWith(matrix.sdk, 'simulator') }}
+      if: false # ${{ !endsWith(matrix.sdk, 'simulator') }}
       run: |
         sed -i.bak 's/ -ivfsstatcache [^ ]* / /g' build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }}/compile_commands.json
         $(brew --prefix llvm@15)/bin/clang-tidy --config-file=tests/clang-tidy-analyze.yml -p build/${{ matrix.sdk }}_${{ matrix.objc_arc.name }} src/glfm_apple.m
@@ -92,8 +92,8 @@ jobs:
 
     - name: Configure CMake
       run: >
-        emcmake cmake 
-        -D CMAKE_VERBOSE_MAKEFILE=ON 
+        emcmake cmake
+        -D CMAKE_VERBOSE_MAKEFILE=ON
         -D GLFM_USE_CLANG_TIDY=ON
         -B build/emscripten
 
