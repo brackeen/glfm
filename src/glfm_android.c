@@ -1926,7 +1926,7 @@ static ARect glfm__getWindowVisibleDisplayFrame(GLFMPlatformData *platformData, 
 static bool glfm__getSafeInsets(const GLFMDisplay *display, int *top, int *right, int *bottom, int *left) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     const int SDK_INT = platformData->activity->sdkVersion;
-    if (SDK_INT < 28) {
+    if (SDK_INT < 28) { // getDisplayCutout()
         return false;
     }
 
@@ -1961,7 +1961,7 @@ static bool glfm__getSafeInsets(const GLFMDisplay *display, int *top, int *right
 static bool glfm__getSystemWindowInsets(const GLFMDisplay *display, int *top, int *right, int *bottom, int *left) {
     GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
     const int SDK_INT = platformData->activity->sdkVersion;
-    if (SDK_INT < 20) {
+    if (SDK_INT < 23) { // getRootWindowInsets()
         return false;
     }
 
