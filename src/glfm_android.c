@@ -2064,7 +2064,10 @@ static void glfm__getDisplayChromeInsets(const GLFMDisplay *display, int *top, i
         GLFMPlatformData *platformData = (GLFMPlatformData *)display->platformData;
         const ARect *contentRect = &platformData->contentRectArray[platformData->contentRectIndex];
         ARect visibleRect = glfm__getWindowVisibleDisplayFrame(platformData, contentRect);
-        if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0) {
+        // When rotating on some devices (API 16), the dimensions and visible display frame may be out of sync
+        // for a moment. Report insets of 0 when this happens.
+        if (visibleRect.right - visibleRect.left <= 0 || visibleRect.bottom - visibleRect.top <= 0 ||
+            visibleRect.right > platformData->width || visibleRect.bottom > platformData->height) {
             *top = 0;
             *right = 0;
             *bottom = 0;
