@@ -247,12 +247,12 @@ project.
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 32
-    buildToolsVersion "32.0.0"
+    compileSdkVersion 34
+    ndkVersion '23.2.8568313' // Last version to support API 16, 17, 18
     defaultConfig {
         applicationId "com.brackeen.glfmexample"
-        minSdkVersion 15
-        targetSdkVersion 32
+        minSdkVersion 16
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
 
