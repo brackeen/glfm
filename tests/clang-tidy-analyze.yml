@@ -1,9 +1,7 @@
 InheritParentConfig: true
 Checks: >
   clang-analyzer-*,
-  -bugprone-casting-through-void,
   -clang-analyzer-optin.performance.Padding,
   -clang-analyzer-optin.core.EnumCastOutOfRange,
-  -readability-avoid-unconditional-preprocessor-if,
 HeaderFilterRegex: '.*'
 WarningsAsErrors: '*'
