@@ -1039,14 +1039,16 @@ static uint32_t glfm__getUnicodeChar(GLFMPlatformData *platformData, jint keyCod
 }
 
 /*
- * Move task to the back if it is root task. This make the back button have the same behavior
- * as the home button.
+ * Hide the virtual keyboard if it is visible.
  *
- * Without this, when the user presses the back button, the loop in glfm__mainLoop() is exited, the
- * OpenGL context is destroyed, and the main thread is destroyed. The glfm__mainLoop() function
- * would be called again in the same process if the user returns to the app.
+ * Otherwise, if the current task is the root task, move the task to the back. This makes the back button have the same
+ * behavior as the home button.
  *
- * When this, when the app is in the background, the app will pause in the ALooper_pollAll() call.
+ * Without this, when the user presses the back button, the loop in glfm__mainLoop() is exited, the OpenGL context is
+ * destroyed, and the main thread is destroyed. The glfm__mainLoop() function would be called again in the same process
+ * if the user returns to the app.
+ *
+ * With this, when the app is in the background, the app will pause in the ALooper_pollAll() call.
  */
 static bool glfm__handleBackButton(GLFMPlatformData *platformData) {
     if (!platformData || !platformData->activity) {
@@ -1057,9 +1059,18 @@ static bool glfm__handleBackButton(GLFMPlatformData *platformData) {
         return false;
     }
 
+    if (platformData->keyboardVisible) {
+        glfmSetKeyboardVisible(platformData->display, false);
+        return true;
+    }
+
+#if GLFM_HANDLE_BACK_BUTTON
     jboolean handled = glfm__callJavaMethodWithArgs(jni, platformData->activity->clazz,
                                                     "moveTaskToBack", "(Z)Z", Boolean, false);
     return !glfm__wasJavaExceptionThrown(jni) && handled;
+#else
+    return false;
+#endif
 }
 
 static bool glfm__onKeyEvent(GLFMPlatformData *platformData, AInputEvent *event) {
@@ -1250,11 +1261,9 @@ static bool glfm__onKeyEvent(GLFMPlatformData *platformData, AInputEvent *event)
         }
     }
 
-#if GLFM_HANDLE_BACK_BUTTON
     if (!handled && aAction == AKEY_EVENT_ACTION_UP && aKeyCode == AKEYCODE_BACK) {
         handled = glfm__handleBackButton(platformData);
     }
-#endif
 
     if (display->charFunc && (aAction == AKEY_EVENT_ACTION_DOWN || aAction == AKEY_EVENT_ACTION_MULTIPLE)) {
         uint32_t unicode = glfm__getUnicodeChar(platformData, aKeyCode, aMetaState);
@@ -1337,9 +1346,13 @@ static bool glfm__onTouchEvent(GLFMPlatformData *platformData, AInputEvent *even
 static void glfm__onInputEvent(GLFMPlatformData *platformData) {
     AInputEvent *event = NULL;
     while (AInputQueue_getEvent(platformData->inputQueue, &event) >= 0) {
-        if (AInputQueue_preDispatchEvent(platformData->inputQueue, event)) {
+        bool skipPreDispatch = (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_KEY &&
+                                AKeyEvent_getKeyCode(event) == AKEYCODE_BACK);
+
+        if (!skipPreDispatch && AInputQueue_preDispatchEvent(platformData->inputQueue, event)) {
             continue;
         }
+
         bool handled = false;
         int32_t eventType = AInputEvent_getType(event);
         if (eventType == AINPUT_EVENT_TYPE_KEY) {
