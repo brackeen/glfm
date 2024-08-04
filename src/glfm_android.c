@@ -312,16 +312,16 @@ static void glfm__eglSurfaceInit(GLFMPlatformData *platformData) {
                                                           platformData->window, NULL);
 
         switch (platformData->display->swapBehavior) {
-        case GLFMSwapBehaviorPlatformDefault:
-            // Platform default, do nothing.
-            break;
-        case GLFMSwapBehaviorBufferPreserved:
-            eglSurfaceAttrib(platformData->eglDisplay, platformData->eglSurface, EGL_SWAP_BEHAVIOR,
-                             EGL_BUFFER_PRESERVED);
-            break;
-        case GLFMSwapBehaviorBufferDestroyed:
-            eglSurfaceAttrib(platformData->eglDisplay, platformData->eglSurface, EGL_SWAP_BEHAVIOR,
-                             EGL_BUFFER_DESTROYED);
+            case GLFMSwapBehaviorPlatformDefault: default:
+                // Platform default, do nothing.
+                break;
+            case GLFMSwapBehaviorBufferPreserved:
+                eglSurfaceAttrib(platformData->eglDisplay, platformData->eglSurface,
+                                 EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED);
+                break;
+            case GLFMSwapBehaviorBufferDestroyed:
+                eglSurfaceAttrib(platformData->eglDisplay, platformData->eglSurface,
+                                 EGL_SWAP_BEHAVIOR, EGL_BUFFER_DESTROYED);
         }
     }
 }
