@@ -387,7 +387,7 @@ static bool glfm__eglInit(GLFMPlatformData *platformData) {
         case GLFMDepthFormat16:
             depthBits = 16;
             break;
-        case GLFMDepthFormat24:
+        case GLFMDepthFormat24: case GLFMDepthFormat32:
             depthBits = 24;
             break;
     }

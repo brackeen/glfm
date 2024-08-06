@@ -201,8 +201,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
                 break;
         }
 
-        if (glfmDisplay->depthFormat == GLFMDepthFormatNone &&
-            glfmDisplay->stencilFormat == GLFMStencilFormatNone) {
+        if (glfmDisplay->depthFormat == GLFMDepthFormatNone && glfmDisplay->stencilFormat == GLFMStencilFormatNone) {
             self.depthStencilPixelFormat = MTLPixelFormatInvalid;
         } else if (glfmDisplay->depthFormat == GLFMDepthFormatNone) {
             self.depthStencilPixelFormat = MTLPixelFormatStencil8;
@@ -216,9 +215,21 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             } else {
                 self.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
             }
-
         } else {
+#if TARGET_OS_OSX
+            if (@available(macOS 10.11, *)) {
+                if (device.depth24Stencil8PixelFormatSupported &&
+                    (glfmDisplay->depthFormat == GLFMDepthFormat16 || glfmDisplay->depthFormat == GLFMDepthFormat24)) {
+                    self.depthStencilPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
+                } else {
+                    self.depthStencilPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+                }
+            } else {
+                self.depthStencilPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+            }
+#else
             self.depthStencilPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+#endif
         }
 
         self.sampleCount = (glfmDisplay->multisample == GLFMMultisampleNone) ? 1 : 4;
@@ -510,7 +521,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             case GLFMDepthFormat16:
                 self.depthBits = 16;
                 break;
-            case GLFMDepthFormat24:
+            case GLFMDepthFormat24: case GLFMDepthFormat32:
                 self.depthBits = 24;
                 break;
         }
@@ -880,7 +891,7 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
         case GLFMDepthFormat16:
             depthBits = 16;
             break;
-        case GLFMDepthFormat24:
+        case GLFMDepthFormat24: case GLFMDepthFormat32:
             depthBits = 24;
             break;
     }

@@ -96,6 +96,7 @@ typedef enum {
     GLFMDepthFormatNone,
     GLFMDepthFormat16,
     GLFMDepthFormat24,
+    GLFMDepthFormat32,   ///< 32-bit floating point depth in Metal, 24-bit in OpenGL.
 } GLFMDepthFormat;
 
 typedef enum {
