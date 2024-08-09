@@ -1987,6 +1987,9 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             case UIPressTypePageDown:
                 keyCode = GLFMKeyCodePageDown;
                 break;
+            default:
+                keyCode = GLFMKeyCodeUnknown;
+                break;
         }
     }
 
@@ -3411,6 +3414,8 @@ bool glfmIsSensorAvailable(const GLFMDisplay *display, GLFMSensor sensor) {
                 return (viewController.motionManager.deviceMotionAvailable &&
                         ([CMMotionManager availableAttitudeReferenceFrames] &
                          CMAttitudeReferenceFrameXMagneticNorthZVertical));
+            default:
+                return false;
         }
     }
     return false;
