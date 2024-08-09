@@ -17,11 +17,12 @@ Checks: >
   -cppcoreguidelines-init-variables,
   -cppcoreguidelines-narrowing-conversions,
   -misc-confusable-identifiers,
+  -misc-include-cleaner,
   -readability-avoid-unconditional-preprocessor-if,
   -readability-function-cognitive-complexity,
   -readability-isolate-declaration,
   -readability-magic-numbers,
-  -readability-uppercase-literal-suffix,
+  -readability-uppercase-literal-suffix
 CheckOptions:
   - key:   readability-braces-around-statements.ShortStatementLines
     value: 1

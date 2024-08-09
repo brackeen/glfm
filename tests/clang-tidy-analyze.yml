@@ -1,7 +1,8 @@
 InheritParentConfig: true
 Checks: >
   clang-analyzer-*,
+  clang-diagnostic-*,
   -clang-analyzer-optin.performance.Padding,
-  -clang-analyzer-optin.core.EnumCastOutOfRange,
+  -clang-analyzer-optin.core.EnumCastOutOfRange
 HeaderFilterRegex: '.*'
 WarningsAsErrors: '*'
