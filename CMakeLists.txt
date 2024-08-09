@@ -9,14 +9,15 @@ set(GLFM_HEADERS include/glfm.h)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     set(GLFM_SRC src/glfm_internal.h src/glfm_emscripten.c)
-    set(GLFM_COMPILE_OPTIONS "-Wno-gnu-zero-variadic-macro-arguments;-Wno-dollar-in-identifier-extension")
+    set(GLFM_COMPILE_OPTIONS -Wno-gnu-zero-variadic-macro-arguments -Wno-dollar-in-identifier-extension
+        -Wno-c23-extensions -Wno-pre-c11-compat)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Android")
     set(GLFM_SRC src/glfm_internal.h src/glfm_android.c)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     if (${CMAKE_OSX_SYSROOT} MATCHES "(MacOS)+")
         set(CMAKE_OSX_SYSROOT "iphoneos")
     endif()
-    
+
     set(GLFM_SRC src/glfm_internal.h src/glfm_apple.m)
     set(GLFM_COMPILE_OPTIONS "-Wno-auto-import;-Wno-direct-ivar-access")
 else()

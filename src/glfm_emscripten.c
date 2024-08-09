@@ -911,7 +911,7 @@ int main(void) {
     attribs.enableExtensionsByDefault = 0;
 
     const char *webGLTarget = "#canvas";
-    int contextHandle = 0;
+    EMSCRIPTEN_WEBGL_CONTEXT_HANDLE contextHandle = 0;
     if (glfmDisplay->preferredAPI >= GLFMRenderingAPIOpenGLES3) {
         // OpenGL ES 3.0 / WebGL 2.0
         attribs.majorVersion = 2;
