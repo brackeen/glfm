@@ -19,7 +19,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     endif()
 
     set(GLFM_SRC src/glfm_internal.h src/glfm_apple.m)
-    set(GLFM_COMPILE_OPTIONS "-Wno-auto-import;-Wno-direct-ivar-access")
+    set(GLFM_COMPILE_OPTIONS -Wno-auto-import -Wno-direct-ivar-access)
 else()
     message(FATAL_ERROR "CMAKE_SYSTEM_NAME ('${CMAKE_SYSTEM_NAME}') expected to be Darwin, Emscripten, or Android")
 endif()
@@ -44,12 +44,17 @@ if (GLFM_USE_CLANG_TIDY)
         message(WARNING "GLFM_USE_CLANG_TIDY=ON but clang-tidy not found")
     else()
         if (CMAKE_SYSTEM_NAME STREQUAL "Android")
-            set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE};--config-file=${PROJECT_SOURCE_DIR}/tests/clang-tidy-analyze.yml")
+            set(CMAKE_C_CLANG_TIDY ${CLANG_TIDY_EXECUTABLE}
+                --config-file=${PROJECT_SOURCE_DIR}/tests/clang-tidy-analyze.yml)
         elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
             message(WARNING "GLFM_USE_CLANG_TIDY=ON but clang-tidy not functional with Xcode generator")
         elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
             set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES 0)
-            set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE};--config-file=${PROJECT_SOURCE_DIR}/tests/clang-tidy-analyze.yml;--extra-arg=--target=wasm32;--extra-arg=-D__EMSCRIPTEN__;--extra-arg=-isystem${EMSCRIPTEN_ROOT_PATH}/cache/sysroot/include")
+            set(CMAKE_C_CLANG_TIDY ${CLANG_TIDY_EXECUTABLE}
+                --config-file=${PROJECT_SOURCE_DIR}/tests/clang-tidy-analyze.yml
+                --extra-arg=--target=wasm32
+                --extra-arg=-D__EMSCRIPTEN__
+                --extra-arg=-isystem${EMSCRIPTEN_ROOT_PATH}/cache/sysroot/include)
         endif()
     endif()
 endif()
@@ -63,12 +68,15 @@ source_group(src FILES ${GLFM_SRC})
 
 set_target_properties(glfm PROPERTIES C_STANDARD 11)
 if (CMAKE_C_COMPILER_ID MATCHES "Clang")
-    # Disable the -Wunsafe-buffer-usage warning because it reports false positives when bounds checking arrays, and there appears to be no solution for C pointers.
-    set_target_properties(glfm PROPERTIES COMPILE_OPTIONS "-Weverything;-Wwrite-strings;-Wno-unknown-warning-option;-Wno-padded;-Wno-covered-switch-default;-Wno-declaration-after-statement;-Wno-unsafe-buffer-usage;${GLFM_COMPILE_OPTIONS}")
+    # Disable the -Wunsafe-buffer-usage warning because it reports false positives when bounds checking arrays, and
+    # there appears to be no solution for C pointers.
+    set_property(TARGET glfm PROPERTY COMPILE_OPTIONS -Weverything -Wwrite-strings -Wno-unknown-warning-option
+        -Wno-padded -Wno-covered-switch-default -Wno-declaration-after-statement -Wno-unsafe-buffer-usage
+        ${GLFM_COMPILE_OPTIONS})
 elseif (CMAKE_C_COMPILER_ID MATCHES "GNU")
-    set_target_properties(glfm PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wwrite-strings;${GLFM_COMPILE_OPTIONS}")
+    set_property(TARGET glfm PROPERTY COMPILE_OPTIONS -Wall -Wextra -Wwrite-strings ${GLFM_COMPILE_OPTIONS})
 elseif (CMAKE_C_COMPILER_ID MATCHES "MSVC")
-    set_target_properties(glfm PROPERTIES COMPILE_OPTIONS "/Wall;${GLFM_COMPILE_OPTIONS}")
+    set_property(TARGET glfm PROPERTY COMPILE_OPTIONS /Wall ${GLFM_COMPILE_OPTIONS})
 endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Android")
