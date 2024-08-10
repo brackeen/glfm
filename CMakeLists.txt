@@ -74,7 +74,7 @@ if (CMAKE_C_COMPILER_ID MATCHES "Clang")
         -Wno-padded -Wno-covered-switch-default -Wno-declaration-after-statement -Wno-unsafe-buffer-usage
         ${GLFM_COMPILE_OPTIONS})
 elseif (CMAKE_C_COMPILER_ID MATCHES "GNU")
-    set_property(TARGET glfm PROPERTY COMPILE_OPTIONS -Wall -Wextra -Wwrite-strings ${GLFM_COMPILE_OPTIONS})
+    set_property(TARGET glfm PROPERTY COMPILE_OPTIONS -Wall -Wextra -Wpedantic -Wwrite-strings ${GLFM_COMPILE_OPTIONS})
 elseif (CMAKE_C_COMPILER_ID MATCHES "MSVC")
     set_property(TARGET glfm PROPERTY COMPILE_OPTIONS /Wall ${GLFM_COMPILE_OPTIONS})
 endif()
