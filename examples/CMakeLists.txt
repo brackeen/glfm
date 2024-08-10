@@ -12,7 +12,7 @@ set(GLFM_APP_TARGET_NAME_LIST "")
 macro(add_target TARGET SRC_FILES)
     list(APPEND GLFM_APP_TARGET_NAME_LIST ${TARGET})
     set(GLFM_APP_TARGET_NAME ${TARGET})
-    set(GLFM_APP_SRC ${SRC_FILES})
+    set(GLFM_APP_SRC ${SRC_FILES} ${ARGN}) # Use ARGN to allow multiple src files
     include(GLFMAppTarget)
 endmacro()
 
@@ -30,9 +30,10 @@ add_target(glfm_shader_toy shader_toy.c)
 # Test pattern example
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set_source_files_properties(test_pattern_renderer.metal PROPERTIES LANGUAGE METAL)
-    add_target(glfm_test_pattern "test_pattern.c;test_pattern_renderer.h;test_pattern_renderer_gles2.c;test_pattern_renderer_metal.m;test_pattern_renderer.metal")
+    add_target(glfm_test_pattern test_pattern.c test_pattern_renderer.h test_pattern_renderer_gles2.c
+        test_pattern_renderer_metal.m test_pattern_renderer.metal)
 else()
-    add_target(glfm_test_pattern "test_pattern.c;test_pattern_renderer.h;test_pattern_renderer_gles2.c")
+    add_target(glfm_test_pattern test_pattern.c test_pattern_renderer.h test_pattern_renderer_gles2.c)
 endif()
 
 # Write index.html for Emscripten examples
