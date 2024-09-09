@@ -1048,7 +1048,7 @@ static uint32_t glfm__getUnicodeChar(GLFMPlatformData *platformData, jint keyCod
  * destroyed, and the main thread is destroyed. The glfm__mainLoop() function would be called again in the same process
  * if the user returns to the app.
  *
- * With this, when the app is in the background, the app will pause in the ALooper_pollAll() call.
+ * With this, when the app is in the background, the app will pause in the ALooper_pollOnce() call.
  */
 static bool glfm__handleBackButton(GLFMPlatformData *platformData) {
     if (!platformData || !platformData->activity) {
@@ -1598,8 +1598,8 @@ static void *glfm__mainLoop(void *param) {
     while (!platformData->destroyRequested) {
         int eventIdentifier;
 
-        while ((eventIdentifier = ALooper_pollAll(platformData->animating ? 0 : -1,
-                                                  NULL, NULL, NULL)) >= 0) {
+        while ((eventIdentifier = ALooper_pollOnce(platformData->animating ? 0 : -1,
+                                                   NULL, NULL, NULL)) >= 0) {
             if (eventIdentifier == GLFMLooperIDCommand) {
                 uint8_t cmd = 0;
                 if (read(platformData->commandPipeRead, &cmd, sizeof(cmd)) == sizeof(cmd)) {
