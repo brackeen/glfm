@@ -36,7 +36,7 @@
 #define GLFM_RESIZE_EVENT_MAX_WAIT_FRAMES 5
 
 // If GLFM_HANDLE_BACK_BUTTON is 1, when the user presses the back button, the task is moved to the back. Otherwise,
-// when the user presses the back button, the activity is destroyed. On newer API levels (31) this may not be needed.
+// when the user presses the back button, the activity is destroyed.
 #define GLFM_HANDLE_BACK_BUTTON 1
 
 // MARK: - Platform data (global singleton)
@@ -1596,10 +1596,11 @@ static void *glfm__mainLoop(void *param) {
 
     // Run the main loop
     while (!platformData->destroyRequested) {
-        int eventIdentifier;
 
+        // Poll input
+        int eventIdentifier;
         while ((eventIdentifier = ALooper_pollOnce(platformData->animating ? 0 : -1,
-                                                   NULL, NULL, NULL)) >= 0) {
+                                                   NULL, NULL, NULL)) > ALOOPER_POLL_TIMEOUT) {
             if (eventIdentifier == GLFMLooperIDCommand) {
                 uint8_t cmd = 0;
                 if (read(platformData->commandPipeRead, &cmd, sizeof(cmd)) == sizeof(cmd)) {
@@ -1618,6 +1619,7 @@ static void *glfm__mainLoop(void *param) {
             }
         }
 
+        // Render
         if (platformData->animating && platformData->display) {
             platformData->swapCalled = false;
             glfm__drawFrame(platformData);
