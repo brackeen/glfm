@@ -1987,6 +1987,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
             case UIPressTypePageDown:
                 keyCode = GLFMKeyCodePageDown;
                 break;
+#if __TV_OS_VERSION_MAX_ALLOWED >= __TVOS_18_1
+            case UIPressTypeTVRemoteOneTwoThree:
+                // Fallthrough
+            case UIPressTypeTVRemoteFourColors:
+                // Fallthrough
+#endif
             default:
                 keyCode = GLFMKeyCodeUnknown;
                 break;

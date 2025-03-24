@@ -72,6 +72,7 @@ if (CMAKE_C_COMPILER_ID MATCHES "Clang")
     # there appears to be no solution for C pointers.
     set_property(TARGET glfm PROPERTY COMPILE_OPTIONS -Weverything -Wwrite-strings -Wno-unknown-warning-option
         -Wno-padded -Wno-covered-switch-default -Wno-declaration-after-statement -Wno-unsafe-buffer-usage
+        -Wno-missing-include-dirs
         ${GLFM_COMPILE_OPTIONS})
 elseif (CMAKE_C_COMPILER_ID MATCHES "GNU")
     set_property(TARGET glfm PROPERTY COMPILE_OPTIONS -Wall -Wextra -Wpedantic -Wwrite-strings ${GLFM_COMPILE_OPTIONS})
