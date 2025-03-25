@@ -2396,13 +2396,13 @@ double glfmGetTime(void) {
         } else if (clock_gettime(CLOCK_MONOTONIC, &time) == 0) {
             clockID = CLOCK_MONOTONIC;
         } else {
-            clock_gettime(CLOCK_REALTIME, &time);
+            (void)clock_gettime(CLOCK_REALTIME, &time);
             clockID = CLOCK_REALTIME;
         }
         initTime = time.tv_sec;
         initialized = true;
     } else {
-        clock_gettime(clockID, &time);
+        (void)clock_gettime(clockID, &time);
     }
     // Subtract by initTime to ensure that conversion to double keeps nanosecond accuracy
     return (double)(time.tv_sec - initTime) + (double)time.tv_nsec / 1e9;
