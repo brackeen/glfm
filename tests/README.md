@@ -26,7 +26,7 @@ available.
 
 * Install Git and CMake: `winget install Git.Git Kitware.CMake`.
 * For Emscripten, install Python and Ninja: `winget install python3 Ninja-build.Ninja`.
-* For Android, install OpenJDK: `winget install openjdk`.
+* For Android, if you use `sdkmanager` directly (see below), install OpenJDK: `winget install openjdk`.
 * Optionally, install LLVM for clang-tidy: `winget install LLVM.LLVM`.
 
 ### Android
