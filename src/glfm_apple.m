@@ -1331,7 +1331,12 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     }
     [NSEvent removeMonitor:self.keyEventMonitor];
     self.keyEventMonitor = nil;
-    [self.textInputContext deactivate];
+    if (@available(macOS 15, *)) {
+        // Do nothing
+    } else {
+        // See note on [self.textInputContext activate] above.
+        [self.textInputContext deactivate];
+    }
     self.textInputContext = nil;
 #endif
 #if GLFM_INCLUDE_METAL
@@ -1415,7 +1420,14 @@ static void glfm__getDrawableSize(double displayWidth, double displayHeight, dou
     if ([glfmView conformsToProtocol:@protocol(NSTextInputClient)]) {
         self.textInputContext = GLFM_AUTORELEASE([[NSTextInputContext alloc]
                                                   initWithClient:(id<NSTextInputClient>)glfmView]);
-        [self.textInputContext activate];
+        // Invoking [self.textInputContext activate] causes a log error:
+        // "ViewBridge to RemoteViewService Terminated: Error Domain=com.apple.ViewBridge".
+        // If macOS 15, it appears unnecessary.
+        if (@available(macOS 15, *)) {
+            // Do nothing
+        } else {
+            [self.textInputContext activate];
+        }
     }
 
 #endif
