@@ -2832,6 +2832,7 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
     //self.window.titlebarSeparatorStyle = NSTitlebarSeparatorStyleNone; // Make the topmost row of the view visible
     self.window.excludedFromWindowsMenu = YES; // Single-window app
     self.window.tabbingMode = NSWindowTabbingModeDisallowed; // No tabs
+    self.window.restorable = NO;
     self.window.releasedWhenClosed = NO;
     self.window.acceptsMouseMovedEvents = YES;
     self.window.delegate = self;
@@ -2866,6 +2867,11 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
 
     // Enter fullscreen if requested
     glfm__displayChromeUpdated(glfmViewController.glfmDisplay);
+}
+
+- (BOOL)applicationSupportsSecureRestorableState:(NSApplication *) app {
+    // Workaround for warning "Secure coding is automatically enabled for restorable state!"
+    return YES;
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
