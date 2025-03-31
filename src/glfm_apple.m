@@ -2832,6 +2832,7 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
     //self.window.titlebarSeparatorStyle = NSTitlebarSeparatorStyleNone; // Make the topmost row of the view visible
     self.window.excludedFromWindowsMenu = YES; // Single-window app
     self.window.tabbingMode = NSWindowTabbingModeDisallowed; // No tabs
+    self.window.backgroundColor = [NSColor blackColor]; // Remove background vibrancy/NSVisualEffectView
     self.window.restorable = NO;
     self.window.releasedWhenClosed = NO;
     self.window.acceptsMouseMovedEvents = YES;
