@@ -2870,6 +2870,12 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
         contentFrame.origin.y = screenFrame.origin.y + screenFrame.size.height / 2 - height / 2;
         contentFrame.size.width = width;
         contentFrame.size.height = height;
+#if 0
+        // Useful for creating example app icons
+        contentFrame.size.width = 128;
+        contentFrame.size.height = 128;
+        [self.window setStyleMask:NSWindowStyleMaskBorderless];
+#endif
         [self.window setFrame:[self.window frameRectForContentRect:contentFrame] display:NO];
     }
 
