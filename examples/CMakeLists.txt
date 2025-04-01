@@ -21,6 +21,7 @@ add_target(glfm_triangle triangle.c)
 add_target(glfm_touch touch.c)
 add_target(glfm_heightmap heightmap.c)
 add_target(glfm_compass compass.c)
+add_target(glfm_anim anim.c)
 
 # Examples that require the assets dir
 set(GLFM_APP_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
