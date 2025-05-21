@@ -2999,6 +2999,17 @@ int main(int argc, const char * argv[]) {
             [NSApplication sharedApplication];
         }
 
+        // Add SIGTERM handler
+        // The SIGTERM signal is received when the user selects Quit from the dock icon menu.
+        // Note, this handler will not work when debugging.
+        signal(SIGTERM, SIG_IGN);
+        dispatch_source_t sigtermSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, SIGTERM, 0,
+                                                                 dispatch_get_main_queue());
+        dispatch_source_set_event_handler(sigtermSource, ^{
+            [NSApp terminate:nil];
+        });
+        dispatch_resume(sigtermSource);
+
         // Set the delegate and run
         GLFMAppDelegate *delegate = [GLFMAppDelegate new];
         [NSApp setDelegate:delegate];
